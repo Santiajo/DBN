@@ -1,0 +1,72 @@
+1. Crear proyecto dentro de una misma carpeta
+django-admin startproject config .
+
+2. Crear aplicación para api
+python manage.py startapp api
+
+3. Crear archivo .env en la raíz del proyecto
+
+4. Crear variable DATABASE_URL
+
+5. Asignar valor a la variable
+postgresql://postgres.fxxfjdtwazrmarlyeslm:c4a0lWPOwTvBKeQ8@aws-1-sa-east-1.pooler.supabase.com:5432/postgres
+
+5.5 EJEMPLO
+DATABASE_URL=postgresql://postgres.fxxfjdtwazrmarlyeslm:c4a0lWPOwTvBKeQ8@aws-1-sa-east-1.pooler.supabase.com:5432/postgres
+
+6. Crear variable SECRET_KEY
+
+7. Asignar cadena de valores generados en "Configuración python.txt"
+8)c*mwn_s6yt@0g^0%aki80vaf_#%%j9aqhc$8*6!(-5__!+@
+
+7.5 EJEMPLO
+SECRET_KEY=8)c*mwn_s6yt@0g^0%aki80vaf_#%%j9aqhc$8*6!(-5__!+@
+
+6. Dentro del archivo "settings.py", en la ruta "config/" importar
+from decouple import config
+import dj_database_url
+
+7. Cambiar la sección de database por
+DATABASES = {
+    'default': dj_database_url.config(
+        default=config('DATABASE_URL')
+    )
+}
+
+8. Añadir antes o despúes de DATABASES
+SECRET_KEY = config('SECRET_KEY')
+
+9. Añadir la aplicación 'api' y 'rest_framework' en INSTALLED_APPS
+
+10. Crear archivo en la raíz del proyecto ".gitignore"
+
+11. Añadir en el archivo .env (Esto no se subirá a github)
+
+12. Ejecutar migraciones
+python manage.py migrate
+
+13. Ejecutar proyecto
+python manage.py runserver
+
+14. Crear archivo urls.py dentro de la app 'api'
+
+15. Dentro de "config/urls.py" importar
+from django.urls import include
+
+16. Añadir urls de api a config del proyecto
+path('api/', include('api.urls'))
+
+-- CREAR SUPERUSUARIO --
+Para probar apis
+
+17. Crear superusuario
+python manage.py createsuperuser
+Santiasco | ca.manzo@duocuc.cl | admin123456
+
+
+
+
+
+
+
+

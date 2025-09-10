@@ -1,0 +1,18 @@
+# Reglas para Python / Django (Backend)
+__pycache__/
+*.pyc
+venv/
+.env/
+db.sqlite3
+/media/
+
+# Reglas para Node.js / Next.js (Frontend)
+/frontend/node_modules/
+/frontend/.next/
+/frontend/out/
+/frontend/.env.local
+
+# Archivos de sistema operativo y editores
+.DS_Store
+.vscode/
+.idea/
