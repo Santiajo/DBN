@@ -28,7 +28,7 @@ export default function LoginPage() {
           <input type="password" placeholder="Contraseña" className="dbn-input" required />
           <Button type="submit">Entrar</Button>
         </form>
-        <p className="link-text">
+        <p className="dbn-parchment-text">
           ¿No tienes cuenta? <a href="/register">Regístrate aquí</a>
         </p>
       </div>
