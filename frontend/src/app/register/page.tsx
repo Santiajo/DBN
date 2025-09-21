@@ -17,10 +17,11 @@ export default function RegisterPage() {
           <input type="password" placeholder="Contraseña" className="dbn-input" />
           <Button  type="submit">Crear cuenta</Button>
         </form>
-        <p className="link-text">
+        <p className="link-dbn-parchment-text">
           ¿Ya tienes cuenta? <a href="/login">Inicia sesión</a>
         </p>
       </div>
     </div>
   );
 }
+

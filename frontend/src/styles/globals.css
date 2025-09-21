@@ -27,20 +27,12 @@ body {
   width: 100%;
   padding: 10px 14px;
   margin: 8px 0;
-
-  /* Fondo estilo pergamino */
   background: linear-gradient(#cdbb8d 0%, #e6d2a9 100%);
-  
-  /* Marco similar a la tarjeta */
-  border: 10px solid transparent;
-  border-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10,10 L90,10 L90,90 L10,90 Z' fill='none' stroke='%23755c2d' stroke-width='4' stroke-linejoin='round'/%3E%3Cpath d='M15,15 L85,15 L85,85 L15,85 Z' fill='none' stroke='%23b89f67' stroke-width='2'/%3E%3C/svg%3E") 25 stretch;
-
-  /* Tipografía */
+  /* border: 10px solid ; */
+  border-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10,10 L90,10 L90,90 L10,90 Z' fill='none' stroke='%23122901' stroke-width='5' stroke-linejoin='round'/%3E%3Cpath d='M15,15 L85,15 L85,85 L15,85 Z' fill='none' stroke='%23122901' stroke-width='2'/%3E%3C/svg%3E") 25 stretch;
   font-family: 'Cinzel', serif;
   font-size: 1rem;
   color: #3a2a15;
-
-  /* Sombra interna como pergamino */
   box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.2);
 
   /* Transición suave */
@@ -50,7 +42,7 @@ body {
 .dbn-input:focus {
   outline: none;
   box-shadow: 0 0 8px rgba(117, 92, 45, 0.7), inset 0 2px 8px rgba(0, 0, 0, 0.3);
-  background: linear-gradient(to bottom, #fff3d6 0%, #e6d2a9 100%);
+  background: linear-gradient(to bottom, #fff3d6 0%, #fff3d6 100%);
 }
 
 /* Links */
@@ -92,9 +84,9 @@ body {
 }
 
 .dbn-parchment-card {
-  background: linear-gradient(to bottom, #f5e8c8 0%, #e6d2a9 100%);
-  border: 15px solid transparent;
-  border-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10,10 L90,10 L90,90 L10,90 Z' fill='none' stroke='%23755c2d' stroke-width='5' stroke-linejoin='round'/%3E%3Cpath d='M15,15 L85,15 L85,85 L15,85 Z' fill='none' stroke='%23b89f67' stroke-width='2'/%3E%3C/svg%3E") 25 stretch;
+  background: linear-gradient(#f5e8c8 0%, #f5e8c8 100%);
+  border: 15px solid;
+  border-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10,10 L90,10 L90,90 L10,90 Z' fill='none' stroke='%23122901' stroke-width='5' stroke-linejoin='round'/%3E%3Cpath d='M15,15 L85,15 L85,85 L15,85 Z' fill='none' stroke='%23122901' stroke-width='2'/%3E%3C/svg%3E") 25 stretch;
   padding: 50px;
   position: relative;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3), 
@@ -130,9 +122,9 @@ body {
 }
 
 .dbn-parchment-button {
-  background: linear-gradient(to bottom, #8b5a2b 0%, #6b4423 100%);
+  background: linear-gradient(to bottom, #122901 0%, #316b23 100%);
   color: #f5e8c8;
-  border: 2px solid #5c3713;
+  border: 2px solid #162d05;
   padding: 12px 20px;
   border-radius: 5px;
   font-family: 'Times New Roman', serif;
@@ -148,7 +140,7 @@ body {
 .dbn-parchment-button:hover {
   transform: translateY(-2px);
   box-shadow: 0 5px 12px rgba(0, 0, 0, 0.3);
-  background: linear-gradient(to bottom, #6b4423 0%, #5c3713 100%);
+  background: linear-gradient(to bottom, #408f2c 0%, #122901 100%);
 }
 
 .dbn-home-buttons{
@@ -180,9 +172,9 @@ body {
 
 /* Estilos para el efecto pergamino */
 .dbn-parchment {
-  background: linear-gradient(to bottom, #f5e8c8 0%, #e6d2a9 100%);
-  border: 15px solid transparent;
-  border-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10,10 L90,10 L90,90 L10,90 Z' fill='none' stroke='%23755c2d' stroke-width='5' stroke-linejoin='round'/%3E%3Cpath d='M15,15 L85,15 L85,85 L15,85 Z' fill='none' stroke='%23b89f67' stroke-width='2'/%3E%3C/svg%3E") 25 stretch;
+  background: linear-gradient(#f5e8c8 0%, #f5e8c8 100%);
+  border: 15px solid;
+  border-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10,10 L90,10 L90,90 L10,90 Z' fill='none' stroke='%23122901' stroke-width='5' stroke-linejoin='round'/%3E%3Cpath d='M15,15 L85,15 L85,85 L15,85 Z' fill='none' stroke='%23122901' stroke-width='2'/%3E%3C/svg%3E") 25 stretch;
   padding: 40px;
   position: relative;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3), 
@@ -198,7 +190,7 @@ body {
   font-family: 'Times New Roman', serif;
   font-weight: bold;
   text-transform: uppercase;
-  color: #5c3713;
+  color: #1d3f04;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
   letter-spacing: 2px;
   margin: 0;
