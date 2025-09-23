@@ -1,5 +1,6 @@
 from rest_framework import serializers, validators
 from django.contrib.auth.models import User
+from .models import *
 
 # Serializer para registro de usuarios
 class RegisterSerializer(serializers.ModelSerializer):
@@ -34,3 +35,12 @@ class RegisterSerializer(serializers.ModelSerializer):
         )
         return user
 
+class PersonajeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Personaje
+        fields = '__all__'
+
+class ObjetoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Objeto
+        fields = '__all__'

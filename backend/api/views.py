@@ -7,7 +7,9 @@ from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
-
+from rest_framework import viewsets
+from .models import *
+from .serializers import *
 # Create your views here.
 
 @api_view(['POST']) # Solo permite solicitudes POST
@@ -41,3 +43,11 @@ def activate_account_view(request, uidb64, token):
         return Response({"message": "Cuenta activada exitosamente."}, status=200)
     else:
         return Response({"error": "El enlace de activación es inválido."}, status=400)
+    
+class PersonajeViewSet(viewsets.ModelViewSet):
+    queryset = Personaje.objects.all()
+    serializer_class = PersonajeSerializer
+
+class ObjetoViewSet(viewsets.ModelViewSet):
+    queryset = Objeto.objects.all()
+    serializer_class = ObjetoSerializer
