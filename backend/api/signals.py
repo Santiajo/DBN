@@ -6,6 +6,7 @@ from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
+from decouple import config # Importar decouple para leer variables de entorno
 
 # Signal para enviar email de verificación al crear un nuevo usuario
 @receiver(post_save, sender=User)
@@ -15,10 +16,13 @@ def send_verification_email(sender, instance, created, **kwargs):
         # Generar token y uid
         token = default_token_generator.make_token(instance)
         uid = urlsafe_base64_encode(force_bytes(instance.pk))
+        
+        # Leer la URL del frontend desde las variables de entorno
+        frontend_url = config('FRONTEND_URL')
 
         # Construir URL de verificación (apuntando a tu frontend)
         # El frontend tomará el uid y token y hará una petición a la API
-        verification_url = f"http://localhost:3000/activate/{uid}/{token}/"
+        verification_url = f"{frontend_url}/activate/{uid}/{token}/"
 
         # Enviar email
         subject = 'Activa tu cuenta'
