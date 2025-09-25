@@ -2,10 +2,10 @@ import PageLayout from "@/components/page-layout";
 import Card from "@/components/card";
 import Input from "@/components/input";
 import Button from "@/components/button";
+import Link from 'next/link';
 
 export default function LoginPage() {
   return (
-    // Usamos el PageLayout y le pasamos la ruta de la imagen de fondo
     <PageLayout backgroundImage="/backgrounds/4dxdhy6aml6b1.jpg">
       
       <div className="w-full max-w-md">
@@ -52,9 +52,9 @@ export default function LoginPage() {
             <div className="text-center mt-6">
               <p className="font-body text-sm text-stone-700">
                 ¿Aún no tienes cuenta?{' '}
-                <a href="#" className="font-bold text-bosque hover:underline">
+                <Link href="/registro" className="font-bold text-bosque hover:underline">
                   Regístrate
-                </a>
+                </Link>
               </p>
             </div>
           </div>
