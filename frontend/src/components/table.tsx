@@ -7,7 +7,7 @@ type TableHeader = {
 
 type TableProps = {
   headers: TableHeader[];
-  data: Record<string, any>[];
+  data: Record<string, React.ReactNode>[];
 };
 
 export default function Table({ headers, data }: TableProps) {
