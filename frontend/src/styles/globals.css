@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@theme {
+  --font-title: var(--font-cinzel); 
+  --font-body: var(--font-inter);  
+
+  --color-madera-oscura: #331105;
+  --color-cuero: #6B4226;
+  --color-pergamino: #D9C7A6;
+  --color-bosque: #3E6B5C;
+  --color-carmesi: #B33F40;
+
+  --font-size-xs: 0.875rem; 
+  --font-size-sm: 1rem;  
+  --font-size-base: 1.125rem;
+}
+
+
+@layer base {
+  body {
+    background-color: var(--color-pergamino);
+    color: var(--color-madera-oscura);
+    font-family: var(--font-body);
+  }
+}
