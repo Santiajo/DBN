@@ -16,7 +16,7 @@ export default function Card({
 
   const variantClasses = {
     primary: 'bg-pergamino rounded-2xl border border-madera-oscura',
-    secondary: 'bg-white rounded-xl border border-madera-oscura', // <-- ¡Cambio aquí!
+    secondary: 'bg-white rounded-xl border border-madera-oscura',
   };
 
   return (
