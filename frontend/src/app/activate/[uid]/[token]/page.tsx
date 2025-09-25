@@ -61,7 +61,7 @@ export default function ActivatePage({ params }: { params: { uid: string; token:
                     setErrorMessage(data.error || 'El enlace de activación es inválido o ha expirado.');
                     setStatus('error');
                 }
-            } catch (_err) {
+            } catch {
                 setStatus('error');
                 setErrorMessage('Ocurrió un error de red. Por favor, intenta de nuevo.');
             }
