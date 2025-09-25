@@ -1,4 +1,6 @@
 import React from 'react';
+import { twMerge } from 'tailwind-merge';
+import clsx from 'clsx';
 
 type ButtonProps = {
   children: React.ReactNode;
@@ -22,12 +24,13 @@ export default function Button({
     dangerous: 'bg-carmesi text-white hover:bg-red-800 shadow-md',
   };
 
-  const finalClasses = [
+  const finalClasses = twMerge(
     baseClasses,
     variantClasses[variant],
-    isLoading ? 'flex items-center justify-center gap-2 cursor-wait' : '',
-    className, 
-  ].join(' ');
+    (isLoading || props.disabled) && "disabled:bg-stone-300 disabled:shadow-none disabled:text-stone-500 disabled:cursor-not-allowed",
+    isLoading && 'flex items-center justify-center gap-2 cursor-wait',
+    className
+  );
 
   return (
     <button
