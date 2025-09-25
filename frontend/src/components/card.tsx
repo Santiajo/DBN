@@ -15,8 +15,8 @@ export default function Card({
   const baseClasses = "p-6 shadow-lg";
 
   const variantClasses = {
-    primary: 'bg-pergamino rounded-2xl border border-madera-oscura', 
-    secondary: 'bg-white rounded-xl border border-stone-300',
+    primary: 'bg-pergamino rounded-2xl border border-madera-oscura',
+    secondary: 'bg-white rounded-xl border border-madera-oscura',
   };
 
   return (
