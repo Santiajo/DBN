@@ -12,10 +12,10 @@ import Button from '@/components/button';
 const SuccessComponent = () => (
     <Card variant="primary" className="w-full max-w-md text-center flex flex-col items-center">
         <FaDragon className="text-5xl text-bosque mb-4" />
-        <h1 className="font-title text-3xl mb-4">CUENTA ACTIVADA</h1>
-        <p className="font-body text-base mb-6">
-            ¡Tu cuenta en DRAGÓN DEL BASTIÓN DEL NORTE ha sido activada con éxito!
-            Ahora puedes explorar el mundo de WEST MARCH.
+        <h1 className="font-title text-3xl text-bosque mb-4">Cuenta Activada</h1>
+        <p className="font-body text-base text-bosque mb-6">
+            ¡Tu cuenta en Dragón del Bastión del Norte ha sido activada con éxito!
+            Ahora puedes jugar en el mundo de West March.
         </p>
         <Link href="/login" className="w-full">
             <Button variant="primary" className="w-full">
