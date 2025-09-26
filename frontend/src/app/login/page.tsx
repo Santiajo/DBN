@@ -12,11 +12,13 @@ export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -38,6 +40,8 @@ export default function LoginPage() {
       }
     } catch (err) {
       setError('Ocurrió un error de red. Intenta de nuevo.');
+    } finally {
+      setIsLoading(false); // <-- Desactivar carga al finalizar
     }
   };
 
