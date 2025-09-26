@@ -20,7 +20,7 @@ def send_verification_email(sender, instance, created, **kwargs):
         # Leer la URL del frontend desde las variables de entorno
         frontend_url = config('FRONTEND_URL')
 
-        # Construir URL de verificación (apuntando a tu frontend)
+        # Construir URL de verificación (apuntando al frontend)
         # El frontend tomará el uid y token y hará una petición a la API
         verification_url = f"{frontend_url}/activate/{uid}/{token}/"
 
