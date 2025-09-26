@@ -63,7 +63,7 @@ export default function LoginPage() {
               INICIO DE SESIÓN
             </h2>
             
-            <form className="space-y-6">
+            <form className="space-y-6" onSubmit={handleSubmit}>
               <div>
                 <Input 
                   type="text" 
