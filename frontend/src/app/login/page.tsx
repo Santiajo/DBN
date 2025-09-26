@@ -1,10 +1,46 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import PageLayout from "@/components/page-layout"; 
 import Card from "@/components/card";
 import Input from "@/components/input";
 import Button from "@/components/button";
-import Link from 'next/link';
 
 export default function LoginPage() {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const router = useRouter();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      const res = await fetch(`${apiUrl}/api/token/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        // Guardar tokens en el almacenamiento local del navegador
+        localStorage.setItem('access_token', data.access);
+        localStorage.setItem('refresh_token', data.refresh);
+        // Redirigir al dashboard
+        router.push('/dashboard');
+      } else {
+        setError('Las credenciales son incorrectas.');
+      }
+    } catch (err) {
+      setError('Ocurrió un error de red. Intenta de nuevo.');
+    }
+  };
+
   return (
     <PageLayout backgroundImage="/backgrounds/4dxdhy6aml6b1.jpg">
       
@@ -30,9 +66,11 @@ export default function LoginPage() {
             <form className="space-y-6">
               <div>
                 <Input 
-                  type="email" 
-                  placeholder="Correo electrónico" 
-                  aria-label="Correo electrónico"
+                  type="text" 
+                  placeholder="Nombre de usuario" 
+                  aria-label="Nombre de usuario"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                 />
               </div>
               <div>
@@ -40,8 +78,11 @@ export default function LoginPage() {
                   type="password" 
                   placeholder="Contraseña" 
                   aria-label="Contraseña"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
+              {error && <p className="text-sm text-carmesi">{error}</p>}
               <div>
                 <Button variant="primary" type="submit" className="w-full">
                   Ingresar
