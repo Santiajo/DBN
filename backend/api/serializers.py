@@ -12,7 +12,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             "password": {"write_only": True},
             "email": {
-                # Añadimos un validador para asegurar que el email es único, requerido y no puede estar en blanco
+                # Validador para asegurar que el email es único, requerido y no puede estar en blanco
                 "required": True,
                 "allow_blank": False,
                 "validators": [
