@@ -69,6 +69,15 @@ export default function RegisterPage() {
   return (
     <PageLayout backgroundImage="/backgrounds/4dxdhy6aml6b1.jpg">
       <div className="w-full max-w-lg">
+        {/* Caja del Título Superior */}
+        <Card variant="primary" className="text-center mb-6">
+          <h1 className="font-title text-3xl text-madera-oscura">
+            DRAGÓN DEL BASTIÓN DEL NORTE
+          </h1>
+          <p className="font-body text-sm uppercase tracking-widest text-stone-700 mt-1">
+            WEST MARCH
+          </p>
+        </Card>
         <Card variant="secondary">
           <div className="p-4">
             <h2 className="font-title text-2xl text-center text-madera-oscura mb-6">
