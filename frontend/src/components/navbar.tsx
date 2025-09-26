@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Button from './button';
+import { useAuth } from '@/context/AuthContext';
 
 type NavbarProps = {
     pageTitle: string;
@@ -9,6 +10,9 @@ type NavbarProps = {
 };
 
 export default function Navbar({ pageTitle, isSidebarCollapsed }: NavbarProps) {
+    // Obtener función logout
+    const { logout } = useAuth();
+
     // Calcular las clases de posición dinámicamente
     const positionClasses = isSidebarCollapsed
         ? 'left-20 w-[calc(100%-5rem)]' // Posición cuando el sidebar está colapsado 
@@ -27,7 +31,7 @@ export default function Navbar({ pageTitle, isSidebarCollapsed }: NavbarProps) {
             </div>
             <Button
                 variant="primary"
-                onClick={() => alert('Cerrando sesión...')}
+                onClick={logout} // Llamar función logout al clickear
                 className="hover:bg-carmesi" // Hover rojo
             >
                 Cerrar sesión
