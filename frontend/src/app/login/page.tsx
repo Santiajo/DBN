@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import PageLayout from "@/components/page-layout"; 
+import PageLayout from "@/components/page-layout";
 import Card from "@/components/card";
 import Input from "@/components/input";
 import Button from "@/components/button";
@@ -47,7 +47,7 @@ export default function LoginPage() {
 
   return (
     <PageLayout backgroundImage="/backgrounds/4dxdhy6aml6b1.jpg">
-      
+
       <div className="w-full max-w-md">
 
         {/* Caja del Título Superior */}
@@ -66,21 +66,21 @@ export default function LoginPage() {
             <h2 className="font-title text-2xl text-center text-madera-oscura mb-6">
               INICIO DE SESIÓN
             </h2>
-            
+
             <form className="space-y-6" onSubmit={handleSubmit}>
               <div>
-                <Input 
-                  type="text" 
-                  placeholder="Nombre de usuario" 
+                <Input
+                  type="text"
+                  placeholder="Nombre de usuario"
                   aria-label="Nombre de usuario"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                 />
               </div>
               <div>
-                <Input 
-                  type="password" 
-                  placeholder="Contraseña" 
+                <Input
+                  type="password"
+                  placeholder="Contraseña"
                   aria-label="Contraseña"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -88,7 +88,12 @@ export default function LoginPage() {
               </div>
               {error && <p className="text-sm text-carmesi">{error}</p>}
               <div>
-                <Button variant="primary" type="submit" className="w-full">
+                <Button
+                  variant="primary"
+                  type="submit"
+                  className="w-full"
+                  isLoading={isLoading}
+                >
                   Ingresar
                 </Button>
               </div>
