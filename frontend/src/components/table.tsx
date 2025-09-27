@@ -1,16 +1,17 @@
 import React from 'react';
 
 type TableHeader = {
-  key: string;    
-  label: string;   
+  key: string;
+  label: string;
 };
 
 type TableProps = {
   headers: TableHeader[];
   data: Record<string, React.ReactNode>[];
+  onRowClick?: (row: Record<string, any>) => void;
 };
 
-export default function Table({ headers, data }: TableProps) {
+export default function Table({ headers, data, onRowClick }: TableProps) {
   return (
     <div className="overflow-x-auto rounded-xl shadow-lg border border-madera-oscura">
       <table className="min-w-full text-left text-sm font-body">
@@ -27,7 +28,8 @@ export default function Table({ headers, data }: TableProps) {
           {data.map((row, rowIndex) => (
             <tr
               key={rowIndex}
-              className="odd:bg-white even:bg-pergamino hover:bg-bosque hover:text-white transition"
+              className={`odd:bg-white even:bg-pergamino transition ${onRowClick ? 'cursor-pointer hover:bg-bosque hover:text-white' : ''}`}
+              onClick={() => onRowClick?.(row)}
             >
               {headers.map((header) => (
                 <td key={`${rowIndex}-${header.key}`} className="px-4 py-2">

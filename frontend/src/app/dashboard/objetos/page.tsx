@@ -1,0 +1,178 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
+import Card from "@/components/card";
+import Table from "@/components/table";
+import Input from "@/components/input";
+import Button from "@/components/button";
+import { FaSearch, FaLink } from 'react-icons/fa';
+
+// Tipo de dato para objetos
+type Objeto = {
+    id: number;
+    Name: string;
+    Type: string;
+    Rarity: string;
+    Value: string;
+    Text: string;
+    Attunement: string;
+    Weight: string;
+    Source: string;
+};
+
+export default function ObjetosPage() {
+    const { user, accessToken, logout } = useAuth();
+    const router = useRouter();
+
+    const [objetos, setObjetos] = useState<Objeto[]>([]);
+    const [selectedObject, setSelectedObject] = useState<Objeto | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+
+    // Función para cargar los datos desde la API
+    const fetchObjects = useCallback(async (searchQuery = '') => {
+        if (!accessToken) return;
+
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        let url = `${apiUrl}/api/objetos/`;
+        if (searchQuery) {
+            url += `?Name=${searchQuery}`; // Búsqueda por nombre exacto
+        }
+
+        try {
+            const res = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                },
+            });
+
+            if (!res.ok) {
+                if (res.status === 401) logout(); // Si el token es inválido, se cierra sesión
+                throw new Error('Error al cargar los datos');
+            }
+
+            const data: Objeto[] = await res.json();
+            setObjetos(data);
+            if (data.length > 0 && !searchQuery) {
+                setSelectedObject(data[0]);
+            } else if (data.length > 0 && searchQuery) {
+                setSelectedObject(data[0]);
+            } else {
+                setSelectedObject(null);
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    }, [accessToken, logout]);
+
+    // Proteger la ruta y cargar datos iniciales
+    useEffect(() => {
+        if (user === null) return; // Espera a que la info del usuario cargue
+        if (!user.is_staff) {
+            router.push('/dashboard'); // Si no es staff, lo redirigimos
+        } else {
+            fetchObjects();
+        }
+    }, [user, router, fetchObjects]);
+
+    const handleSearch = () => {
+        fetchObjects(searchTerm);
+    };
+
+    const handleDelete = async () => {
+        if (!selectedObject || !accessToken) return;
+
+        if (confirm(`¿Estás seguro de que quieres eliminar "${selectedObject.Name}"?`)) {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+            try {
+                await fetch(`${apiUrl}/api/objetos/${selectedObject.id}/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                    },
+                });
+                // Recargamos la lista de objetos para reflejar el cambio
+                fetchObjects();
+            } catch (error) {
+                console.error('Error al eliminar el objeto:', error);
+            }
+        }
+    };
+
+
+    const tableHeaders = [
+        { key: 'Name', label: 'Nombre' },
+        { key: 'Type', label: 'Tipo' },
+        { key: 'Value', label: 'Costo' },
+        { key: 'Weight', label: 'Peso' },
+        { key: 'Source', label: 'Fuente' },
+    ];
+
+    // No mostrar nada hasta que se confirme que el usuario es staff
+    if (!user?.is_staff) {
+        return <div className="p-8 font-title">Verificando acceso...</div>;
+    }
+
+    return (
+        <div className="space-y-6">
+            {/* Crear y Buscar */}
+            <div className="flex justify-end items-center gap-4">
+                <Button variant="primary">Crear Objeto</Button>
+                <div className="flex items-center gap-2 flex-grow max-w-xs">
+                    <Input
+                        placeholder="Buscar por nombre exacto..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                    <Button variant="secondary" onClick={handleSearch}>
+                        <FaSearch />
+                    </Button>
+                </div>
+            </div>
+
+            {/* Tabla a la izquierda, Descripción a la derecha */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                {/* Tabla */}
+                <div className="lg:col-span-2">
+                    {/* Tabla interactiva pasando una función onClick a las filas */}
+                    <Table
+                        headers={tableHeaders}
+                        data={objetos}
+                        onRowClick={(objeto) => setSelectedObject(objeto as Objeto)}
+                    />
+                </div>
+
+                {/* Descripción */}
+                <div className="lg:col-span-1">
+                    {selectedObject ? (
+                        <Card variant="primary" className="h-full flex flex-col">
+                            {/* Título y subtítulo como en 5e.tools */}
+                            <div>
+                                <h3 className="font-title text-xl">{selectedObject.Name}</h3>
+                                <p className="font-body text-xs italic text-stone-600">
+                                    {selectedObject.Type}, {selectedObject.Rarity}
+                                    {selectedObject.Attunement && ` (${selectedObject.Attunement})`}
+                                </p>
+                            </div>
+
+                            <div className="font-body space-y-2 text-sm flex-grow mt-4 border-t pt-4 border-madera-oscura">
+                                <p className="mt-4">{selectedObject.Text}</p>
+                            </div>
+                            <div className="flex justify-end gap-2 mt-auto pt-4">
+                                <Button variant="dangerous" onClick={handleDelete}>Eliminar</Button>
+                                <Button variant="secondary">Modificar</Button>
+                                <Button variant="secondary"><FaLink /></Button>
+                            </div>
+                        </Card>
+                    ) : (
+                        <Card variant="primary" className="h-full flex items-center justify-center">
+                            <p className="text-stone-500">No se encontraron objetos o no hay ninguno seleccionado.</p>
+                        </Card>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
