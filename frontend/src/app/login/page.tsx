@@ -7,8 +7,10 @@ import PageLayout from "@/components/page-layout";
 import Card from "@/components/card";
 import Input from "@/components/input";
 import Button from "@/components/button";
+import { useAuth } from '@/context/AuthContext';
 
 export default function LoginPage() {
+  const { login } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -30,11 +32,8 @@ export default function LoginPage() {
 
       if (res.ok) {
         const data = await res.json();
-        // Guardar tokens en el almacenamiento local del navegador
-        localStorage.setItem('access_token', data.access);
-        localStorage.setItem('refresh_token', data.refresh);
-        // Redirigir al dashboard
-        router.push('/dashboard');
+        login(data.access, data.refresh); // Guardar tokens en el contexto
+        router.push('/dashboard'); // Redirigir al dashboard
       } else {
         setError('Las credenciales son incorrectas.');
       }

@@ -30,7 +30,7 @@ export default function Navbar({ pageTitle, isSidebarCollapsed }: NavbarProps) {
                 </p>
             </div>
             <Button
-                variant="primary"
+                variant="secondary"
                 onClick={logout} // Llamar función logout al clickear
                 className="hover:bg-carmesi" // Hover rojo
             >
