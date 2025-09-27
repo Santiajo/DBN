@@ -9,7 +9,9 @@ from django.utils.encoding import force_str
 from rest_framework import viewsets
 from .models import *
 from .serializers import *
-from rest_framework.permissions import IsAdminUser
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework_simplejwt.views import TokenObtainPairView
+from .serializers import MyTokenObtainPairSerializer
 
 @api_view(['POST']) # Solo permite solicitudes POST
 @permission_classes([AllowAny]) # Permite que cualquiera pueda acceder a esta vista
@@ -42,6 +44,9 @@ def activate_account_view(request, uidb64, token):
         return Response({"message": "Cuenta activada exitosamente."}, status=200)
     else:
         return Response({"error": "El enlace de activación es inválido."}, status=400)
+
+class MyTokenObtainPairView(TokenObtainPairView):
+    serializer_class = MyTokenObtainPairSerializer
     
 class PersonajeViewSet(viewsets.ModelViewSet):
     queryset = Personaje.objects.all()
@@ -50,6 +55,7 @@ class PersonajeViewSet(viewsets.ModelViewSet):
 class ObjetoViewSet(viewsets.ModelViewSet):
     queryset = Objeto.objects.all()
     serializer_class = ObjetoSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
 
 class RecetaViewSet(viewsets.ModelViewSet):
     queryset= Receta.objects.all()
