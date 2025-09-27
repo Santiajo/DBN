@@ -9,7 +9,8 @@ from django.utils.encoding import force_str
 from rest_framework import viewsets
 from .models import *
 from .serializers import *
-from rest_framework.permissions import IsAdminUser
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
+# Create your views here.
 
 @api_view(['POST']) # Solo permite solicitudes POST
 @permission_classes([AllowAny]) # Permite que cualquiera pueda acceder a esta vista
@@ -42,7 +43,18 @@ def activate_account_view(request, uidb64, token):
         return Response({"message": "Cuenta activada exitosamente."}, status=200)
     else:
         return Response({"error": "El enlace de activación es inválido."}, status=400)
-    
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated, IsAdminUser])  # Solo admin puede eliminar
+def delete_user_view(request, user_id):
+    try:
+        user = User.objects.get(id=user_id)
+        user.delete()
+        return Response({"success": True, "message": "Usuario eliminado correctamente"}, status=200)
+    except User.DoesNotExist:
+        return Response({"success": False, "message": "Usuario no encontrado"}, status=404)
+
+
 class PersonajeViewSet(viewsets.ModelViewSet):
     queryset = Personaje.objects.all()
     serializer_class = PersonajeSerializer

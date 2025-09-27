@@ -29,7 +29,13 @@ class Personaje(models.Model):
     especie = models.CharField(max_length=50, blank=True)
     faccion = models.CharField(max_length=50, blank=True)
     
-    # fuerza = models.IntegerField(default=10)
+    # Estadísticas 
+    fuerza = models.IntegerField(default=10)
+    inteligencia = models.IntegerField(default=10)
+    sabiduria = models.IntegerField(default=10)
+    destreza = models.IntegerField(default=10)
+    constitucion = models.IntegerField(default=10)
+    carisma = models.IntegerField(default=10)
 
     #esto sirve para como se vera en admin los productos
     def __str__(self) :
@@ -71,12 +77,61 @@ class Ingredientes(models.Model):
         return f"{self.cantidad} x {self.objeto.Name} (para {self.receta.nombre})"
 
 
-# class Proficiencia(models.Model):
-#     personaje = models.ForeignKey(Personaje, on_delete=models.CASCADE)
-#     habilidad = models.CharField(max_length=100) NOMBRE DE LA HABILIDAD EJ: ATLETISMO 
+#   PROFICIENCIAS
 #     VINCULAR LA ESTADISTICA A LA QUE PERTENECE EJ: FUERZA
 #     ESTADO DE SI ES O NO PROFICIENTE
+class Proficiencia(models.Model):
+    HABILIDAD_TO_STAT = {
+        # Fuerza
+        "atletismo": "fuerza",
+        # Destreza
+        "acrobacias": "destreza",
+        "sigilo": "destreza",
+        "juego de manos": "destreza",
+        # Inteligencia
+        "arcana": "inteligencia",
+        "historia": "inteligencia",
+        "investigación": "inteligencia",
+        "naturaleza": "inteligencia",
+        "religión": "inteligencia",
+        # Sabiduría
+        "percepción": "sabiduría",
+        "supervivencia": "sabiduría",
+        "medicina": "sabiduría",
+        "manejo de animales": "sabiduría",
+        "perspicacia": "sabiduría",
+        # Carisma
+        "persuasión": "carisma",
+        "engaño": "carisma",
+        "intimidación": "carisma",
+        "interpretación": "carisma",
+    }
+
+    HABILIDADES = [(k, k.capitalize()) for k in HABILIDAD_TO_STAT.keys()]
+
+    personaje = models.ForeignKey(
+        "Personaje",
+        on_delete=models.CASCADE,
+        related_name="proficiencias"
+    )
+    habilidad = models.CharField(max_length=50, choices=HABILIDADES)
+    es_proficiente = models.BooleanField(default=False)  # <<--- nuevo campo
+
+    @property
+    def estadistica(self):
+        """Devuelve automáticamente la estadística asociada a la habilidad"""
+        return self.HABILIDAD_TO_STAT.get(self.habilidad, "Desconocida")
+
+    def __str__(self):
+        estado = "Proficiente" if self.es_proficiente else "No proficiente"
+        return f"{self.habilidad.capitalize()} ({self.estadistica.capitalize()}) - {self.personaje.nombre_personaje} [{estado}]"
+
 
 # BONUS DE PROFICIENCIA
-# class BonusProficiencia(models.Model):
+class BonusProficiencia(models.Model):
+    nivel = models.PositiveIntegerField(unique=True)  # nivel de 1 a 20
+    bonus = models.IntegerField()  # valor de +2, +3
+
+    def __str__(self):
+        return f"Nivel {self.nivel} → Bonus {self.bonus}"
 
