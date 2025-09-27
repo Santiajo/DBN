@@ -2,7 +2,8 @@
 'use client';
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { jwtDecode } from 'jwt-decode'; // Importa la nueva librería
+import { jwtDecode } from 'jwt-decode';
+
 
 // Estructura de datos que se obtendran del usuario mediante el token
 interface User {
