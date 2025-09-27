@@ -6,14 +6,20 @@ import Card from "@/components/card";
 import Table from "@/components/table";
 import { useState } from 'react';
 
+type RowData = {
+  jugador: string;
+  clase: string;
+};
+
 export default function UIKitPage() {
-  const [selectedRow, setSelectedRow] = useState<Record<string, any> | null>(null);
+  const [selectedRow, setSelectedRow] = useState<RowData | null>(null);
 
   const tableHeaders = [
     { key: 'jugador', label: 'Jugador' },
     { key: 'clase', label: 'Clase' },
   ];
-  const tableData = [
+  
+  const tableData: RowData[] = [
     { jugador: 'Eldrin', clase: 'Guerrero' },
     { jugador: 'Lyra', clase: 'Maga' },
   ];
@@ -73,7 +79,7 @@ export default function UIKitPage() {
         <Table
           headers={tableHeaders}
           data={tableData}
-          onRowClick={(row) => setSelectedRow(row)}
+          onRowClick={(row) => setSelectedRow(row as RowData)}
         />
         {selectedRow && (
           <p className="mt-4 font-body">
