@@ -10,7 +10,7 @@ from django.utils.encoding import force_str
 from rest_framework import viewsets
 from .models import *
 from .serializers import *
-# Create your views here.
+from rest_framework.permissions import IsAdminUser
 
 @api_view(['POST']) # Solo permite solicitudes POST
 @permission_classes([AllowAny]) # Permite que cualquiera pueda acceder a esta vista
@@ -51,3 +51,4 @@ class PersonajeViewSet(viewsets.ModelViewSet):
 class ObjetoViewSet(viewsets.ModelViewSet):
     queryset = Objeto.objects.all()
     serializer_class = ObjetoSerializer
+    permission_classes = [IsAdminUser]

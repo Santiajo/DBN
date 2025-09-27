@@ -9,6 +9,7 @@ type InputProps = {
 export default function Input({
   state = 'normal',
   message,
+  className,
   ...props
 }: InputProps) {
   const baseClasses = "px-4 py-2 w-full rounded-lg border bg-white text-madera-oscura focus:outline-none focus:ring-2 disabled:bg-stone-200 disabled:text-stone-500 disabled:cursor-not-allowed";
@@ -27,8 +28,9 @@ export default function Input({
 
   return (
     <div>
+      {/* Combinar clases internas con externas */}
       <input
-        className={`${baseClasses} ${stateClasses[state]}`}
+        className={`${baseClasses} ${stateClasses[state]} ${className}`}
         {...props}
       />
       {message && (state === 'error' || state === 'success') && (
