@@ -46,7 +46,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
       <div className="mt-auto">
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="w-full flex justify-center items-center gap-4 px-4 py-2 rounded-lg hover:bg-cuero hover:text-white transition" // <-- Cambiamos hover:bg-stone-300
+          className="w-full flex justify-center items-center gap-4 px-4 py-2 rounded-lg hover:bg-cuero hover:text-white cursor-pointer transition" // <-- Cambiamos hover:bg-stone-300
         >
           {isCollapsed ? <FaAngleRight className="text-2xl" /> : <FaAngleLeft className="text-2xl" />}
         </button>
