@@ -2,7 +2,6 @@ from django.shortcuts import render
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
-from .serializers import RegisterSerializer
 from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_decode
@@ -51,4 +50,11 @@ class PersonajeViewSet(viewsets.ModelViewSet):
 class ObjetoViewSet(viewsets.ModelViewSet):
     queryset = Objeto.objects.all()
     serializer_class = ObjetoSerializer
-    permission_classes = [IsAdminUser]
+
+class RecetaViewSet(viewsets.ModelViewSet):
+    queryset= Receta.objects.all()
+    serializer_class = RecetaSerializer
+
+class IngredienteViewSet(viewsets.ModelViewSet):
+    queryset= Ingredientes.objects.all()
+    serializer_class = IngredientesSerializer
