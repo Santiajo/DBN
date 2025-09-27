@@ -8,7 +8,7 @@ type TableHeader = {
 type TableProps = {
   headers: TableHeader[];
   data: Record<string, React.ReactNode>[];
-  onRowClick?: (row: Record<string, any>) => void;
+  onRowClick?: (row: Record<string, React.ReactNode>) => void;
 };
 
 export default function Table({ headers, data, onRowClick }: TableProps) {

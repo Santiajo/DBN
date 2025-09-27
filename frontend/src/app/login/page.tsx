@@ -37,7 +37,7 @@ export default function LoginPage() {
       } else {
         setError('Las credenciales son incorrectas.');
       }
-    } catch (err) {
+    } catch {
       setError('Ocurrió un error de red. Intenta de nuevo.');
     } finally {
       setIsLoading(false); // <-- Desactivar carga al finalizar
