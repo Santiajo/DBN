@@ -2,22 +2,21 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import Image from "next/image";
 
 export default function HomePage() {
-  const { isAuthenticated } = useAuth();
+  const { user } = useAuth(); // Obtener objeto 'user'
   const router = useRouter();
 
   useEffect(() => {
-    if (isAuthenticated) {
+    // Si existe 'user', el usuario está autenticado.
+    if (user) { 
       router.replace('/dashboard');
     } else {
       router.replace('/login');
     }
-  }, [isAuthenticated, router]);
+  }, [user, router]);
 
   return (
-    // Muestra un loader mientras redirige
     <div className="flex h-screen items-center justify-center">
       <p className="font-title">Cargando...</p>
     </div>

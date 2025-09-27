@@ -56,7 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const decodedUser: User = jwtDecode(token);
         setUser(decodedUser);
         setAccessToken(token);
-      } catch (e) {
+      } catch {
         // Token inválido o expirado, se limpia
         logout();
       }

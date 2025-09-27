@@ -59,7 +59,7 @@ export default function RegisterPage() {
         const errorMessages = Object.values(data).join(' ');
         setError(errorMessages || 'Ocurrió un error en el registro.');
       }
-    } catch (err) {
+    } catch {
       setError('No se pudo conectar con el servidor. Intenta de nuevo.');
     } finally {
       setIsLoading(false); // Desactivar carga al finalizar
