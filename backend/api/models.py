@@ -28,6 +28,8 @@ class Personaje(models.Model):
     nivel = models.IntegerField(default=1, null=True)
     especie = models.CharField(max_length=50, blank=True)
     faccion = models.CharField(max_length=50, blank=True)
+    
+    # fuerza = models.IntegerField(default=10)
 
     #esto sirve para como se vera en admin los productos
     def __str__(self) :
@@ -68,4 +70,13 @@ class Ingredientes(models.Model):
     def __str__(self):
         return f"{self.cantidad} x {self.objeto.Name} (para {self.receta.nombre})"
 
+
+# class Proficiencia(models.Model):
+#     personaje = models.ForeignKey(Personaje, on_delete=models.CASCADE)
+#     habilidad = models.CharField(max_length=100) NOMBRE DE LA HABILIDAD EJ: ATLETISMO 
+#     VINCULAR LA ESTADISTICA A LA QUE PERTENECE EJ: FUERZA
+#     ESTADO DE SI ES O NO PROFICIENTE
+
+# BONUS DE PROFICIENCIA
+# class BonusProficiencia(models.Model):
 
