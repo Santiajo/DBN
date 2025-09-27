@@ -34,7 +34,7 @@ class Personaje(models.Model):
         return self.nombre_usuario + " " + self.nombre_personaje
     
 
-
+#agregar stock
 class Objeto(models.Model):
     Name = models.CharField(max_length=150)  
     Source = models.CharField(max_length=200, blank=True, null=True)  
@@ -51,4 +51,21 @@ class Objeto(models.Model):
 
     def __str__(self):
         return self.name
+    
+class Receta(models.Model):
+    nombre = models.CharField(max_length=100)
+    objeto_final = models.ForeignKey("Objeto", on_delete=models.CASCADE, related_name="recetas")
+    cantidad_final = models.IntegerField(default=1, null=True)
+
+    def __str__(self):
+        return f"Receta: {self.nombre} → {self.objeto_final.Name}"
+
+class Ingredientes(models.Model):
+    receta = models.ForeignKey(Receta, on_delete=models.CASCADE, related_name="ingredientes")
+    objeto = models.ForeignKey("Objeto", on_delete=models.CASCADE)
+    cantidad = models.PositiveIntegerField(default=1)
+
+    def __str__(self):
+        return f"{self.cantidad} x {self.objeto.Name} (para {self.receta.nombre})"
+
 
