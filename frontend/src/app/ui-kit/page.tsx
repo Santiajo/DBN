@@ -1,23 +1,23 @@
+'use client';
+
 import Button from "@/components/button";
 import Input from "@/components/input";
-import Card from "@/components/card";   
+import Card from "@/components/card";
 import Table from "@/components/table";
-
-const tableHeaders = [
-  { key: 'jugador', label: 'Jugador' },
-  { key: 'clase', label: 'Clase' },
-  { key: 'nivel', label: 'Nivel' },
-  { key: 'oro', label: 'Oro' },
-];
-
-const tableData = [
-  { jugador: 'Eldrin', clase: 'Guerrero', nivel: 3, oro: 120 },
-  { jugador: 'Lyra', clase: 'Maga', nivel: 2, oro: 85 },
-  { jugador: 'Fendrel', clase: 'Pícaro', nivel: 3, oro: 150 },
-  { jugador: 'Seraphina', clase: 'Clériga', nivel: 2, oro: 90 },
-];
+import { useState } from 'react';
 
 export default function UIKitPage() {
+  const [selectedRow, setSelectedRow] = useState<Record<string, any> | null>(null);
+
+  const tableHeaders = [
+    { key: 'jugador', label: 'Jugador' },
+    { key: 'clase', label: 'Clase' },
+  ];
+  const tableData = [
+    { jugador: 'Eldrin', clase: 'Guerrero' },
+    { jugador: 'Lyra', clase: 'Maga' },
+  ];
+
   return (
     <main className="p-10 space-y-16">
       <section>
@@ -69,8 +69,17 @@ export default function UIKitPage() {
       </section>
 
       <section>
-        <h2 className="font-title text-3xl mb-4">Tabla</h2>
-        <Table headers={tableHeaders} data={tableData} />
+        <h2 className="font-title text-3xl mb-4">Tabla Interactiva</h2>
+        <Table
+          headers={tableHeaders}
+          data={tableData}
+          onRowClick={(row) => setSelectedRow(row)}
+        />
+        {selectedRow && (
+          <p className="mt-4 font-body">
+            Fila seleccionada: {JSON.stringify(selectedRow)}
+          </p>
+        )}
       </section>
     </main>
   );
