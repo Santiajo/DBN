@@ -1,6 +1,7 @@
 from rest_framework import serializers, validators
 from django.contrib.auth.models import User
 from .models import *
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 # Serializer para registro de usuarios
 class RegisterSerializer(serializers.ModelSerializer):
@@ -34,6 +35,20 @@ class RegisterSerializer(serializers.ModelSerializer):
             is_active=False  # El usuario se crea como inactivo hasta que verifique su email
         )
         return user
+
+class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+
+        # Añade claims personalizados al payload del token
+        token['username'] = user.username
+        token['first_name'] = user.first_name
+        token['last_name'] = user.last_name
+        token['email'] = user.email
+        token['is_staff'] = user.is_staff
+        token['id'] = user.id
+        return token
 
 class PersonajeSerializer(serializers.ModelSerializer):
     class Meta:
