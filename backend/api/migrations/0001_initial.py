@@ -45,23 +45,5 @@ class Migration(migrations.Migration):
                 ('especie', models.CharField(blank=True, max_length=50)),
                 ('faccion', models.CharField(blank=True, max_length=50)),
             ],
-        ),
-        migrations.CreateModel(
-            name='Receta',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('nombre', models.CharField(max_length=100)),
-                ('cantidad_final', models.IntegerField(default=1, null=True)),
-                ('objeto_final', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='recetas', to='api.objeto')),
-            ],
-        ),
-        migrations.CreateModel(
-            name='Ingredientes',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('cantidad', models.PositiveIntegerField(default=1)),
-                ('objeto', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='api.objeto')),
-                ('receta', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='ingredientes', to='api.receta')),
-            ],
-        ),
+        )
     ]
