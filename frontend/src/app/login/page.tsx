@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import PageLayout from "@/components/page-layout";
 import Card from "@/components/card";
 import Input from "@/components/input";
 import Button from "@/components/button";
-import { useAuth } from '@/context/AuthContext';
+
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -15,7 +15,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,14 +32,13 @@ export default function LoginPage() {
       if (res.ok) {
         const data = await res.json();
         login(data.access, data.refresh); // Guardar tokens en el contexto
-        router.push('/dashboard'); // Redirigir al dashboard
       } else {
         setError('Las credenciales son incorrectas.');
+        setIsLoading(false);
       }
     } catch {
       setError('Ocurrió un error de red. Intenta de nuevo.');
-    } finally {
-      setIsLoading(false); // <-- Desactivar carga al finalizar
+      setIsLoading(false);
     }
   };
 
