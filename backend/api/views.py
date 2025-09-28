@@ -56,6 +56,7 @@ class ObjetoViewSet(viewsets.ModelViewSet):
     queryset = Objeto.objects.all()
     serializer_class = ObjetoSerializer
     permission_classes = [IsAuthenticated, IsAdminUser]
+    search_fields = ['Name', 'Type']    
 
 class RecetaViewSet(viewsets.ModelViewSet):
     queryset= Receta.objects.all()
