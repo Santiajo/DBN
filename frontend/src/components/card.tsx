@@ -12,7 +12,7 @@ export default function Card({
   variant = 'primary',
   className = '',
 }: CardProps) {
-  const baseClasses = "p-6 shadow-lg";
+  const baseClasses = "p-6";
 
   const variantClasses = {
     primary: 'bg-pergamino rounded-2xl border border-madera-oscura',

@@ -25,7 +25,7 @@ const navLinks = [
 export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
   return (
     <aside
-      className={`bg-pergamino border-r border-madera-oscura p-4 flex flex-col shadow-md transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'}`}
+      className={`bg-pergamino border-r border-madera-oscura p-4 flex flex-col transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'}`}
     >
       <nav className="flex-1">
         <ul>
