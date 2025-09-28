@@ -21,7 +21,7 @@ export default function Navbar({ pageTitle, isSidebarCollapsed }: NavbarProps) {
     return (
         <header
             // Insertar las clases calculadas
-            className={`fixed top-0 bg-madera-oscura text-white px-6 py-3 flex items-center justify-between shadow-lg z-50 transition-all duration-300 ${positionClasses}`}
+            className={`fixed top-0 bg-madera-oscura text-white px-6 py-3 flex items-center justify-between z-50 transition-all duration-300 ${positionClasses}`}
         >
             <div>
                 <h1 className="font-title text-xl">Dragón del Bastión del Norte</h1>
