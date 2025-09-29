@@ -51,14 +51,14 @@ class IngredientesSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Ingredientes
-        fields = ['id', 'objeto', 'nombre_ingrediente', 'cantidad']
+        fields = ['id', 'receta', 'objeto', 'nombre_ingrediente', 'cantidad']
         # 'objeto' sigue enviando la ID para POST/PUT
 
 class RecetaSerializer(serializers.ModelSerializer):
     # Muestra el nombre del objeto final
     nombre_objeto_final = serializers.CharField(source='objeto_final.Name', read_only=True)
     # Incluye los ingredientes anidados
-    ingredientes = IngredientesSerializer(source='ingredientes', many=True, read_only=True)
+    ingredientes = IngredientesSerializer(many=True, read_only=True)
 
     class Meta:
         model = Receta
