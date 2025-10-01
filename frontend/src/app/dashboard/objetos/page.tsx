@@ -157,7 +157,7 @@ export default function ObjetosPage() {
                 <div className="lg:col-span-1">
                     {selectedObject ? (
                         <Card variant="primary" className="h-full flex flex-col">
-                            {/* Título y subtítulo como en 5e.tools */}
+                            {/* Título y subtítulo como 5e.tools */}
                             <div>
                                 <h3 className="font-title text-xl">{selectedObject.Name}</h3>
                                 <p className="font-body text-xs italic text-stone-600">
