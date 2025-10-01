@@ -19,13 +19,13 @@ export default function Button({
   const baseClasses = "px-6 py-3 rounded-xl font-body font-bold transition cursor-pointer disabled:cursor-not-allowed";
 
   const variantClasses = {
-    primary: 'bg-madera-oscura text-white hover:bg-cuero shadow-md',
+    primary: 'bg-madera-oscura text-white hover:bg-cuero',
     secondary: 'bg-pergamino text-madera-oscura border border-madera-oscura hover:opacity-80',
-    dangerous: 'bg-carmesi text-white hover:bg-red-800 shadow-md',
+    dangerous: 'bg-carmesi text-white hover:bg-red-800',
   };
 
   const disabledClasses = isDisabled && !isLoading
-    ? 'bg-stone-300 text-stone-500 shadow-none'
+    ? 'bg-stone-300 text-stone-500'
     : '';
 
   const loadingClasses = isLoading
