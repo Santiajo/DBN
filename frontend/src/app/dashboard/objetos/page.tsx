@@ -8,7 +8,7 @@ import Table from "@/components/table";
 import Input from "@/components/input";
 import Button from "@/components/button";
 import Pagination from '@/components/pagination';
-import { FaSearch, FaLink } from 'react-icons/fa';
+import { FaSearch, FaLink, FaTrash, FaPencilAlt, FaEye } from 'react-icons/fa';
 
 // Tipo de dato para objetos
 type Objeto = {
@@ -157,7 +157,7 @@ export default function ObjetosPage() {
                 <div className="lg:col-span-1">
                     {selectedObject ? (
                         <Card variant="primary" className="h-full flex flex-col">
-                            {/* Título y subtítulo como en 5e.tools */}
+                            {/* Título y subtítulo como 5e.tools */}
                             <div>
                                 <h3 className="font-title text-xl">{selectedObject.Name}</h3>
                                 <p className="font-body text-xs italic text-stone-600">
@@ -170,9 +170,9 @@ export default function ObjetosPage() {
                                 <p className="mt-4">{selectedObject.Text}</p>
                             </div>
                             <div className="flex justify-end gap-2 mt-auto pt-4">
-                                <Button variant="dangerous" onClick={handleDelete}>Eliminar</Button>
-                                <Button variant="secondary">Modificar</Button>
-                                <Button variant="secondary"><FaLink /></Button>
+                                <Button variant="dangerous" onClick={handleDelete}><FaTrash /></Button>
+                                <Button variant="secondary"><FaPencilAlt /></Button>
+                                <Button variant="secondary"><FaLink /><FaEye /></Button>
                             </div>
                         </Card>
                     ) : (

@@ -13,7 +13,7 @@ type TableProps = {
 
 export default function Table({ headers, data, onRowClick }: TableProps) {
   return (
-    <div className="overflow-x-auto rounded-xl shadow-lg border border-madera-oscura">
+    <div className="overflow-x-auto rounded-xl border border-madera-oscura">
       <table className="min-w-full text-left text-sm font-body">
         <thead className="bg-cuero text-white font-title uppercase">
           <tr>
