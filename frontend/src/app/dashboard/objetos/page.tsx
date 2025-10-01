@@ -8,7 +8,7 @@ import Table from "@/components/table";
 import Input from "@/components/input";
 import Button from "@/components/button";
 import Pagination from '@/components/pagination';
-import { FaSearch, FaLink } from 'react-icons/fa';
+import { FaSearch, FaLink, FaTrash, FaPencilAlt, FaEye } from 'react-icons/fa';
 
 // Tipo de dato para objetos
 type Objeto = {
@@ -170,9 +170,9 @@ export default function ObjetosPage() {
                                 <p className="mt-4">{selectedObject.Text}</p>
                             </div>
                             <div className="flex justify-end gap-2 mt-auto pt-4">
-                                <Button variant="dangerous" onClick={handleDelete}>Eliminar</Button>
-                                <Button variant="secondary">Modificar</Button>
-                                <Button variant="secondary"><FaLink /></Button>
+                                <Button variant="dangerous" onClick={handleDelete}><FaTrash /></Button>
+                                <Button variant="secondary"><FaPencilAlt /></Button>
+                                <Button variant="secondary"><FaLink /><FaEye /></Button>
                             </div>
                         </Card>
                     ) : (
