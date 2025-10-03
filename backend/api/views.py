@@ -10,7 +10,8 @@ from rest_framework import viewsets
 from .models import *
 from .serializers import *
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
-# Create your views here.
+from rest_framework_simplejwt.views import TokenObtainPairView
+from .serializers import MyTokenObtainPairSerializer
 
 @api_view(['POST']) # Solo permite solicitudes POST
 @permission_classes([AllowAny]) # Permite que cualquiera pueda acceder a esta vista
@@ -44,17 +45,9 @@ def activate_account_view(request, uidb64, token):
     else:
         return Response({"error": "El enlace de activación es inválido."}, status=400)
 
-@api_view(["DELETE"])
-@permission_classes([IsAuthenticated, IsAdminUser])  # Solo admin puede eliminar
-def delete_user_view(request, user_id):
-    try:
-        user = User.objects.get(id=user_id)
-        user.delete()
-        return Response({"success": True, "message": "Usuario eliminado correctamente"}, status=200)
-    except User.DoesNotExist:
-        return Response({"success": False, "message": "Usuario no encontrado"}, status=404)
-
-
+class MyTokenObtainPairView(TokenObtainPairView):
+    serializer_class = MyTokenObtainPairSerializer
+    
 class PersonajeViewSet(viewsets.ModelViewSet):
     queryset = Personaje.objects.all()
     serializer_class = PersonajeSerializer
@@ -62,6 +55,8 @@ class PersonajeViewSet(viewsets.ModelViewSet):
 class ObjetoViewSet(viewsets.ModelViewSet):
     queryset = Objeto.objects.all()
     serializer_class = ObjetoSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    search_fields = ['Name', 'Type']    
 
 class RecetaViewSet(viewsets.ModelViewSet):
     queryset= Receta.objects.all()

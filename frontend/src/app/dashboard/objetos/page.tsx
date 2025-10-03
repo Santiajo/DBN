@@ -7,7 +7,8 @@ import Card from "@/components/card";
 import Table from "@/components/table";
 import Input from "@/components/input";
 import Button from "@/components/button";
-import { FaSearch, FaLink } from 'react-icons/fa';
+import Pagination from '@/components/pagination';
+import { FaSearch, FaLink, FaTrash, FaPencilAlt, FaEye } from 'react-icons/fa';
 
 // Tipo de dato para objetos
 type Objeto = {
@@ -30,34 +31,39 @@ export default function ObjetosPage() {
     const [selectedObject, setSelectedObject] = useState<Objeto | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Función para cargar los datos desde la API
-    const fetchObjects = useCallback(async (searchQuery = '') => {
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalObjects, setTotalObjects] = useState(0);
+
+    const fetchObjects = useCallback(async (page = 1, searchQuery = '') => {
         if (!accessToken) return;
 
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        let url = `${apiUrl}/api/objetos/`;
-        if (searchQuery) {
-            url += `?Name=${searchQuery}`; // Búsqueda por nombre exacto
-        }
+        const params = new URLSearchParams({
+            page: String(page),
+            search: searchQuery,
+        });
+        const url = `${apiUrl}/api/objetos/?${params.toString()}`;
 
         try {
             const res = await fetch(url, {
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                },
+                headers: { 'Authorization': `Bearer ${accessToken}` },
             });
 
             if (!res.ok) {
-                if (res.status === 401) logout(); // Si el token es inválido, se cierra sesión
+                if (res.status === 401) logout();
                 throw new Error('Error al cargar los datos');
             }
 
-            const data: Objeto[] = await res.json();
-            setObjetos(data);
-            if (data.length > 0 && !searchQuery) {
-                setSelectedObject(data[0]);
-            } else if (data.length > 0 && searchQuery) {
-                setSelectedObject(data[0]);
+            const data = await res.json();
+
+            setObjetos(data.results);
+            setTotalObjects(data.count);
+            setTotalPages(Math.ceil(data.count / 12));
+            setCurrentPage(page);
+
+            if (data.results.length > 0) {
+                setSelectedObject(data.results[0]);
             } else {
                 setSelectedObject(null);
             }
@@ -66,18 +72,18 @@ export default function ObjetosPage() {
         }
     }, [accessToken, logout]);
 
-    // Proteger la ruta y cargar datos iniciales
     useEffect(() => {
-        if (user === null) return; // Espera a que la info del usuario cargue
-        if (!user.is_staff) {
-            router.push('/dashboard'); // Si no es staff, lo redirigimos
-        } else {
-            fetchObjects();
+        if (user?.is_staff) {
+            fetchObjects(currentPage, searchTerm);
         }
-    }, [user, router, fetchObjects]);
+    }, [user, currentPage]);
 
     const handleSearch = () => {
-        fetchObjects(searchTerm);
+        fetchObjects(1, searchTerm);
+    };
+
+    const handlePageChange = (newPage: number) => {
+        fetchObjects(newPage, searchTerm);
     };
 
     const handleDelete = async () => {
@@ -92,14 +98,12 @@ export default function ObjetosPage() {
                         'Authorization': `Bearer ${accessToken}`,
                     },
                 });
-                // Recargamos la lista de objetos para reflejar el cambio
                 fetchObjects();
             } catch (error) {
                 console.error('Error al eliminar el objeto:', error);
             }
         }
     };
-
 
     const tableHeaders = [
         { key: 'Name', label: 'Nombre' },
@@ -132,7 +136,7 @@ export default function ObjetosPage() {
             </div>
 
             {/* Tabla a la izquierda, Descripción a la derecha */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
                 {/* Tabla */}
                 <div className="lg:col-span-2">
@@ -142,13 +146,18 @@ export default function ObjetosPage() {
                         data={objetos}
                         onRowClick={(objeto) => setSelectedObject(objeto as Objeto)}
                     />
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={handlePageChange}
+                    />
                 </div>
 
                 {/* Descripción */}
                 <div className="lg:col-span-1">
                     {selectedObject ? (
                         <Card variant="primary" className="h-full flex flex-col">
-                            {/* Título y subtítulo como en 5e.tools */}
+                            {/* Título y subtítulo como 5e.tools */}
                             <div>
                                 <h3 className="font-title text-xl">{selectedObject.Name}</h3>
                                 <p className="font-body text-xs italic text-stone-600">
@@ -161,9 +170,9 @@ export default function ObjetosPage() {
                                 <p className="mt-4">{selectedObject.Text}</p>
                             </div>
                             <div className="flex justify-end gap-2 mt-auto pt-4">
-                                <Button variant="dangerous" onClick={handleDelete}>Eliminar</Button>
-                                <Button variant="secondary">Modificar</Button>
-                                <Button variant="secondary"><FaLink /></Button>
+                                <Button variant="dangerous" onClick={handleDelete}><FaTrash /></Button>
+                                <Button variant="secondary"><FaPencilAlt /></Button>
+                                <Button variant="secondary"><FaEye /></Button>
                             </div>
                         </Card>
                     ) : (

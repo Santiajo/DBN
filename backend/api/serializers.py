@@ -1,6 +1,7 @@
 from rest_framework import serializers, validators
 from django.contrib.auth.models import User
 from .models import *
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 # Serializer para registro de usuarios
 class RegisterSerializer(serializers.ModelSerializer):
@@ -36,6 +37,20 @@ class RegisterSerializer(serializers.ModelSerializer):
         )
         return user
 
+class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+
+        # Añade claims personalizados al payload del token
+        token['username'] = user.username
+        token['first_name'] = user.first_name
+        token['last_name'] = user.last_name
+        token['email'] = user.email
+        token['is_staff'] = user.is_staff
+        token['id'] = user.id
+        return token
+
 class PersonajeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Personaje
@@ -52,14 +67,14 @@ class IngredientesSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Ingredientes
-        fields = ['id', 'objeto', 'nombre_ingrediente', 'cantidad']
+        fields = ['id', 'receta', 'objeto', 'nombre_ingrediente', 'cantidad']
         # 'objeto' sigue enviando la ID para POST/PUT
 
 class RecetaSerializer(serializers.ModelSerializer):
     # Muestra el nombre del objeto final
     nombre_objeto_final = serializers.CharField(source='objeto_final.Name', read_only=True)
     # Incluye los ingredientes anidados
-    ingredientes = IngredientesSerializer(source='ingredientes', many=True, read_only=True)
+    ingredientes = IngredientesSerializer(many=True, read_only=True)
 
     class Meta:
         model = Receta
