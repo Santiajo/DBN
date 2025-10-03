@@ -172,7 +172,7 @@ export default function ObjetosPage() {
                             <div className="flex justify-end gap-2 mt-auto pt-4">
                                 <Button variant="dangerous" onClick={handleDelete}><FaTrash /></Button>
                                 <Button variant="secondary"><FaPencilAlt /></Button>
-                                <Button variant="secondary"><FaLink /><FaEye /></Button>
+                                <Button variant="secondary"><FaEye /></Button>
                             </div>
                         </Card>
                     ) : (

@@ -80,3 +80,5 @@ class Ingredientes(models.Model):
 # BONUS DE PROFICIENCIA
 # class BonusProficiencia(models.Model):
 
+# ola
+
