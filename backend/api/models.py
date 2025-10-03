@@ -81,50 +81,17 @@ class Ingredientes(models.Model):
 #     VINCULAR LA ESTADISTICA A LA QUE PERTENECE EJ: FUERZA
 #     ESTADO DE SI ES O NO PROFICIENTE
 class Proficiencia(models.Model):
-    HABILIDAD_TO_STAT = {
-        # Fuerza
-        "atletismo": "fuerza",
-        # Destreza
-        "acrobacias": "destreza",
-        "sigilo": "destreza",
-        "juego de manos": "destreza",
-        # Inteligencia
-        "arcana": "inteligencia",
-        "historia": "inteligencia",
-        "investigación": "inteligencia",
-        "naturaleza": "inteligencia",
-        "religión": "inteligencia",
-        # Sabiduría
-        "percepción": "sabiduría",
-        "supervivencia": "sabiduría",
-        "medicina": "sabiduría",
-        "manejo de animales": "sabiduría",
-        "perspicacia": "sabiduría",
-        # Carisma
-        "persuasión": "carisma",
-        "engaño": "carisma",
-        "intimidación": "carisma",
-        "interpretación": "carisma",
-    }
-
-    HABILIDADES = [(k, k.capitalize()) for k in HABILIDAD_TO_STAT.keys()]
-
-    personaje = models.ForeignKey(
-        "Personaje",
-        on_delete=models.CASCADE,
-        related_name="proficiencias"
-    )
-    habilidad = models.CharField(max_length=50, choices=HABILIDADES)
-    es_proficiente = models.BooleanField(default=False)  # <<--- nuevo campo
+    personaje = models.ForeignKey("Personaje", on_delete=models.CASCADE, related_name="proficiencias")
+    habilidad = models.ForeignKey("Habilidad", on_delete=models.CASCADE)
+    es_proficiente = models.BooleanField(default=False)
 
     @property
     def estadistica(self):
-        """Devuelve automáticamente la estadística asociada a la habilidad"""
-        return self.HABILIDAD_TO_STAT.get(self.habilidad, "Desconocida")
+        return self.habilidad.estadistica_asociada
 
     def __str__(self):
         estado = "Proficiente" if self.es_proficiente else "No proficiente"
-        return f"{self.habilidad.capitalize()} ({self.estadistica.capitalize()}) - {self.personaje.nombre_personaje} [{estado}]"
+        return f"{self.habilidad.nombre.capitalize()} ({self.estadistica.capitalize()}) - {self.personaje.nombre_personaje} [{estado}]"
 
 
 # BONUS DE PROFICIENCIA
@@ -134,4 +101,25 @@ class BonusProficiencia(models.Model):
 
     def __str__(self):
         return f"Nivel {self.nivel} → Bonus {self.bonus}"
+
+# NOMBRE ESTADISTICAS
+class Habilidad(models.Model):
+    nombre = models.CharField(max_length=50, unique=True)
+    estadistica_asociada = models.CharField(max_length=50)  # ejemplo: "fuerza", "destreza", etc.
+
+    def __str__(self):
+        return f"{self.nombre.capitalize()} ({self.estadistica_asociada.capitalize()})"
+
+
+# TRABAJO CON FOREIGN KEY A HABILIDAD
+
+class Trabajo(models.Model):
+    nombre = models.CharField(max_length=100, unique=True)
+    requisito_habilidad = models.ForeignKey("Habilidad", on_delete=models.CASCADE)
+    rango_maximo = models.IntegerField(default=5)
+    descripcion = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return self.nombre
+
 
