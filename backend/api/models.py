@@ -29,7 +29,13 @@ class Personaje(models.Model):
     especie = models.CharField(max_length=50, blank=True)
     faccion = models.CharField(max_length=50, blank=True)
     
-    # fuerza = models.IntegerField(default=10)
+    # Estadísticas 
+    fuerza = models.IntegerField(default=10)
+    inteligencia = models.IntegerField(default=10)
+    sabiduria = models.IntegerField(default=10)
+    destreza = models.IntegerField(default=10)
+    constitucion = models.IntegerField(default=10)
+    carisma = models.IntegerField(default=10)
 
     #esto sirve para como se vera en admin los productos
     def __str__(self) :
@@ -71,14 +77,51 @@ class Ingredientes(models.Model):
         return f"{self.cantidad} x {self.objeto.Name} (para {self.receta.nombre})"
 
 
-# class Proficiencia(models.Model):
-#     personaje = models.ForeignKey(Personaje, on_delete=models.CASCADE)
-#     habilidad = models.CharField(max_length=100) NOMBRE DE LA HABILIDAD EJ: ATLETISMO 
+#   PROFICIENCIAS
 #     VINCULAR LA ESTADISTICA A LA QUE PERTENECE EJ: FUERZA
 #     ESTADO DE SI ES O NO PROFICIENTE
+class Proficiencia(models.Model):
+    personaje = models.ForeignKey("Personaje", on_delete=models.CASCADE, related_name="proficiencias")
+    habilidad = models.ForeignKey("Habilidad", on_delete=models.CASCADE)
+    es_proficiente = models.BooleanField(default=False)
+
+    @property
+    def estadistica(self):
+        return self.habilidad.estadistica_asociada
+
+    def __str__(self):
+        estado = "Proficiente" if self.es_proficiente else "No proficiente"
+        return f"{self.habilidad.nombre.capitalize()} ({self.estadistica.capitalize()}) - {self.personaje.nombre_personaje} [{estado}]"
+
 
 # BONUS DE PROFICIENCIA
-# class BonusProficiencia(models.Model):
+class BonusProficiencia(models.Model):
+    nivel = models.PositiveIntegerField(unique=True)  # nivel de 1 a 20
+    bonus = models.IntegerField()  # valor de +2, +3
+
+    def __str__(self):
+        return f"Nivel {self.nivel} → Bonus {self.bonus}"
+
+# NOMBRE ESTADISTICAS
+class Habilidad(models.Model):
+    nombre = models.CharField(max_length=50, unique=True)
+    estadistica_asociada = models.CharField(max_length=50)  # ejemplo: "fuerza", "destreza", etc.
+
+    def __str__(self):
+        return f"{self.nombre.capitalize()} ({self.estadistica_asociada.capitalize()})"
+
+
+# TRABAJO CON FOREIGN KEY A HABILIDAD
+
+class Trabajo(models.Model):
+    nombre = models.CharField(max_length=100, unique=True)
+    requisito_habilidad = models.ForeignKey("Habilidad", on_delete=models.CASCADE)
+    rango_maximo = models.IntegerField(default=5)
+    descripcion = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return self.nombre
+
 
 # ola
 
