@@ -78,4 +78,13 @@ class RecetaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Receta
-        fields = ['id', 'objeto_final', 'nombre_objeto_final', 'ingredientes', 'cantidad_final']
+        fields = [
+            'id',
+            'objeto_final',
+            'nombre_objeto_final',
+            'ingredientes',
+            'cantidad_final',
+            'es_magico',
+            'oro_necesario',
+            'dificultad'
+        ]
