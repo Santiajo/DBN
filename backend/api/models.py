@@ -59,8 +59,22 @@ class Receta(models.Model):
     objeto_final = models.ForeignKey("Objeto", on_delete=models.CASCADE, related_name="recetas")
     cantidad_final = models.IntegerField(default=1, null=True)
 
+    #  Campos nuevos
+    es_magico = models.BooleanField(default=False)
+    oro_necesario = models.IntegerField(default=0)
+
+    DIFICULTAD_CHOICES = [
+        ('Facil', 'Fácil'),
+        ('Medio', 'Medio'),
+        ('Dificil', 'Difícil'),
+        ('Muy dificil', 'Muy Difícil'),
+        ('Oculto', 'Oculto'),
+    ]
+    dificultad = models.CharField(max_length=15, choices=DIFICULTAD_CHOICES, default='F')
+
     def __str__(self):
         return f"Receta: {self.nombre} → {self.objeto_final.Name}"
+
 
 class Ingredientes(models.Model):
     receta = models.ForeignKey(Receta, on_delete=models.CASCADE, related_name="ingredientes")
