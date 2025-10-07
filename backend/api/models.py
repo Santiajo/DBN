@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 class Personaje(models.Model):
     DND_CLASSES = [
@@ -16,7 +17,7 @@ class Personaje(models.Model):
         ('ROGUE', 'Rogue'),
     ]
 
-    nombre_usuario = models.CharField(max_length=50)
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
     
     nombre_personaje = models.CharField(max_length=60, default="")
     treasure_points = models.IntegerField(default=0)
@@ -138,4 +139,5 @@ class Trabajo(models.Model):
 
 
 # ola
+# estoy stremeneado en maxima calidad bit rate
 
