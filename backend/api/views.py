@@ -52,6 +52,9 @@ class PersonajeViewSet(viewsets.ModelViewSet):
     queryset = Personaje.objects.all()
     serializer_class = PersonajeSerializer
 
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
 class ObjetoViewSet(viewsets.ModelViewSet):
     queryset = Objeto.objects.all()
     serializer_class = ObjetoSerializer
