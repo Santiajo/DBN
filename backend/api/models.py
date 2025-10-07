@@ -17,7 +17,7 @@ class Personaje(models.Model):
         ('ROGUE', 'Rogue'),
     ]
 
-    user = models.OneToOneField(User, default="", on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='personajes')
     
     nombre_personaje = models.CharField(max_length=60, default="")
     treasure_points = models.IntegerField(default=0)
