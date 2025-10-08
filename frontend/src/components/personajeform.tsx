@@ -97,11 +97,13 @@ export default function CrearPersonajeForm() {
         const data = await res.json();
         setMensaje('Error: ' + JSON.stringify(data));
       }
-    } catch (error: any) {
+    } catch (error) {
       if (error instanceof TypeError) {
         setMensaje('Error de conexión con el servidor');
-      } else {
+      } else if (error instanceof Error) {
         setMensaje('Error inesperado: ' + error.message);
+      } else {
+        setMensaje('Error inesperado');
       }
     }
   };
