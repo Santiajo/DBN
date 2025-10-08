@@ -32,13 +32,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true); // <-- nuevo
   const router = useRouter();
 
-  const logout = useCallback(() => {
+  const logout = () => {
     setUser(null);
     setAccessToken(null);
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
-    router.push('/login');
-  }, [router]);
+    // Hacemos un push directo sin useCallback
+    window.location.href = '/login';
+  };
 
   const login = (access: string, refresh: string) => {
     const decodedUser: User = jwtDecode(access);

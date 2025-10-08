@@ -19,12 +19,15 @@ export default function SeleccionarPersonajePage() {
 
     const fetchPersonajes = async () => {
       try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/personajes/?user=${user.user_id}`,
-          {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          }
-        );
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/personajes/`, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+            },
+        });
+
+        const personajesData = await res.json(); 
+
+        console.log('Data recibida del backend:', personajesData);
 
         if (!res.ok) {
           setError('No se pudieron cargar tus personajes');
@@ -50,6 +53,7 @@ export default function SeleccionarPersonajePage() {
         setLoading(false);
       }
     };
+
 
     fetchPersonajes();
   }, [user, accessToken]);
