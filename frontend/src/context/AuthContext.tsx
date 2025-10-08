@@ -2,22 +2,20 @@
 'use client';
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { jwtDecode } from 'jwt-decode';
+import {jwtDecode} from 'jwt-decode';
 
-
-// Estructura de datos que se obtendran del usuario mediante el token
 interface User {
   user_id: number;
   username: string;
   is_staff: boolean;
 }
 
-// Forma del contexto
 type AuthContextType = {
   user: User | null;
   accessToken: string | null;
   login: (access: string, refresh: string) => void;
   logout: () => void;
+  loading: boolean; // <-- nuevo
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -25,11 +23,13 @@ const AuthContext = createContext<AuthContextType>({
   accessToken: null,
   login: () => {},
   logout: () => {},
+  loading: true,
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true); // <-- nuevo
   const router = useRouter();
 
   const logout = useCallback(() => {
@@ -50,7 +50,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    // Al cargar la app, revisa si hay un token
     const token = localStorage.getItem('access_token');
     if (token) {
       try {
@@ -58,14 +57,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(decodedUser);
         setAccessToken(token);
       } catch {
-        // Token inválido o expirado, se limpia
         logout();
       }
     }
+    setLoading(false); // <-- importante
   }, [logout]);
 
   return (
-    <AuthContext.Provider value={{ user, accessToken, login, logout }}>
+    <AuthContext.Provider value={{ user, accessToken, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
