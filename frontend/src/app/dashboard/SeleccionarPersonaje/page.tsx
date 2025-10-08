@@ -12,36 +12,44 @@ export default function SeleccionarPersonajePage() {
   const { setPersonaje } = usePersonaje();
   const router = useRouter();
 
-  const [personajes, setPersonajes] = useState<Personaje[]>([]);
-  const [error, setError] = useState('');
+  const [personajes, setPersonajes] = useState<Personaje[]>([]); // lista de personajes
+  const [loading, setLoading] = useState(true); // para manejar el “Cargando…”
+  const [error, setError] = useState(''); // para mostrar errores
+
 
   useEffect(() => {
-    if (!user || !accessToken) return; // No redirigir nunca
+  if (!user || !accessToken) return;
 
-    const fetchPersonajes = async () => {
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/personajes/?user=${user.user_id}`, {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
+  const fetchPersonajes = async () => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/personajes/?user=${user.user_id}`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
 
-        if (res.ok) {
-          const data = await res.json();
-          setPersonajes(data);
-        } else {
-          setError('No se pudieron cargar tus personajes');
-        }
-      } catch {
-        setError('Error de conexión con el servidor');
+      if (res.ok) {
+        const data: Personaje[] = await res.json();
+        setPersonajes(data);
+      } else {
+        setError('No se pudieron cargar tus personajes');
       }
-    };
+    } catch {
+      setError('Error de conexión con el servidor');
+    } finally {
+      setLoading(false);
+    }
+  };
 
     fetchPersonajes();
-  }, [user, accessToken]);
+    }, [user, accessToken]);
+
 
   const handleSelect = (p: Personaje) => {
-    setPersonaje(p);
-    router.push('/dashboard'); // Usando el personaje seleccionado
-  };
+    setPersonaje(p); // guarda el personaje seleccionado en el contexto
+    router.push('/dashboard'); // página principal usando ese personaje
+    };
+
 
   return (
     <div className="max-w-md mx-auto mt-8 space-y-4">
