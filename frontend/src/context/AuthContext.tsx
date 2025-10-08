@@ -1,8 +1,7 @@
-// src/context/AuthContext.tsx
 'use client';
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import {jwtDecode} from 'jwt-decode';
+import { jwtDecode } from 'jwt-decode';
 
 interface User {
   user_id: number;
@@ -13,33 +12,32 @@ interface User {
 type AuthContextType = {
   user: User | null;
   accessToken: string | null;
+  loading: boolean;
   login: (access: string, refresh: string) => void;
   logout: () => void;
-  loading: boolean; // <-- nuevo
 };
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   accessToken: null,
+  loading: true,
   login: () => {},
   logout: () => {},
-  loading: true,
 });
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true); // <-- nuevo
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setUser(null);
     setAccessToken(null);
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
-    // Hacemos un push directo sin useCallback
-    window.location.href = '/login';
-  };
+    router.push('/login');
+  }, [router]);
 
   const login = (access: string, refresh: string) => {
     const decodedUser: User = jwtDecode(access);
@@ -52,16 +50,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
-    if (token) {
-      try {
-        const decodedUser: User = jwtDecode(token);
-        setUser(decodedUser);
-        setAccessToken(token);
-      } catch {
-        logout();
-      }
+    if (!token) {
+      setLoading(false);
+      return;
     }
-    setLoading(false); // <-- importante
+
+    try {
+      const decodedUser: User = jwtDecode(token);
+      setUser(decodedUser);
+      setAccessToken(token);
+    } catch {
+      logout();
+    } finally {
+      setLoading(false);
+    }
   }, [logout]);
 
   return (
@@ -69,6 +71,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-}
+};
 
 export const useAuth = () => useContext(AuthContext);
