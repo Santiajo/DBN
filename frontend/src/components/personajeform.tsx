@@ -42,28 +42,64 @@ export default function CrearPersonajeForm() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('http://127.0.0.1:8000/api/personajes/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(form),
-      });
+  e.preventDefault();
 
-      if (res.ok) {
-        setMensaje('Personaje creado con éxito!');
-      } else {
-        const data = await res.json();
-        setMensaje('Error: ' + JSON.stringify(data));
-      }
-    } catch {
-      setMensaje('Error en la conexión con el servidor');
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setMensaje('Error: No se encontró token de autenticación');
+      return;
     }
-  };
+
+    const res = await fetch('http://127.0.0.1:8000/api/personajes/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(form),
+    });
+
+    if (res.ok) {
+      setMensaje(' Personaje creado con éxito!');
+      return;
+    }
+
+    // Si no es OK, intentamos parsear JSON
+    let data;
+    try {
+      data = await res.json();
+    } catch {
+      data = null;
+    }
+
+    // Manejo de distintos códigos HTTP
+    switch (res.status) {
+      case 400:
+        setMensaje(' Datos inválidos: ' + (data ? JSON.stringify(data) : res.statusText));
+        break;
+      case 401:
+        setMensaje(' No autorizado. Revisa tu token o inicia sesión de nuevo.');
+        break;
+      case 403:
+        setMensaje(' Prohibido. No tienes permisos para realizar esta acción.');
+        break;
+      case 404:
+        setMensaje(' Endpoint no encontrado: ' + res.url);
+        break;
+      case 500:
+        setMensaje(' Error interno del servidor. Revisa los logs de Django.');
+        break;
+      default:
+        setMensaje(` Error ${res.status}: ${res.statusText}` + (data ? ' - ' + JSON.stringify(data) : ''));
+    }
+
+  } catch (networkError) {
+    console.error('Error de conexión o fetch:', networkError);
+    setMensaje(' Error de conexión con el servidor. ¿Está Django corriendo en http://127.0.0.1:8000?');
+  }
+};
+
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
