@@ -4,13 +4,14 @@ import { useAuth } from '@/context/AuthContext';
 import { usePersonaje } from '@/context/PersonajeContext';
 import { useRouter } from 'next/navigation';
 import ListaPersonajes from '@/components/ListaPersonajes';
+import type { Personaje } from '@/context/PersonajeContext'; // 👈 Importamos el tipo
 
 export default function SeleccionarPersonajePage() {
   const { user, accessToken } = useAuth();
   const { setPersonaje } = usePersonaje();
   const router = useRouter();
 
-  const [personajes, setPersonajes] = useState<any[]>([]);
+  const [personajes, setPersonajes] = useState<Personaje[]>([]); // 👈 Tipado correcto
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -22,14 +23,17 @@ export default function SeleccionarPersonajePage() {
 
     const fetchPersonajes = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/personajes/?user=${user.user_id}`, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        });
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/personajes/?user=${user.user_id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
 
         if (res.ok) {
-          const data = await res.json();
+          const data: Personaje[] = await res.json(); // 👈 Tipamos la respuesta
           setPersonajes(data);
         } else {
           setError('No se pudieron cargar tus personajes');
@@ -44,9 +48,9 @@ export default function SeleccionarPersonajePage() {
     fetchPersonajes();
   }, [user, accessToken, router]);
 
-  const handleSelect = (p: any) => {
+  const handleSelect = (p: Personaje) => { // 👈 Tipamos el parámetro
     setPersonaje(p);
-    router.push('/dashboard'); // Página donde usarás el personaje
+    router.push('/dashboard');
   };
 
   if (loading) return <p>Cargando personajes...</p>;
