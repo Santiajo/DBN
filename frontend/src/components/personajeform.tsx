@@ -45,7 +45,7 @@ export default function CrearPersonajeForm() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('https://tu-backend.com/api/personajes/', {
+      const res = await fetch('http://127.0.0.1:8000/api/personajes/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
