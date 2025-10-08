@@ -13,10 +13,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user } = useAuth();
 
-  // 🚨 Si no hay usuario, redirigir al login
-  useEffect(() => {
-    if (!user) router.push('/login');
-  }, [user, router]);
+
 
   return (
     <div className="flex h-screen bg-stone-100">
