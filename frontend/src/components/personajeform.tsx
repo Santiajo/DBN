@@ -48,11 +48,16 @@ export default function CrearPersonajeForm() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    const key = name as keyof PersonajeForm;
+
     setForm(prevForm => ({
       ...prevForm,
-      [name as keyof PersonajeForm]: isNaN(Number(value)) ? value : Number(value)
+      [key]: ['fuerza','inteligencia','sabiduria','destreza','constitucion','carisma'].includes(key)
+        ? Number(value)
+        : value
     }));
   };
+
 
 
   const handleSubmit = async (e: React.FormEvent) => {
