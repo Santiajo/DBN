@@ -44,11 +44,16 @@ export default function LoginPage() {
 
       const data = await res.json();
       login(data.access, data.refresh); // guarda tokens y redirige
-    } catch (err: any) {
-      console.error(err);
-      setError('Error de conexión con el servidor');
-      setIsLoading(false);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        console.error(err.message);
+        setError(err.message);
+      } else {
+        console.error(err);
+        setError('Error de conexión con el servidor');
+      }
     }
+
   };
 
   return (
