@@ -12,6 +12,7 @@ interface User {
 type AuthContextType = {
   user: User | null;
   accessToken: string | null;
+  loading: boolean;
   login: (access: string, refresh: string) => void;
   logout: () => void;
 };
@@ -19,13 +20,15 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   accessToken: null,
+  loading: true,
   login: () => {},
   logout: () => {},
 });
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   const logout = useCallback(() => {
@@ -63,10 +66,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [logout]);
 
   return (
-    <AuthContext.Provider value={{ user, accessToken, login, logout }}>
+    <AuthContext.Provider value={{ user, accessToken, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
-}
+};
 
 export const useAuth = () => useContext(AuthContext);
+
