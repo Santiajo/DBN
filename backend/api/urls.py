@@ -9,7 +9,7 @@ from .views import *
 
 
 router = DefaultRouter()
-router.register(r'personajes', PersonajeViewSet)
+router.register(r'personajes', PersonajeViewSet, basename='personaje')
 router.register(r'objetos', ObjetoViewSet)
 router.register(r'recetas', RecetaViewSet)
 router.register(r'ingredientes', IngredienteViewSet)
