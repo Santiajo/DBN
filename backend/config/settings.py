@@ -77,12 +77,27 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
-# Base de datos (usa Supabase a través de DATABASE_URL)
-DATABASES = {
-    "default": dj_database_url.config(
-        default=config("DATABASE_URL"), conn_max_age=600, ssl_require=True
-    )
-}
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# --- Detecta SQLite para entorno local ---
+db_url = config("DATABASE_URL", default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}")
+
+# Si la URL es SQLite, no uses ssl
+if db_url.startswith("sqlite"):
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
+else:
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=db_url,
+            conn_max_age=600,
+            ssl_require=True,  # solo para Postgres / producción
+        )
+    }
 
 # Passwords
 AUTH_PASSWORD_VALIDATORS = [
