@@ -18,8 +18,8 @@ interface PersonajeForm {
 }
 
 const clases = [
-  'BARBARIAN','BARD','WARLOCK','CLERIC','DRUID',
-  'RANGER','FIGHTER','SORCERER','WIZARD','MONK','PALADIN','ROGUE'
+  'BARBARIAN', 'BARD', 'WARLOCK', 'CLERIC', 'DRUID',
+  'RANGER', 'FIGHTER', 'SORCERER', 'WIZARD', 'MONK', 'PALADIN', 'ROGUE'
 ];
 
 export default function CrearPersonajeForm() {
@@ -52,7 +52,7 @@ export default function CrearPersonajeForm() {
 
     setForm(prevForm => ({
       ...prevForm,
-      [key]: ['fuerza','inteligencia','sabiduria','destreza','constitucion','carisma'].includes(key)
+      [key]: ['fuerza', 'inteligencia', 'sabiduria', 'destreza', 'constitucion', 'carisma'].includes(key)
         ? Number(value)
         : value
     }));
@@ -97,11 +97,13 @@ export default function CrearPersonajeForm() {
         const data = await res.json();
         setMensaje('Error: ' + JSON.stringify(data));
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof TypeError) {
         setMensaje('Error de conexión con el servidor');
-      } else {
+      } else if (error instanceof Error) {
         setMensaje('Error inesperado: ' + error.message);
+      } else {
+        setMensaje('Ocurrió un error inesperado');
       }
     }
   };
@@ -143,7 +145,7 @@ export default function CrearPersonajeForm() {
         onChange={handleChange}
         className="border p-2 w-full"
       />
-      {['fuerza','inteligencia','sabiduria','destreza','constitucion','carisma'].map(stat => (
+      {['fuerza', 'inteligencia', 'sabiduria', 'destreza', 'constitucion', 'carisma'].map(stat => (
         <input
           key={stat}
           type="number"
