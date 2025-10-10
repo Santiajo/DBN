@@ -33,11 +33,15 @@ export default function PersonajesList({ onSelect }: PersonajesListProps) {
 
         if (!res.ok) throw new Error('No se pudieron cargar los personajes');
 
-        const data = await res.json();
-        // Si la API tiene paginación de DRF
-        setPersonajes(data.results || data); 
-      } catch (err: any) {
-        setError(err.message);
+        const data: { results?: Personaje[] } | Personaje[] = await res.json();
+        // Si la API tiene paginación, usa "results", si no, usa "data" directamente
+        setPersonajes(Array.isArray(data) ? data : data.results || []);
+      } catch (err) {
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError('Error desconocido al cargar personajes');
+        }
       } finally {
         setLoading(false);
       }
