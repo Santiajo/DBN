@@ -40,7 +40,7 @@ class Personaje(models.Model):
 
     #esto sirve para como se vera en admin los productos
     def __str__(self) :
-        return self.nombre_usuario + " " + self.nombre_personaje
+        return self.nombre_personaje
     
 
 #agregar stock

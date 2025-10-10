@@ -1,21 +1,18 @@
-// src/context/AuthContext.tsx
 'use client';
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { jwtDecode } from 'jwt-decode';
+import { jwtDecode }from 'jwt-decode';
 
-
-// Estructura de datos que se obtendran del usuario mediante el token
 interface User {
   user_id: number;
   username: string;
   is_staff: boolean;
 }
 
-// Forma del contexto
 type AuthContextType = {
   user: User | null;
   accessToken: string | null;
+  loading: boolean;
   login: (access: string, refresh: string) => void;
   logout: () => void;
 };
@@ -23,13 +20,15 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   accessToken: null,
+  loading: true,
   login: () => {},
   logout: () => {},
 });
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   const logout = useCallback(() => {
@@ -50,25 +49,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    // Al cargar la app, revisa si hay un token
-    const token = localStorage.getItem('access_token');
+    // Solo en desarrollo: usar token de superuser local si no hay token en localStorage
+    const isDev = process.env.NODE_ENV === 'development';
+    const devToken = process.env.NEXT_PUBLIC_DEV_JWT;
+
+    const token = localStorage.getItem('access_token') || (isDev ? devToken : null);
     if (token) {
       try {
         const decodedUser: User = jwtDecode(token);
         setUser(decodedUser);
         setAccessToken(token);
       } catch {
-        // Token inválido o expirado, se limpia
         logout();
       }
     }
   }, [logout]);
 
   return (
-    <AuthContext.Provider value={{ user, accessToken, login, logout }}>
+    <AuthContext.Provider value={{ user, accessToken, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
-}
+};
 
 export const useAuth = () => useContext(AuthContext);
+

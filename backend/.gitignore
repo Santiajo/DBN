@@ -1,2 +1,12 @@
 .env
 .env
+# Archivos de base de datos local
+db.sqlite3
+
+# Migraciones locales (no subir al repo)
+**/migrations/*
+!**/migrations/__init__.py
+
+# Entornos locales
+.env
+.env.local
