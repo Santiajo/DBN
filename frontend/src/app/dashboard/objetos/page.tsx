@@ -8,19 +8,25 @@ import Table from "@/components/table";
 import Input from "@/components/input";
 import Button from "@/components/button";
 import Pagination from '@/components/pagination';
+import Modal from '@/components/modal';
+import ObjectForm from './object-form';
 import { FaSearch, FaLink, FaTrash, FaPencilAlt, FaEye } from 'react-icons/fa';
 
 // Tipo de dato para objetos
-type Objeto = {
-    id: number;
-    Name: string;
-    Type: string;
-    Rarity: string;
-    Value: string;
-    Text: string;
-    Attunement: string;
-    Weight: string;
-    Source: string;
+export type Objeto = {
+  id: number;
+  Name: string;
+  Type: string;
+  Rarity: string;
+  Value: string | number; 
+  Text: string;
+  Attunement: string;
+  Weight: string | number; 
+  Source: string;
+  Page?: string | number;
+  Damage?: string;
+  Properties?: string;
+  Mastery?: string;
 };
 
 export default function ObjetosPage() {
@@ -34,6 +40,8 @@ export default function ObjetosPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalObjects, setTotalObjects] = useState(0);
+
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     const fetchObjects = useCallback(async (page = 1, searchQuery = '') => {
         if (!accessToken) return;
@@ -86,6 +94,30 @@ export default function ObjetosPage() {
         fetchObjects(newPage, searchTerm);
     };
 
+    const handleCreateObject = async (newObjectData: Omit<Objeto, 'id'>) => {
+        if (!accessToken) return;
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        try {
+            const res = await fetch(`${apiUrl}/api/objetos/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`,
+                },
+                body: JSON.stringify(newObjectData),
+            });
+
+            if (!res.ok) {
+                throw new Error('Error al crear el objeto');
+            }
+
+            setIsModalOpen(false);
+            fetchObjects(1, '');
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
     const handleDelete = async () => {
         if (!selectedObject || !accessToken) return;
 
@@ -120,9 +152,22 @@ export default function ObjetosPage() {
 
     return (
         <div className="space-y-6">
+            <Modal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title="Crear Nuevo Objeto"
+            >
+                <ObjectForm
+                    onSave={handleCreateObject}
+                    onCancel={() => setIsModalOpen(false)}
+                />
+            </Modal>
+
             {/* Crear y Buscar */}
             <div className="flex justify-end items-center gap-4">
-                <Button variant="primary">Crear Objeto</Button>
+                <Button variant="primary" onClick={() => setIsModalOpen(true)}>
+                    Crear Objeto
+                </Button>
                 <div className="flex items-center gap-2 flex-grow max-w-xs">
                     <Input
                         placeholder="Buscar por nombre exacto..."
