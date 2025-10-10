@@ -55,6 +55,7 @@ class PersonajeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Personaje
         fields = '__all__'
+        read_only_fields = ['user']
 
 class ObjetoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -78,6 +79,23 @@ class RecetaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Receta
+        fields = [
+            'id',
+            'objeto_final',
+            'nombre_objeto_final',
+            'ingredientes',
+            'cantidad_final',
+            'es_magico',
+            'oro_necesario',
+            'dificultad'
+        ]
+
+class InventarioSerializer(serializers.ModelSerializer):
+    objeto_nombre = serializers.CharField(source='objeto.Name', read_only=True)
+
+    class Meta:
+        model = Inventario
+        fields = ['id', 'objeto', 'objeto_nombre', 'cantidad']
         fields = ['id', 'objeto_final', 'nombre_objeto_final', 'ingredientes', 'cantidad_final']
 
 

@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 class Personaje(models.Model):
@@ -17,6 +18,8 @@ class Personaje(models.Model):
         ('ROGUE', 'Rogue'),
     ]
 
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='personajes')
+    
     nombre_usuario = models.CharField(max_length=50)
     nombre_personaje = models.CharField(max_length=60, default="")
     treasure_points = models.IntegerField(default=0)
@@ -39,7 +42,7 @@ class Personaje(models.Model):
 
     #esto sirve para como se vera en admin los productos
     def __str__(self) :
-        return self.nombre_usuario + " " + self.nombre_personaje
+        return self.nombre_personaje
     
 
 #agregar stock
@@ -60,13 +63,40 @@ class Objeto(models.Model):
     def __str__(self):
         return self.name
     
+class Inventario(models.Model):
+    personaje = models.ForeignKey(Personaje, on_delete=models.CASCADE, related_name='inventario')
+    objeto = models.ForeignKey(Objeto, on_delete=models.CASCADE)
+    cantidad = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        # Esto asegura que un personaje no pueda tener dos filas para el mismo objeto.
+        # En su lugar, se debe actualizar la cantidad en la fila existente.
+        unique_together = ('personaje', 'objeto')
+
+    def __str__(self):
+        return f"{self.cantidad} x {self.objeto.Name} - {self.personaje.nombre_personaje}"
+    
 class Receta(models.Model):
     nombre = models.CharField(max_length=100)
     objeto_final = models.ForeignKey("Objeto", on_delete=models.CASCADE, related_name="recetas")
     cantidad_final = models.IntegerField(default=1, null=True)
 
+    #  Campos nuevos
+    es_magico = models.BooleanField(default=False)
+    oro_necesario = models.IntegerField(default=0)
+
+    DIFICULTAD_CHOICES = [
+        ('Facil', 'Fácil'),
+        ('Medio', 'Medio'),
+        ('Dificil', 'Difícil'),
+        ('Muy dificil', 'Muy Difícil'),
+        ('Oculto', 'Oculto'),
+    ]
+    dificultad = models.CharField(max_length=15, choices=DIFICULTAD_CHOICES, default='F')
+
     def __str__(self):
         return f"Receta: {self.nombre} → {self.objeto_final.Name}"
+
 
 class Ingredientes(models.Model):
     receta = models.ForeignKey(Receta, on_delete=models.CASCADE, related_name="ingredientes")
@@ -167,4 +197,5 @@ class TrabajoRealizado(models.Model):
         return f"{self.personaje.nombre_personaje} - {self.trabajo.nombre} (Rango {self.rango})"
 
 # ola
+# estoy stremeneado en maxima calidad bit rate
 

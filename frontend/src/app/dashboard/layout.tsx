@@ -16,9 +16,9 @@ export default function DashboardLayout({
   return (
     <div className="flex h-screen bg-stone-100">
       <Sidebar isCollapsed={isSidebarCollapsed} setIsCollapsed={setIsSidebarCollapsed} />
-      
-      <div className="flex-1 flex flex-col relative"> {/* Añadimos 'relative' como contexto */}
-        {/* Pasamos el estado de la sidebar a la Navbar */}
+
+      <div className="flex-1 flex flex-col relative"> {/* Añadimos 'relative' como contexto /}
+        {/ Pasamos el estado de la sidebar a la Navbar */}
         <Navbar pageTitle={pageTitle} isSidebarCollapsed={isSidebarCollapsed} />
 
         <main className="flex-1 p-8 overflow-y-auto pt-24">
