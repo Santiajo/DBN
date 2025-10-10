@@ -75,3 +75,36 @@ class RecetaViewSet(viewsets.ModelViewSet):
 class IngredienteViewSet(viewsets.ModelViewSet):
     queryset= Ingredientes.objects.all()
     serializer_class = IngredientesSerializer
+
+
+class ProficienciaViewSet(viewsets.ModelViewSet):
+    queryset = Proficiencia.objects.all()
+    serializer_class = ProficienciaSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class HabilidadViewSet(viewsets.ModelViewSet):
+    queryset = Habilidad.objects.all()
+    serializer_class = HabilidadSerializer
+    permission_classes = [IsAuthenticated]
+
+class BonusProficienciaViewSet(viewsets.ModelViewSet):
+    queryset = BonusProficiencia.objects.all()
+    serializer_class = BonusProficienciaSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class TrabajoViewSet(viewsets.ModelViewSet):
+    queryset = Trabajo.objects.all()
+    serializer_class = TrabajoSerializer
+    permission_classes = [IsAuthenticated]  # o IsAdminUser si se restringir más
+
+class PagoRangoViewSet(viewsets.ModelViewSet):
+    queryset = PagoRango.objects.all()
+    serializer_class = PagoRangoSerializer
+    permission_classes = [IsAuthenticated]
+
+class TrabajoRealizadoViewSet(viewsets.ModelViewSet):
+    queryset = TrabajoRealizado.objects.all()
+    serializer_class = TrabajoRealizadoSerializer
+    permission_classes = [IsAuthenticated]

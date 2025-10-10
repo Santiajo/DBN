@@ -13,6 +13,12 @@ router.register(r'personajes', PersonajeViewSet)
 router.register(r'objetos', ObjetoViewSet)
 router.register(r'recetas', RecetaViewSet)
 router.register(r'ingredientes', IngredienteViewSet)
+router.register(r'proficiencias', ProficienciaViewSet)
+router.register(r'habilidades', HabilidadViewSet)
+router.register(r'bonusproficiencias', BonusProficienciaViewSet)
+router.register(r'trabajos', TrabajoViewSet)
+router.register(r'pagos-rango', PagoRangoViewSet)
+router.register(r'trabajos-realizados', TrabajoRealizadoViewSet)
 
 urlpatterns = [
     # Rutas para los tokens JWT
