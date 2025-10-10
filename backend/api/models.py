@@ -40,7 +40,7 @@ class Personaje(models.Model):
 
     #esto sirve para como se vera en admin los productos
     def __str__(self) :
-        return self.nombre_usuario + " " + self.nombre_personaje
+        return self.nombre_personaje
     
 
 #agregar stock
@@ -60,6 +60,19 @@ class Objeto(models.Model):
 
     def __str__(self):
         return self.name
+    
+class Inventario(models.Model):
+    personaje = models.ForeignKey(Personaje, on_delete=models.CASCADE, related_name='inventario')
+    objeto = models.ForeignKey(Objeto, on_delete=models.CASCADE)
+    cantidad = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        # Esto asegura que un personaje no pueda tener dos filas para el mismo objeto.
+        # En su lugar, se debe actualizar la cantidad en la fila existente.
+        unique_together = ('personaje', 'objeto')
+
+    def __str__(self):
+        return f"{self.cantidad} x {self.objeto.Name} - {self.personaje.nombre_personaje}"
     
 class Receta(models.Model):
     nombre = models.CharField(max_length=100)
