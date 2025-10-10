@@ -14,7 +14,7 @@ interface ModalProps {
 export default function Modal({ isOpen, onClose, title, children }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
 
-  // Cerrar modal si se presiona la tecla Escape
+  // Cierra el modal si se presiona la tecla Escape
   useEffect(() => {
     const handleEsc = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -24,7 +24,7 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   }, [onClose]);
-  
+
   // Cierra el modal si se hace click fuera de él
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
@@ -35,10 +35,15 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
   if (!isOpen) return null;
 
   return (
-    <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4"
+    // --- INICIO DEL CAMBIO ---
+    // Hemos modificado las clases de este div para el fondo.
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 
+                 bg-stone-900/70 backdrop-blur-sm"
       onClick={handleOverlayClick}
     >
+      {/* --- FIN DEL CAMBIO --- */}
+
       <div ref={modalRef} className="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
         <Card variant="primary" className="p-0">
           {/* Header del Modal */}
@@ -57,3 +62,4 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
     </div>
   );
 }
+

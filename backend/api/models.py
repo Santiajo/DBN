@@ -20,7 +20,7 @@ class Personaje(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='personajes')
     
-    nombre_usuario = models.CharField(max_length=50)
+    nombre_usuario = models.CharField(max_length=50, default="")
     nombre_personaje = models.CharField(max_length=60, default="")
     treasure_points = models.IntegerField(default=0)
     oro = models.IntegerField(default=0)
