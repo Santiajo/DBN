@@ -45,6 +45,16 @@ def activate_account_view(request, uidb64, token):
     else:
         return Response({"error": "El enlace de activación es inválido."}, status=400)
 
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated, IsAdminUser])  # Solo admin puede eliminar
+def delete_user_view(request, user_id):
+    try:
+        user = User.objects.get(id=user_id)
+        user.delete()
+        return Response({"success": True, "message": "Usuario eliminado correctamente"}, status=200)
+    except User.DoesNotExist:
+        return Response({"success": False, "message": "Usuario no encontrado"}, status=404)
+
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
     
@@ -82,3 +92,36 @@ def inventario_personaje(request, personaje_id):
     inventario = Inventario.objects.filter(personaje=personaje)
     serializer = InventarioSerializer(inventario, many=True)
     return Response(serializer.data)
+
+
+class ProficienciaViewSet(viewsets.ModelViewSet):
+    queryset = Proficiencia.objects.all()
+    serializer_class = ProficienciaSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class HabilidadViewSet(viewsets.ModelViewSet):
+    queryset = Habilidad.objects.all()
+    serializer_class = HabilidadSerializer
+    permission_classes = [IsAuthenticated]
+
+class BonusProficienciaViewSet(viewsets.ModelViewSet):
+    queryset = BonusProficiencia.objects.all()
+    serializer_class = BonusProficienciaSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class TrabajoViewSet(viewsets.ModelViewSet):
+    queryset = Trabajo.objects.all()
+    serializer_class = TrabajoSerializer
+    permission_classes = [IsAuthenticated]  # o IsAdminUser si se restringir más
+
+class PagoRangoViewSet(viewsets.ModelViewSet):
+    queryset = PagoRango.objects.all()
+    serializer_class = PagoRangoSerializer
+    permission_classes = [IsAuthenticated]
+
+class TrabajoRealizadoViewSet(viewsets.ModelViewSet):
+    queryset = TrabajoRealizado.objects.all()
+    serializer_class = TrabajoRealizadoSerializer
+    permission_classes = [IsAuthenticated]

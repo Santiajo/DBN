@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 class Personaje(models.Model):
     DND_CLASSES = [
@@ -19,6 +20,7 @@ class Personaje(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='personajes')
     
+    nombre_usuario = models.CharField(max_length=50)
     nombre_personaje = models.CharField(max_length=60, default="")
     treasure_points = models.IntegerField(default=0)
     oro = models.IntegerField(default=0)
@@ -144,12 +146,55 @@ class Habilidad(models.Model):
 class Trabajo(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
     requisito_habilidad = models.ForeignKey("Habilidad", on_delete=models.CASCADE)
-    rango_maximo = models.IntegerField(default=5)
+    rango_maximo = models.IntegerField(default=5, validators=[MinValueValidator(1), MaxValueValidator(5)])
     descripcion = models.TextField(blank=True, null=True)
+    beneficio = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return self.nombre
+    
+# RANGOS DE PAGO DE LOS TRABAJOS
 
+class PagoRango(models.Model):
+    trabajo = models.ForeignKey(Trabajo, on_delete=models.CASCADE, related_name="pagos")
+    rango = models.PositiveIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
+    valor_suma = models.FloatField(help_text="Valor que se suma al bono de economía (ej: 1, 2, 3...)")
+    multiplicador = models.FloatField(help_text="Multiplicador base del trabajo (ej: 1.25, 3.75, 7.5...)")
+
+    class Meta:
+        unique_together = ("trabajo", "rango")
+
+    def __str__(self):
+        return f"{self.trabajo.nombre} - Rango {self.rango}"
+
+# TRABAJO REALIZADO Y RESULTADO DEL LA FORMULA
+
+class TrabajoRealizado(models.Model):
+    personaje = models.ForeignKey(Personaje, on_delete=models.CASCADE)
+    trabajo = models.ForeignKey(Trabajo, on_delete=models.CASCADE)
+    rango = models.PositiveIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
+    dias_trabajados = models.PositiveIntegerField(default=1)
+    bono_economia = models.IntegerField(default=0)
+    desempenio = models.FloatField(default=1.0, help_text="Multiplicador de desempeño (ej: 0.5 a 2.0)")
+    pago_total = models.FloatField(default=0, editable=False)
+
+    fecha_realizacion = models.DateTimeField(auto_now_add=True)
+
+    def calcular_pago(self):
+        try:
+            rango_info = self.trabajo.pagos.get(rango=self.rango)
+            pago_base = (rango_info.valor_suma + self.bono_economia) * rango_info.multiplicador
+            total = pago_base * self.dias_trabajados * self.desempenio
+            return round(total, 2)
+        except PagoRango.DoesNotExist:
+            return 0
+
+    def save(self, *args, **kwargs):
+        self.pago_total = self.calcular_pago()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.personaje.nombre_personaje} - {self.trabajo.nombre} (Rango {self.rango})"
 
 # ola
 # estoy stremeneado en maxima calidad bit rate

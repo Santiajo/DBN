@@ -96,3 +96,49 @@ class InventarioSerializer(serializers.ModelSerializer):
     class Meta:
         model = Inventario
         fields = ['id', 'objeto', 'objeto_nombre', 'cantidad']
+        fields = ['id', 'objeto_final', 'nombre_objeto_final', 'ingredientes', 'cantidad_final']
+
+
+
+class ProficienciaSerializer(serializers.ModelSerializer):
+    personaje_nombre = serializers.CharField(source='personaje.nombre_personaje', read_only=True)
+    habilidad_nombre = serializers.CharField(source='habilidad.nombre', read_only=True)
+
+    class Meta:
+        model = Proficiencia
+        fields = ['id', 'personaje', 'personaje_nombre', 'habilidad', 'habilidad_nombre', 'es_proficiente']
+
+
+class TrabajoSerializer(serializers.ModelSerializer):
+    #para enviar y recibir el id de requisito_habilidad para crear/editar
+    #también para ver el nombre de la habilidad relacionada (requisito_habilidad_nombre) al consultar
+    requisito_habilidad_nombre = serializers.CharField(source='requisito_habilidad.nombre', read_only=True)
+
+    class Meta:
+        model = Trabajo
+        fields = ['id', 'nombre', 'requisito_habilidad', 'requisito_habilidad_nombre', 'rango_maximo', 'descripcion']
+
+
+class HabilidadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Habilidad
+        fields = '__all__'
+
+
+class BonusProficienciaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BonusProficiencia
+        fields = '__all__'
+
+
+class PagoRangoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PagoRango
+        fields = '__all__'
+
+class TrabajoRealizadoSerializer(serializers.ModelSerializer):
+    pago_total = serializers.FloatField(read_only=True)
+
+    class Meta:
+        model = TrabajoRealizado
+        fields = '__all__'
