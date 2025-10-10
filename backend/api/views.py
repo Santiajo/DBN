@@ -70,3 +70,15 @@ class RecetaViewSet(viewsets.ModelViewSet):
 class IngredienteViewSet(viewsets.ModelViewSet):
     queryset= Ingredientes.objects.all()
     serializer_class = IngredientesSerializer
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def inventario_personaje(request, personaje_id):
+    try:
+        personaje = Personaje.objects.get(id=personaje_id, usuario=request.user)
+    except Personaje.DoesNotExist:
+        return Response({"detail": "Personaje no encontrado o no pertenece al usuario."}, status=404)
+
+    inventario = Inventario.objects.filter(personaje=personaje)
+    serializer = InventarioSerializer(inventario, many=True)
+    return Response(serializer.data)

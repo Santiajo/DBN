@@ -11,7 +11,7 @@ export default function SeleccionPersonajePage() {
   const handleSelect = (personaje: any) => {
     setPersonajeSeleccionado(personaje);
     // Redirigir a la página de crafteo
-    router.push(`/crafteo/${personaje.id}`);
+    router.push(`/dashboard/crafteo/${personaje.id}`);
   };
 
   return (
@@ -21,3 +21,4 @@ export default function SeleccionPersonajePage() {
     </div>
   );
 }
+// a

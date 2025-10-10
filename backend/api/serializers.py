@@ -89,3 +89,10 @@ class RecetaSerializer(serializers.ModelSerializer):
             'oro_necesario',
             'dificultad'
         ]
+
+class InventarioSerializer(serializers.ModelSerializer):
+    objeto_nombre = serializers.CharField(source='objeto.Name', read_only=True)
+
+    class Meta:
+        model = Inventario
+        fields = ['id', 'objeto', 'objeto_nombre', 'cantidad']

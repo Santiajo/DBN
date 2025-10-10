@@ -1,16 +1,7 @@
 from django.contrib import admin
-from .models import (
-    BonusProficiencia,
-    Habilidad,
-    Objeto,
-    Personaje,
-    Proficiencia,
-    Receta,
-    Ingredientes,
-    Trabajo
-)
+from .models import *
 
-# Registro simple de modelos
+# Register your models here.
 admin.site.register(BonusProficiencia)
 admin.site.register(Habilidad)
 admin.site.register(Objeto)
@@ -19,3 +10,4 @@ admin.site.register(Proficiencia)
 admin.site.register(Receta)
 admin.site.register(Ingredientes)
 admin.site.register(Trabajo)
+admin.site.register(Inventario)
