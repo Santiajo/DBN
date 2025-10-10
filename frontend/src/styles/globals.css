@@ -1,8 +1,11 @@
 @import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 @theme {
-  --font-title: var(--font-cinzel); 
-  --font-body: var(--font-inter);  
+  --font-title: var(--font-cinzel);
+  --font-body: var(--font-inter);
 
   --color-madera-oscura: #331105;
   --color-cuero: #6B4226;
@@ -10,8 +13,8 @@
   --color-bosque: #3E6B5C;
   --color-carmesi: #B33F40;
 
-  --font-size-xs: 0.875rem; 
-  --font-size-sm: 1rem;  
+  --font-size-xs: 0.875rem;
+  --font-size-sm: 1rem;
   --font-size-base: 1.125rem;
 }
 
@@ -21,5 +24,25 @@
     background-color: var(--color-pergamino);
     color: var(--color-madera-oscura);
     font-family: var(--font-body);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--color-cuero);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--color-bosque);
   }
 }
