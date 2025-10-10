@@ -4,11 +4,19 @@ import { useState } from 'react';
 import PersonajesList from '@/components/PersonajeLista';
 import { useRouter } from 'next/navigation';
 
+// Definimos el tipo del personaje
+interface Personaje {
+  id: number;
+  nombre_personaje: string;
+  clase: string;
+  nivel: number;
+}
+
 export default function SeleccionPersonajePage() {
-  const [personajeSeleccionado, setPersonajeSeleccionado] = useState(null);
+  const [personajeSeleccionado, setPersonajeSeleccionado] = useState<Personaje | null>(null);
   const router = useRouter();
 
-  const handleSelect = (personaje: any) => {
+  const handleSelect = (personaje: Personaje) => {
     setPersonajeSeleccionado(personaje);
     // Redirigir a la página de crafteo
     router.push(`/dashboard/crafteo/${personaje.id}`);
@@ -21,4 +29,3 @@ export default function SeleccionPersonajePage() {
     </div>
   );
 }
-// a
