@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
-import { X } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 import Card from './card';
+import { FaTimes } from 'react-icons/fa';
 
 interface ModalProps {
   isOpen: boolean;
@@ -12,40 +12,43 @@ interface ModalProps {
 }
 
 export default function Modal({ isOpen, onClose, title, children }: ModalProps) {
+  const modalRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    // CAMBIO: Esta función previene el scroll del body cuando el modal está abierto.
-    // Esto elimina la barra blanca y el desplazamiento de fondo.
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'auto';
-    }
-    // Cleanup function para restaurar el scroll si el componente se desmonta
-    return () => {
-      document.body.style.overflow = 'auto';
+    const handleEsc = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
     };
-  }, [isOpen]);
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [onClose]);
+
+  const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+      onClose();
+    }
+  };
 
   if (!isOpen) return null;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/70 backdrop-blur-sm"
-      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/70 backdrop-blur-sm"
+      onClick={handleOverlayClick}
     >
+      {/* --- CAMBIO AQUÍ --- */}
+      {/* Se usa la clase 'custom-scrollbar' que creamos en globals.css */}
       <div
-        className="relative w-full max-w-3xl mx-4"
-        onClick={(e) => e.stopPropagation()} // Evita que el click dentro del modal lo cierre
+        ref={modalRef}
+        className="w-full max-w-3xl max-h-[100vh] overflow-y-auto custom-scrollbar"
       >
-        <Card variant="secondary">
+        <Card variant="primary" className="p-0">
           <div className="flex justify-between items-center p-4 border-b border-[#6B4226]">
-            <h2 className="font-title text-xl text-madera-oscura">{title}</h2>
-            <button onClick={onClose} className="text-stone-500 hover:text-stone-800">
-              <X size={24} />
+            <h2 className="font-title text-2xl text-madera-oscura">{title}</h2>
+            <button onClick={onClose} className="text-stone-500 hover:text-carmesi">
+              <FaTimes size={20} />
             </button>
           </div>
-          {/* CAMBIO: Se aplica la clase de scroll personalizado y un max-height */}
-          <div className="p-6 overflow-y-auto scrollbar-custom" style={{ maxHeight: '80vh' }}>
+          <div className="p-6">
             {children}
           </div>
         </Card>
@@ -53,3 +56,6 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
     </div>
   );
 }
+
+
+
