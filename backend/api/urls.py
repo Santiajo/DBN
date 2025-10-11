@@ -23,9 +23,13 @@ router.register(r'trabajos-realizados', TrabajoRealizadoViewSet)
 router.register(r'objetos', views.ObjetoViewSet, basename='objeto')
 router.register(r'tiendas', views.TiendaViewSet, basename='tienda')
 
-# Router anidado para el inventario
+# Router anidado para el inventario de tiendas
 tiendas_router = routers.NestedSimpleRouter(router, r'tiendas', lookup='tienda')
 tiendas_router.register(r'inventario', views.ObjetoTiendaViewSet, basename='tienda-inventario')
+
+# Router anidado para el inventario de personajes
+personajes_router = routers.NestedSimpleRouter(router, r'personajes', lookup='personaje')
+personajes_router.register(r'inventario', views.InventarioPersonajeViewSet, basename='personaje-inventario')
 
 urlpatterns = [
     # Rutas para los tokens JWT
@@ -37,4 +41,5 @@ urlpatterns = [
     path('', include(router.urls)),  # Solo una vez
     path('inventario/<int:personaje_id>/', views.inventario_personaje, name='inventario_personaje'),
     path('', include(tiendas_router.urls)),
+    path('', include(personajes_router.urls)),
 ]

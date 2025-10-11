@@ -81,17 +81,21 @@ class IngredienteViewSet(viewsets.ModelViewSet):
     queryset= Ingredientes.objects.all()
     serializer_class = IngredientesSerializer
 
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def inventario_personaje(request, personaje_id):
-    try:
-        personaje = Personaje.objects.get(id=personaje_id, usuario=request.user)
-    except Personaje.DoesNotExist:
-        return Response({"detail": "Personaje no encontrado o no pertenece al usuario."}, status=404)
+class InventarioPersonajeViewSet(viewsets.ModelViewSet):
+    serializer_class = InventarioSerializer
+    permission_classes = [IsAuthenticated]
 
-    inventario = Inventario.objects.filter(personaje=personaje)
-    serializer = InventarioSerializer(inventario, many=True)
-    return Response(serializer.data)
+    def get_queryset(self):
+        personaje_pk = self.kwargs['personaje_pk']
+        return Inventario.objects.filter(
+            personaje__user=self.request.user, 
+            personaje_id=personaje_pk
+        )
+
+    def perform_create(self, serializer):
+        personaje_pk = self.kwargs['personaje_pk']
+        personaje = Personaje.objects.get(pk=personaje_pk, user=self.request.user)
+        serializer.save(personaje=personaje)
 
 
 class ProficienciaViewSet(viewsets.ModelViewSet):
