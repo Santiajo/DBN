@@ -39,7 +39,6 @@ urlpatterns = [
     path('register/', register_view, name='register'),
     path('activate/<str:uidb64>/<str:token>/', activate_account_view, name='activate'),
     path('', include(router.urls)),  # Solo una vez
-    path('inventario/<int:personaje_id>/', views.inventario_personaje, name='inventario_personaje'),
     path('', include(tiendas_router.urls)),
     path('', include(personajes_router.urls)),
 ]
