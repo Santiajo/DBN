@@ -5,8 +5,11 @@ import { Personaje } from '@/types';
 import Input from '@/components/input';
 import Button from '@/components/button';
 
+// Definimos un tipo para los datos del formulario, que es un "Personaje" sin id y user.
+type PersonajeFormData = Omit<Personaje, 'id' | 'user'>;
+
 interface PersonajeFormProps {
-  onSave: (personaje: Omit<Personaje, 'id' | 'user'>) => void;
+  onSave: (personaje: PersonajeFormData) => void;
   onCancel: () => void;
   initialData?: Personaje | null;
 }
@@ -16,8 +19,8 @@ const dndClasses = [
     'FIGHTER', 'SORCERER', 'WIZARD', 'MONK', 'PALADIN', 'ROGUE'
 ];
 
-export default function PersonajeForm({ onSave, onCancel, initialData }: PersonajeFormProps) {
-  const [formData, setFormData] = useState({
+// Estado inicial por defecto para un nuevo personaje.
+const defaultFormState: PersonajeFormData = {
     nombre_personaje: '',
     clase: 'FIGHTER',
     nivel: 1,
@@ -34,12 +37,20 @@ export default function PersonajeForm({ onSave, onCancel, initialData }: Persona
     carisma: 10,
     nombre_usuario: '',
     treasure_points_gastados: 0,
-  });
+};
+
+export default function PersonajeForm({ onSave, onCancel, initialData }: PersonajeFormProps) {
+  const [formData, setFormData] = useState<PersonajeFormData>(defaultFormState);
 
   useEffect(() => {
     if (initialData) {
-      // @ts-ignore
-      setFormData({ ...initialData });
+      // Si hay datos iniciales, los separamos para quitar 'id' y 'user'
+      // y así coincidir perfectamente con el tipo PersonajeFormData.
+      const { id, user, ...formDataFromInitial } = initialData;
+      setFormData(formDataFromInitial);
+    } else {
+      // Si no hay datos (creando nuevo), reseteamos al estado por defecto.
+      setFormData(defaultFormState);
     }
   }, [initialData]);
 
@@ -53,14 +64,14 @@ export default function PersonajeForm({ onSave, onCancel, initialData }: Persona
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // @ts-ignore
+    // Ahora 'formData' coincide perfectamente con lo que 'onSave' espera.
+    // No se necesita ningún @ts-ignore.
     onSave(formData);
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 font-body text-stone-800 max-h-[70vh] overflow-y-auto pr-4 scrollbar-custom">
       
-      {/* --- ESTRUCTURA CORREGIDA: Label separado del Input --- */}
       <div>
         <label htmlFor="nombre_personaje" className="block mb-1 font-semibold">Nombre del Personaje</label>
         <Input id="nombre_personaje" name="nombre_personaje" value={formData.nombre_personaje} onChange={handleChange} required />
