@@ -147,7 +147,7 @@ export default function ObjectForm({ onSave, onCancel, initialData }: ObjectForm
       <div>
         <label className="block mb-1 font-semibold">Text</label>
         <textarea name="Text" rows={6} value={formData.Text} onChange={handleChange}
-          className="w-full px-4 py-2 rounded-lg border border-stone-400 bg-white text-stone-900 focus:ring-2 focus:ring-[#3E6B5C] focus:border-[#3E6B5C] focus:outline-none"
+          className="w-full px-4 py-2 rounded-lg border border-stone-400 bg-white focus:ring-2 focus:ring-bosque scrollbar-custom"
         />
       </div>
 
