@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 // íconos de react-icons
 import {
-  FaHome, FaUserShield, FaRing, FaBed, FaCoins, FaAngleLeft, FaAngleRight
+  FaHome, FaUserShield, FaRing, FaBed, FaCoins, FaAngleLeft, FaAngleRight, FaBriefcase
 } from 'react-icons/fa';
 
 type SidebarProps = {
@@ -19,6 +19,7 @@ const navLinks = [
   { href: '/dashboard/personajes', icon: <FaUserShield />, label: 'Personajes' },
   { href: '/dashboard/objetos', icon: <FaRing />, label: 'Objetos' },
   { href: '/dashboard/tiempo-libre', icon: <FaBed />, label: 'Tiempo libre' },
+  { href: '/dashboard/trabajos', icon: <FaBriefcase />, label: 'Trabajos' },
   { href: '/dashboard/tiendas', icon: <FaCoins />, label: 'Tiendas' },
 ];
 
