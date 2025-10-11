@@ -39,7 +39,7 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
       {/* Se usa la clase 'custom-scrollbar' que creamos en globals.css */}
       <div
         ref={modalRef}
-        className="w-full max-w-3xl max-h-[100vh] overflow-y-auto custom-scrollbar"
+        className="w-full max-w-3xl max-h-[80vh] overflow-y-auto custom-scrollbar"
       >
         <Card variant="primary" className="p-0">
           <div className="flex justify-between items-center p-4 border-b border-[#6B4226]">
