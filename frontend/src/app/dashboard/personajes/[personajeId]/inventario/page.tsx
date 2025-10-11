@@ -31,24 +31,30 @@ export default function InventarioPersonajePage({ params }: { params: { personaj
         setLoading(true);
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
         try {
-            const [personajeRes, inventarioRes, objetosRes] = await Promise.all([
+            const responses = await Promise.all([
                 fetch(`${apiUrl}/api/personajes/${personajeId}/`, { headers: { 'Authorization': `Bearer ${accessToken}` } }),
                 fetch(`${apiUrl}/api/personajes/${personajeId}/inventario/`, { headers: { 'Authorization': `Bearer ${accessToken}` } }),
                 fetch(`${apiUrl}/api/objetos/?page_size=1000`, { headers: { 'Authorization': `Bearer ${accessToken}` } })
             ]);
 
-            if (!personajeRes.ok || !inventarioRes.ok || !objetosRes.ok) throw new Error('Error al cargar datos');
-
-            const personajeData = await personajeRes.json();
-            const inventarioData = await inventarioRes.json();
-            const objetosData = await objetosRes.json();
+            for (const res of responses) {
+                if (res.status === 401) {
+                    logout();
+                    throw new Error('Unauthorized');
+                }
+                if (!res.ok) {
+                    throw new Error(`Failed to fetch data: ${res.statusText}`);
+                }
+            }
+            const [personajeData, inventarioData, objetosData] = await Promise.all(
+                responses.map(res => res.json())
+            );
 
             setPersonaje(personajeData);
             setInventario(inventarioData.results || inventarioData);
             setAllObjetos(objetosData.results || objetosData);
         } catch (error) {
             console.error(error);
-            if ((error as any).status === 401) logout();
         } finally {
             setLoading(false);
         }
@@ -110,7 +116,7 @@ export default function InventarioPersonajePage({ params }: { params: { personaj
             </div>
         )
     }));
-    
+
     if (loading) return <div className="p-8 font-title">Cargando la ficha del personaje...</div>;
 
     return (
