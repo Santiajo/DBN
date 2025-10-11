@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Objeto } from '@/types';
+import { Objeto } from '@/types'; 
 import Input from '@/components/input';
 
 interface ObjectSearchProps {
@@ -10,6 +10,8 @@ interface ObjectSearchProps {
   initialObjectName?: string;
   disabled?: boolean;
 }
+
+const MAX_RESULTS = 20; 
 
 export default function ObjectSearch({
   objetosList,
@@ -23,23 +25,26 @@ export default function ObjectSearch({
   const searchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Sincroniza el término de búsqueda si el nombre inicial cambia
     setSearchTerm(initialObjectName);
   }, [initialObjectName]);
   
-  // Filtrar resultados al escribir
   useEffect(() => {
-    if (searchTerm.length > 1 && searchTerm !== initialObjectName) {
+    if (!isDropdownVisible) return;
+
+    if (searchTerm.length > 0) {
+      // Si hay texto, filtrar la lista completa
       const filtered = objetosList.filter(obj =>
         obj.Name.toLowerCase().includes(searchTerm.toLowerCase())
       );
-      setResults(filtered.slice(0, 10)); // Mostrar solo los primeros 10 resultados
-      setIsDropdownVisible(true);
+      setResults(filtered.slice(0, MAX_RESULTS));
     } else {
-      setIsDropdownVisible(false);
+      // Si no hay texto (campo vacío), mostrar los primeros N objetos de la lista
+      setResults(objetosList.slice(0, MAX_RESULTS));
     }
-  }, [searchTerm, objetosList, initialObjectName]);
+  }, [searchTerm, objetosList, isDropdownVisible]);
 
-  // Cerrar el dropdown si se hace clic fuera
+  // Manejar clics fuera del componente para cerrar el dropdown
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
@@ -62,8 +67,8 @@ export default function ObjectSearch({
         type="search"
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
-        onFocus={() => searchTerm.length > 1 && setIsDropdownVisible(true)}
-        placeholder="Escribe para buscar un objeto..."
+        onFocus={() => setIsDropdownVisible(true)}
+        placeholder="Busca un objeto..."
         disabled={disabled}
         autoComplete="off"
       />
