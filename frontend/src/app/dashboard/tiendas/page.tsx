@@ -220,7 +220,7 @@ export default function TiendasPage() {
                             <div className="flex justify-end gap-2 mt-auto pt-4">
                                 <Button variant="dangerous" onClick={handleDelete}><FaTrash /></Button>
                                 <Button variant="secondary" onClick={() => handleOpenEditModal(selectedTienda)}><FaPencilAlt /></Button>
-                                <Button variant="secondary" onClick={() => handleViewInventory(selectedTienda.id)}><FaEye /> Ver Inventario</Button>
+                                <Button variant="secondary" onClick={() => handleViewInventory(selectedTienda.id)}><FaEye /></Button>
                             </div>
                         </Card>
                     ) : (
