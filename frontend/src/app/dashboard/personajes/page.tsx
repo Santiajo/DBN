@@ -12,6 +12,7 @@ import PersonajeForm from './personaje-form';
 import { FaPlus, FaPencilAlt, FaTrash, FaScroll, FaCoins, FaClock, FaStar } from 'react-icons/fa';
 
 export default function PersonajesPage() {
+    // El 'user' de tu contexto de autenticación tiene la información que necesitamos
     const { user, accessToken, logout } = useAuth();
     const router = useRouter();
 
@@ -50,19 +51,34 @@ export default function PersonajesPage() {
     }, [fetchPersonajes]);
 
     const handleSavePersonaje = async (personajeData: Omit<Personaje, 'id' | 'user'>) => {
-        if (!accessToken) return;
+        if (!accessToken || !user) return;
+        
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
         const isEditing = !!editingPersonaje;
         const url = isEditing ? `${apiUrl}/api/personajes/${editingPersonaje.id}/` : `${apiUrl}/api/personajes/`;
         const method = isEditing ? 'PUT' : 'POST';
 
+        // Añadimos el nombre de usuario al cuerpo de la solicitud
+        const body = {
+            ...personajeData,
+            nombre_usuario: user.username
+        };
+
         try {
             const res = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
-                body: JSON.stringify(personajeData),
+                // Enviamos el cuerpo modificado
+                body: JSON.stringify(body),
             });
-            if (!res.ok) throw new Error('Error al guardar el personaje');
+
+            if (!res.ok) {
+                // Errores detallados en la consola del navegador
+                const errorData = await res.json();
+                console.error("Detalles del error del backend:", errorData);
+                throw new Error('Error al guardar el personaje');
+            }
+            
             setIsModalOpen(false);
             setEditingPersonaje(null);
             await fetchPersonajes();
@@ -110,8 +126,6 @@ export default function PersonajesPage() {
             {personajes.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {personajes.map(pj => {
-                        // --- LÍNEA CORREGIDA ---
-                        // Creamos una variable para formatear la clase de forma segura
                         const formattedClase = pj.clase 
                             ? pj.clase.charAt(0) + pj.clase.slice(1).toLowerCase() 
                             : 'Aventurero';
@@ -120,7 +134,6 @@ export default function PersonajesPage() {
                             <Card key={pj.id} variant="secondary" className="flex flex-col">
                                 <div className="flex-grow">
                                     <h3 className="font-title text-2xl text-bosque">{pj.nombre_personaje}</h3>
-                                    {/* Usamos la nueva variable aquí */}
                                     <p className="text-sm italic text-stone-600 mb-4">{pj.especie} {formattedClase} de Nivel {pj.nivel}</p>
                                     
                                     <div className="space-y-2 text-sm font-body border-t border-madera pt-4">
