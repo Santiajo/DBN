@@ -20,7 +20,8 @@ const navLinks = [
   { href: '/dashboard/objetos', icon: <FaRing />, label: 'Objetos' },
   { href: '/dashboard/tiempo-libre', icon: <FaBed />, label: 'Tiempo libre' },
   { href: '/dashboard/trabajos', icon: <FaBriefcase />, label: 'Trabajos' },
-  { href: '/dashboard/tiendas', icon: <FaCoins />, label: 'Tiendas' },
+  { href: '/dashboard/tiendas', icon: <FaCoins />, label: 'Gestión tiendas' },
+  { href: '/dashboard/compras', icon: <FaCoins />, label: 'Tiendas' },
 ];
 
 export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
