@@ -29,3 +29,35 @@ export interface Tienda {
   npc_asociado?: string | null;
   inventario: ObjetoTienda[];
 }
+
+export interface Habilidad {
+  id: number;
+  nombre: string;
+  estadistica_asociada: string;
+}
+
+export interface Trabajo {
+  id?: number;
+  nombre: string;
+  requisito_habilidad: number;
+  requisito_habilidad_nombre?: string;
+  rango_maximo: number;
+  descripcion?: string | null;
+  beneficio?: string | null;
+}
+
+export interface PagoRango {
+  id: number;
+  trabajo: number;
+  rango: number;
+  valor_suma: number;
+  multiplicador: number;
+}
+
+// RESPUESTA PAGINADA
+export interface ApiResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
