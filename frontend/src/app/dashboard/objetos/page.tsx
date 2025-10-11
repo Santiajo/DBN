@@ -25,9 +25,7 @@ export default function ObjetosPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
 
-    // --- LÓGICA MEJORADA PARA MODALES ---
     const [isModalOpen, setIsModalOpen] = useState(false);
-    // Este estado guardará el objeto que estamos editando, o null si estamos creando uno nuevo.
     const [editingObject, setEditingObject] = useState<Objeto | null>(null);
 
     const fetchObjects = useCallback(async (page = 1, searchQuery = '') => {
@@ -66,23 +64,20 @@ export default function ObjetosPage() {
 
     const handleSearch = () => { fetchObjects(1, searchTerm); };
     const handlePageChange = (newPage: number) => { fetchObjects(newPage, searchTerm); };
-    
-    // --- LÓGICA PARA ABRIR LOS MODALES ---
+
     const handleOpenCreateModal = () => {
-        setEditingObject(null); // No hay datos iniciales para un objeto nuevo
+        setEditingObject(null);
         setIsModalOpen(true);
     };
 
     const handleOpenEditModal = (objeto: Objeto) => {
-        setEditingObject(objeto); // Pasamos los datos del objeto seleccionado
+        setEditingObject(objeto);
         setIsModalOpen(true);
     };
 
-    // SOLUCIÓN 2: Una única función para guardar (Crear o Editar).
     const handleSaveObject = async (objectData: Objeto) => {
         if (!accessToken) return;
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        // Determinamos si es una petición de creación (POST) o edición (PUT)
         const isEditing = !!objectData.id;
         const url = isEditing ? `${apiUrl}/api/objetos/${objectData.id}/` : `${apiUrl}/api/objetos/`;
         const method = isEditing ? 'PUT' : 'POST';
@@ -101,16 +96,38 @@ export default function ObjetosPage() {
             }
             setIsModalOpen(false);
             setEditingObject(null);
-            fetchObjects(currentPage, ''); // Recargar la tabla
+            fetchObjects(currentPage, '');
         } catch (error) {
             console.error(error);
         }
     };
-    
+
     const handleDelete = async () => {
-        if (!selectedObject) return;
+        if (!selectedObject || !accessToken) return;
+
         if (confirm(`¿Estás seguro de que quieres eliminar "${selectedObject.Name}"?`)) {
-            // ... (tu lógica de borrado no cambia)
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+            try {
+                const res = await fetch(`${apiUrl}/api/objetos/${selectedObject.id}/`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${accessToken}` },
+                });
+
+                if (!res.ok) {
+                    throw new Error('Error al eliminar el objeto');
+                }
+
+                if (objetos.length === 1 && currentPage > 1) {
+                    fetchObjects(currentPage - 1, searchTerm);
+                } else {
+                    fetchObjects(currentPage, searchTerm);
+                }
+
+                setSelectedObject(null);
+
+            } catch (error) {
+                console.error('Error al eliminar el objeto:', error);
+            }
         }
     };
 
@@ -132,7 +149,7 @@ export default function ObjetosPage() {
                 title={editingObject ? "Editar Objeto" : "Crear Nuevo Objeto"}
             >
                 <ObjectForm
-                    onSave={handleSaveObject} 
+                    onSave={handleSaveObject}
                     onCancel={() => setIsModalOpen(false)}
                     initialData={editingObject}
                 />
@@ -175,7 +192,6 @@ export default function ObjetosPage() {
                             </div>
                             <div className="flex justify-end gap-2 mt-auto pt-4">
                                 <Button variant="dangerous" onClick={handleDelete}><FaTrash /></Button>
-                                {/* Ahora el botón de editar funciona */}
                                 <Button variant="secondary" onClick={() => handleOpenEditModal(selectedObject)}><FaPencilAlt /></Button>
                                 <Button variant="secondary"><FaEye /></Button>
                             </div>
