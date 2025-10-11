@@ -12,6 +12,7 @@ from .serializers import *
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, IsAuthenticatedOrReadOnly
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import MyTokenObtainPairSerializer
+from django.db import transaction
 
 @api_view(['POST']) # Solo permite solicitudes POST
 @permission_classes([AllowAny]) # Permite que cualquiera pueda acceder a esta vista
@@ -147,3 +148,47 @@ class ObjetoTiendaViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(tienda_id=self.kwargs['tienda_pk'])
+        
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def comprar_objeto(request, personaje_pk):
+    try:
+        personaje = Personaje.objects.get(pk=personaje_pk, user=request.user)
+        objeto_tienda_id = request.data.get('objeto_tienda_id')
+        cantidad = int(request.data.get('cantidad', 1))
+        
+        if not objeto_tienda_id:
+            return Response({"error": "Falta el ID del objeto de la tienda."}, status=status.HTTP_400_BAD_REQUEST)
+
+        objeto_tienda = ObjetoTienda.objects.select_related('objeto').get(pk=objeto_tienda_id)
+        costo_total = (objeto_tienda.precio_personalizado or int(objeto_tienda.objeto.Value)) * cantidad
+
+        if personaje.oro < costo_total:
+            return Response({"error": "No tienes suficiente oro."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if objeto_tienda.stock < cantidad:
+            return Response({"error": "La tienda no tiene suficiente stock."}, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            personaje.oro -= costo_total
+            personaje.save()
+
+            objeto_tienda.stock -= cantidad
+            objeto_tienda.save()
+
+            item_inventario, created = Inventario.objects.get_or_create(
+                personaje=personaje,
+                objeto=objeto_tienda.objeto,
+                defaults={'cantidad': 0}
+            )
+            item_inventario.cantidad += cantidad
+            item_inventario.save()
+
+        return Response({"success": f"¡Compra exitosa! Has comprado {cantidad}x {objeto_tienda.objeto.Name}."}, status=status.HTTP_200_OK)
+
+    except Personaje.DoesNotExist:
+        return Response({"error": "Personaje no encontrado."}, status=status.HTTP_404_NOT_FOUND)
+    except ObjetoTienda.DoesNotExist:
+        return Response({"error": "El objeto no está disponible en esta tienda."}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

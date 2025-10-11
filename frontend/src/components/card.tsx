@@ -1,16 +1,17 @@
-// src/components/Card.tsx
 import React from 'react';
 
 type CardProps = {
   children: React.ReactNode;
   variant?: 'primary' | 'secondary';
   className?: string;
+  onClick?: () => void;
 };
 
 export default function Card({
   children,
   variant = 'primary',
   className = '',
+  onClick,
 }: CardProps) {
   const baseClasses = "p-6";
 
@@ -20,7 +21,10 @@ export default function Card({
   };
 
   return (
-    <div className={`${baseClasses} ${variantClasses[variant]} ${className}`}>
+    <div 
+      className={`${baseClasses} ${variantClasses[variant]} ${className}`}
+      onClick={onClick}
+    >
       {children}
     </div>
   );

@@ -41,4 +41,5 @@ urlpatterns = [
     path('', include(router.urls)),  # Solo una vez
     path('', include(tiendas_router.urls)),
     path('', include(personajes_router.urls)),
+    path('personajes/<int:personaje_pk>/comprar/', views.comprar_objeto, name='comprar-objeto'),
 ]
