@@ -5,13 +5,13 @@ type TableHeader = {
   label: string;
 };
 
-type TableProps = {
+type TableProps<T extends object> = {
   headers: TableHeader[];
-  data: Record<string, React.ReactNode>[];
-  onRowClick?: (row: Record<string, React.ReactNode>) => void;
+  data: T[];
+  onRowClick?: (row: T) => void;
 };
 
-export default function Table({ headers, data, onRowClick }: TableProps) {
+export default function Table<T extends object>({ headers, data, onRowClick }: TableProps<T>) {
   return (
     <div className="overflow-x-auto rounded-xl border border-madera-oscura">
       <table className="min-w-full text-left text-sm font-body">
@@ -33,7 +33,7 @@ export default function Table({ headers, data, onRowClick }: TableProps) {
             >
               {headers.map((header) => (
                 <td key={`${rowIndex}-${header.key}`} className="px-4 py-2">
-                  {row[header.key]}
+                  {row[header.key as keyof T] as React.ReactNode}
                 </td>
               ))}
             </tr>
