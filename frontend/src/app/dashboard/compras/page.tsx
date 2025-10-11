@@ -43,7 +43,7 @@ export default function ListaTiendasPage() {
             {tiendas.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {tiendas.map(tienda => (
-                        <Card key={tienda.id} variant="primary" className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push(`/tiendas/${tienda.id}`)}>
+                        <Card key={tienda.id} variant="primary" className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push(`/dashboard/compras/${tienda.id}`)}>
                             <FaStore className="text-4xl text-bosque mb-4" />
                             <h3 className="font-title text-2xl">{tienda.nombre}</h3>
                             <p className="text-sm italic text-stone-600">Regentada por {tienda.npc_asociado}</p>
