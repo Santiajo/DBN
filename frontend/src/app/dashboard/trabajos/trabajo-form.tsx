@@ -10,7 +10,7 @@ interface TrabajoFormProps {
   onSave: (trabajo: Trabajo) => void;
   onCancel: () => void;
   initialData?: Trabajo | null;
-  habilidades: Habilidad[]; // Lista de habilidades para el dropdown
+  habilidades: Habilidad[];
 }
 
 export default function TrabajoForm({ onSave, onCancel, initialData, habilidades }: TrabajoFormProps) {
@@ -22,7 +22,6 @@ export default function TrabajoForm({ onSave, onCancel, initialData, habilidades
     beneficio: '', 
   });
 
-  // Convertir habilidades a opciones para el dropdown
   const habilidadOptions: OptionType[] = habilidades.map(habilidad => ({
     value: String(habilidad.id),
     label: habilidad.nombre
@@ -54,7 +53,6 @@ export default function TrabajoForm({ onSave, onCancel, initialData, habilidades
     e.preventDefault();
     const dataToSave = {
       ...formData,
-      // Asegurar que requisito_habilidad sea un número
       requisito_habilidad: Number(formData.requisito_habilidad)
     };
     onSave({ ...initialData, ...dataToSave } as Trabajo);
@@ -62,6 +60,7 @@ export default function TrabajoForm({ onSave, onCancel, initialData, habilidades
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 font-body text-stone-800">
+      {/* NOMBRE */}
       <div>
         <label className="block mb-1 font-semibold">Nombre del Trabajo</label>
         <Input 
@@ -73,6 +72,7 @@ export default function TrabajoForm({ onSave, onCancel, initialData, habilidades
         />
       </div>
 
+      {/* HABILIDAD Y RANGO */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block mb-1 font-semibold">Requisito de Habilidad</label>
@@ -92,37 +92,40 @@ export default function TrabajoForm({ onSave, onCancel, initialData, habilidades
             value={String(formData.rango_maximo)} 
             onChange={handleChange}
             min="1"
-            max="10"
+            max="5"
             required
           />
         </div>
       </div>
 
+      {/* DESCRIPCIÓN */}
       <div>
         <label className="block mb-1 font-semibold">Descripción</label>
         <textarea 
-            name="descripcion" 
-            rows={4} 
-            value={formData.descripcion || ''}  // 
-            onChange={handleChange}
-            className="w-full px-4 py-2 rounded-lg border border-stone-400 bg-white focus:ring-2 focus:ring-bosque scrollbar-custom"
-            placeholder="Describe las tareas y responsabilidades del trabajo..."
-            required
+          name="descripcion" 
+          rows={4} 
+          value={formData.descripcion || ''}
+          onChange={handleChange}
+          className="w-full px-4 py-2 rounded-lg border border-stone-400 bg-white focus:ring-2 focus:ring-bosque scrollbar-custom"
+          placeholder="Describe las tareas y responsabilidades del trabajo..."
+          required
         />
       </div>
 
+      {/* BENEFICIO - CORREGIDO */}
       <div>
         <label className="block mb-1 font-semibold">Beneficio</label>
         <textarea 
           name="beneficio" 
           rows={3} 
-          value={formData.descripcion || ''}  //  
+          value={formData.beneficio || ''}  // ✅ CORREGIDO: era formData.descripcion
           onChange={handleChange}
           className="w-full px-4 py-2 rounded-lg border border-stone-400 bg-white focus:ring-2 focus:ring-bosque scrollbar-custom"
           placeholder="Beneficios o recompensas por realizar este trabajo..."
         />
       </div>
 
+      {/* BOTONES IDÉNTICOS A OBJETOS */}
       <div className="flex justify-end gap-4 pt-4">
         <Button type="button" variant="secondary" onClick={onCancel}>
           Cancelar

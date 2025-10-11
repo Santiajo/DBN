@@ -29,7 +29,7 @@ export default function TrabajosPage() {
     const [editingTrabajo, setEditingTrabajo] = useState<Trabajo | null>(null);
     const [isAlertOpen, setIsAlertOpen] = useState(false);
 
-    // Fetch trabajos
+    // Fetch trabajos - IDÉNTICO a objetos
     const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
         if (!accessToken) return;
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -44,17 +44,15 @@ export default function TrabajosPage() {
             });
             if (!res.ok) {
                 if (res.status === 401) logout();
-                throw new Error('Error al cargar los trabajos');
+                throw new Error('Error al cargar los datos');
             }
             const data = await res.json();
-            setTrabajos(data.results || data);
-            setTotalPages(Math.ceil((data.count || data.length) / 12));
+            setTrabajos(data.results);
+            setTotalPages(Math.ceil(data.count / 12));
             setCurrentPage(page);
-            
-            // Seleccionar primer trabajo si existe
-            if ((data.results || data).length > 0 && !selectedTrabajo) {
-                setSelectedTrabajo((data.results || data)[0]);
-            } else if ((data.results || data).length === 0) {
+            if (data.results.length > 0 && !selectedTrabajo) {
+                setSelectedTrabajo(data.results[0]);
+            } else if (data.results.length === 0) {
                 setSelectedTrabajo(null);
             }
         } catch (error) {
@@ -62,7 +60,7 @@ export default function TrabajosPage() {
         }
     }, [accessToken, logout, selectedTrabajo]);
 
-    // Fetch habilidades para el formulario
+    // Fetch habilidades
     const fetchHabilidades = useCallback(async () => {
         if (!accessToken) return;
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -143,7 +141,6 @@ export default function TrabajosPage() {
 
             if (!res.ok) throw new Error('Error al eliminar el trabajo');
 
-            // Lógica de recarga inteligente
             if (trabajos.length === 1 && currentPage > 1) {
                 fetchTrabajos(currentPage - 1, searchTerm);
             } else {
@@ -159,15 +156,15 @@ export default function TrabajosPage() {
         }
     };
 
+    // HEADERS ESPECÍFICOS PARA TRABAJOS
     const tableHeaders = [
         { key: 'nombre', label: 'Nombre' },
         { key: 'requisito_habilidad_nombre', label: 'Habilidad Requerida' },
         { key: 'rango_maximo', label: 'Rango Máx' },
-        { key: 'descripcion', label: 'Descripción' },
     ];
 
     if (!user?.is_staff) {
-        return <div className="p-8 font-title">No tienes permisos para acceder a esta sección.</div>;
+        return <div className="p-8 font-title">Verificando acceso...</div>;
     }
 
     return (
@@ -193,7 +190,7 @@ export default function TrabajosPage() {
                 message={`Esta acción no se puede deshacer. El trabajo "${selectedTrabajo?.nombre}" se eliminará permanentemente.`}
             />
 
-            {/* Crear y Buscar */}
+            {/* CREAR Y BUSCAR - IDÉNTICO A OBJETOS */}
             <div className="flex justify-end items-center gap-4">
                 <Button variant="primary" onClick={handleOpenCreateModal}>
                     Crear Trabajo
@@ -211,7 +208,7 @@ export default function TrabajosPage() {
                 </div>
             </div>
 
-            {/* Tabla y Descripción */}
+            {/* TABLA Y DESCRIPCIÓN - ESTRUCTURA IDÉNTICA */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 <div className="lg:col-span-2">
                     <Table 
@@ -232,8 +229,7 @@ export default function TrabajosPage() {
                             <div>
                                 <h3 className="font-title text-xl">{selectedTrabajo.nombre}</h3>
                                 <p className="font-body text-xs italic text-stone-600">
-                                    Habilidad: {selectedTrabajo.requisito_habilidad_nombre || 'N/A'} | 
-                                    Rango Máx: {selectedTrabajo.rango_maximo}
+                                    Habilidad: {selectedTrabajo.requisito_habilidad_nombre || 'N/A'} | Rango Máx: {selectedTrabajo.rango_maximo}
                                 </p>
                             </div>
                             <div className="font-body text-sm flex-grow mt-4 border-t pt-4 border-madera-oscura">
