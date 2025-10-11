@@ -10,9 +10,8 @@ import Button from "@/components/button";
 import Pagination from '@/components/pagination';
 import Modal from '@/components/modal';
 import ObjectForm from './object-form';
+import ConfirmAlert from '@/components/confirm-alert';
 import { FaSearch, FaTrash, FaPencilAlt, FaEye } from 'react-icons/fa';
-
-// SOLUCIÓN 1: Eliminamos la definición local y usamos la centralizada.
 import { Objeto } from '@/types';
 
 export default function ObjetosPage() {
@@ -27,6 +26,8 @@ export default function ObjetosPage() {
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingObject, setEditingObject] = useState<Objeto | null>(null);
+
+    const [isAlertOpen, setIsAlertOpen] = useState(false);
 
     const fetchObjects = useCallback(async (page = 1, searchQuery = '') => {
         if (!accessToken) return;
@@ -103,31 +104,36 @@ export default function ObjetosPage() {
     };
 
     const handleDelete = async () => {
+        if (!selectedObject) return;
+        setIsAlertOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
         if (!selectedObject || !accessToken) return;
 
-        if (confirm(`¿Estás seguro de que quieres eliminar "${selectedObject.Name}"?`)) {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-            try {
-                const res = await fetch(`${apiUrl}/api/objetos/${selectedObject.id}/`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${accessToken}` },
-                });
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        try {
+            const res = await fetch(`${apiUrl}/api/objetos/${selectedObject.id}/`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${accessToken}` },
+            });
 
-                if (!res.ok) {
-                    throw new Error('Error al eliminar el objeto');
-                }
+            if (!res.ok) throw new Error('Error al eliminar el objeto');
 
-                if (objetos.length === 1 && currentPage > 1) {
-                    fetchObjects(currentPage - 1, searchTerm);
-                } else {
-                    fetchObjects(currentPage, searchTerm);
-                }
-
-                setSelectedObject(null);
-
-            } catch (error) {
-                console.error('Error al eliminar el objeto:', error);
+            // Lógica de recarga inteligente
+            if (objetos.length === 1 && currentPage > 1) {
+                fetchObjects(currentPage - 1, searchTerm);
+            } else {
+                fetchObjects(currentPage, searchTerm);
             }
+
+            setSelectedObject(null);
+
+        } catch (error) {
+            console.error('Error al eliminar el objeto:', error);
+        } finally {
+            // Cerramos el modal de alerta sin importar si hubo éxito o error
+            setIsAlertOpen(false);
         }
     };
 
@@ -154,6 +160,14 @@ export default function ObjetosPage() {
                     initialData={editingObject}
                 />
             </Modal>
+
+            <ConfirmAlert
+                isOpen={isAlertOpen}
+                onClose={() => setIsAlertOpen(false)}
+                onConfirm={handleConfirmDelete}
+                title="¿ESTÁS SEGURO?"
+                message={`Esta acción no se puede deshacer. El objeto "${selectedObject?.Name}" se eliminará permanentemente.`}
+            />
 
             {/* Crear y Buscar */}
             <div className="flex justify-end items-center gap-4">
