@@ -6,10 +6,10 @@ from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from .models import *
 from .serializers import *
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, IsAuthenticatedOrReadOnly
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import MyTokenObtainPairSerializer
 
@@ -125,3 +125,21 @@ class TrabajoRealizadoViewSet(viewsets.ModelViewSet):
     queryset = TrabajoRealizado.objects.all()
     serializer_class = TrabajoRealizadoSerializer
     permission_classes = [IsAuthenticated]
+
+# ViewSet para el CRUD de Tienda
+class TiendaViewSet(viewsets.ModelViewSet):
+    queryset = Tienda.objects.all()
+    serializer_class = TiendaSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly, IsAdminUser]
+    search_fields = ['nombre', 'npc_asociado']
+
+# ViewSet para gestionar el inventario DE UNA TIENDA ESPECÍFICA
+class ObjetoTiendaViewSet(viewsets.ModelViewSet):
+    serializer_class = ObjetoTiendaSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly, IsAdminUser]
+
+    def get_queryset(self):
+        return ObjetoTienda.objects.filter(tienda_id=self.kwargs['tienda_pk'])
+
+    def perform_create(self, serializer):
+        serializer.save(tienda_id=self.kwargs['tienda_pk'])

@@ -196,6 +196,36 @@ class TrabajoRealizado(models.Model):
     def __str__(self):
         return f"{self.personaje.nombre_personaje} - {self.trabajo.nombre} (Rango {self.rango})"
 
+class ObjetoTienda(models.Model):
+    tienda = models.ForeignKey("Tienda", on_delete=models.CASCADE, related_name='inventario')
+    objeto = models.ForeignKey(Objeto, on_delete=models.CASCADE)
+    stock = models.PositiveIntegerField(default=1, help_text="Cantidad de este objeto disponible en la tienda.")
+    precio_personalizado = models.IntegerField(null=True, blank=True, help_text="Precio de venta en oro. Si se deja en blanco, se podría usar el valor base del objeto.")
+
+    class Meta:
+        # Asegura que no haya entradas duplicadas del mismo objeto en la misma tienda.
+        unique_together = ('tienda', 'objeto')
+
+    def __str__(self):
+        return f"{self.objeto.Name} en {self.tienda.nombre} (Stock: {self.stock})"
+
+
+class Tienda(models.Model):
+    nombre = models.CharField(max_length=100, unique=True)
+    descripcion = models.TextField(blank=True, null=True)
+    npc_asociado = models.CharField(max_length=100, blank=True, help_text="Nombre del NPC que regenta la tienda.")
+    
+    # Relación Many-to-Many para incluir objetos en el inventario de la tienda.
+    objetos = models.ManyToManyField(
+        Objeto, 
+        through=ObjetoTienda, 
+        related_name='tiendas',
+        blank=True
+    )
+
+    def __str__(self):
+        return self.nombre
+
 # ola
 # estoy stremeneado en maxima calidad bit rate
 

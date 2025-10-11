@@ -142,3 +142,18 @@ class TrabajoRealizadoSerializer(serializers.ModelSerializer):
     class Meta:
         model = TrabajoRealizado
         fields = '__all__'
+        
+class ObjetoTiendaSerializer(serializers.ModelSerializer):
+    nombre_objeto = serializers.CharField(source='objeto.Name', read_only=True)
+
+    class Meta:
+        model = ObjetoTienda
+        fields = ['id', 'objeto', 'nombre_objeto', 'stock', 'precio_personalizado']
+
+
+class TiendaSerializer(serializers.ModelSerializer):
+    inventario = ObjetoTiendaSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Tienda
+        fields = ['id', 'nombre', 'descripcion', 'npc_asociado', 'inventario']
