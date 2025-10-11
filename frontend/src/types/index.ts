@@ -51,6 +51,13 @@ export interface Personaje {
   carisma: number;
 }
 
+export interface InventarioItem {
+  id: number;
+  objeto: number;
+  objeto_nombre: string;
+  cantidad: number;
+}
+
 export interface Habilidad {
   id: number;
   nombre: string;
