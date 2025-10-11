@@ -29,3 +29,24 @@ export interface Tienda {
   npc_asociado?: string | null;
   inventario: ObjetoTienda[];
 }
+
+export interface Personaje {
+  id: number;
+  user: number;
+  nombre_usuario: string;
+  nombre_personaje: string;
+  treasure_points: number;
+  oro: number;
+  tiempo_libre: number;
+  clase?: string;
+  treasure_points_gastados?: number;
+  nivel?: number;
+  especie?: string;
+  faccion?: string;
+  fuerza: number;
+  inteligencia: number;
+  sabiduria: number;
+  destreza: number;
+  constitucion: number;
+  carisma: number;
+}
