@@ -132,9 +132,9 @@ export default function ObjetosPage() {
                 title={editingObject ? "Editar Objeto" : "Crear Nuevo Objeto"}
             >
                 <ObjectForm
-                    onSave={handleSaveObject} // <- Ahora pasamos la función unificada
+                    onSave={handleSaveObject} 
                     onCancel={() => setIsModalOpen(false)}
-                    initialData={editingObject} // <- Pasamos los datos para edición
+                    initialData={editingObject}
                 />
             </Modal>
 
@@ -143,7 +143,17 @@ export default function ObjetosPage() {
                 <Button variant="primary" onClick={handleOpenCreateModal}>
                     Crear Objeto
                 </Button>
-                {/* ... (resto del JSX de búsqueda) */}
+                <div className="flex items-center gap-2 flex-grow max-w-xs">
+                    <Input
+                        placeholder="Buscar por nombre..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    />
+                    <Button variant="secondary" onClick={handleSearch}>
+                        <FaSearch />
+                    </Button>
+                </div>
             </div>
 
             {/* Tabla y Descripción */}
