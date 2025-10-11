@@ -45,7 +45,7 @@ export default function InventarioPage({ params }: { params: { tiendaId: string 
             const tiendaData = await tiendaRes.json();
             const inventarioData = await inventarioRes.json();
             const objetosData = await objetosRes.json();
-            
+
             setTienda(tiendaData);
             setInventario(inventarioData.results || inventarioData);
             setAllObjetos(objetosData.results || objetosData);
@@ -59,7 +59,7 @@ export default function InventarioPage({ params }: { params: { tiendaId: string 
     useEffect(() => {
         fetchPageData();
     }, [fetchPageData]);
-    
+
     // --- Lógica CRUD ---
 
     const handleSaveItem = async (formData: InventarioFormData) => {
@@ -105,7 +105,7 @@ export default function InventarioPage({ params }: { params: { tiendaId: string 
                 headers: { 'Authorization': `Bearer ${accessToken}` },
             });
             if (!res.ok) throw new Error('Error al eliminar el item');
-            
+
             await fetchPageData(); // Recargar datos
         } catch (error) {
             console.error('Error al eliminar el item:', error);
@@ -157,16 +157,26 @@ export default function InventarioPage({ params }: { params: { tiendaId: string 
                 title="¿ELIMINAR ESTE ITEM?"
                 message={`Esta acción no se puede deshacer. El objeto "${itemToDelete?.nombre_objeto}" se eliminará del inventario de esta tienda.`}
             />
-            
-            <div className="flex items-center justify-between">
+
+            <div className="flex items-center justify-between gap-4">
+                {/* Contenedor para la parte izquierda */}
                 <div>
-                    <Button variant="secondary" onClick={() => router.back()} className="mb-4"><FaArrowLeft className="mr-2" />Volver a Tiendas</Button>
-                    <h1 className="text-3xl font-title text-stone-800">Inventario de: <span className="text-bosque">{tienda?.nombre}</span></h1>
+                    <Button variant="secondary" onClick={() => router.back()} className="mb-4 whitespace-nowrap">
+                        <FaArrowLeft className="mr-2" />
+                        Volver
+                    </Button>
+                    <h1 className="text-3xl font-title text-stone-800">
+                        Inventario de: <span className="text-bosque">{tienda?.nombre}</span>
+                    </h1>
                     <p className="text-stone-600">Regentada por {tienda?.npc_asociado}</p>
                 </div>
-                <Button variant="primary" onClick={handleOpenAddModal}><FaPlus className="mr-2" />Añadir Objeto</Button>
+                {/* Contenedor para la parte derecha */}
+                <Button variant="primary" onClick={handleOpenAddModal} className="whitespace-nowrap">
+                    <FaPlus className="mr-2" />
+                    Añadir Objeto
+                </Button>
             </div>
-            
+
             <Table headers={tableHeaders} data={tableData} />
         </div>
     );
