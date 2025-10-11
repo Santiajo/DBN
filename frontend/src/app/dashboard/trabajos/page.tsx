@@ -97,32 +97,51 @@ export default function TrabajosPage() {
         setIsModalOpen(true);
     };
 
-    const handleSaveTrabajo = async (trabajoData: Trabajo) => {
-        if (!accessToken) return;
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        const isEditing = !!trabajoData.id;
-        const url = isEditing ? `${apiUrl}/api/trabajos/${trabajoData.id}/` : `${apiUrl}/api/trabajos/`;
-        const method = isEditing ? 'PUT' : 'POST';
+  const handleSaveTrabajo = async (trabajoData: Trabajo) => {
+    console.log('💾 Datos que se intentan guardar:', trabajoData);
+    
+    if (!accessToken) {
+        console.log('❌ No hay accessToken');
+        return;
+    }
+    
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    const isEditing = !!trabajoData.id;
+    const url = isEditing ? `${apiUrl}/api/trabajos/${trabajoData.id}/` : `${apiUrl}/api/trabajos/`;
+    const method = isEditing ? 'PUT' : 'POST';
 
-        try {
-            const res = await fetch(url, {
-                method: method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${accessToken}`,
-                },
-                body: JSON.stringify(trabajoData),
-            });
-            if (!res.ok) {
-                throw new Error(`Error al ${isEditing ? 'actualizar' : 'crear'} el trabajo`);
-            }
-            setIsModalOpen(false);
-            setEditingTrabajo(null);
-            fetchTrabajos(currentPage, '');
-        } catch (error) {
-            console.error(error);
+    console.log('🌐 Enviando a:', url);
+    console.log('📤 Método:', method);
+    console.log('🔐 Token:', accessToken ? 'PRESENTE' : 'AUSENTE');
+
+    try {
+        const res = await fetch(url, {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(trabajoData),
+        });
+        
+        console.log('📥 Respuesta del servidor:', res.status, res.statusText);
+        
+        if (!res.ok) {
+        // OBTENER EL ERROR ESPECÍFICO DEL SERVIDOR
+        const errorData = await res.json();
+        console.log('❌ Error detallado del servidor:', errorData);
+        throw new Error(`Error al ${isEditing ? 'actualizar' : 'crear'} el trabajo: ${JSON.stringify(errorData)}`);
         }
-    };
+        
+        console.log('✅ Trabajo guardado exitosamente');
+        setIsModalOpen(false);
+        setEditingTrabajo(null);
+        fetchTrabajos(currentPage, '');
+        
+    } catch (error) {
+        console.error('❌ Error completo:', error);
+    }
+};
 
     const handleDelete = async () => {
         if (!selectedTrabajo) return;
