@@ -152,7 +152,6 @@ export default function ObjectForm({ onSave, onCancel, initialData }: ObjectForm
       </div>
 
       <div className="flex justify-end gap-4 pt-4">
-        <Button type="button" variant="secondary" onClick={onCancel}>Cancelar</Button>
         <div className="flex justify-end gap-4 pt-4">
                 <Button type="button" variant="secondary" onClick={onCancel}>Cancelar</Button>
                 <Button type="submit" variant="primary">
