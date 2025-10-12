@@ -191,6 +191,7 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
       
       const promesasPagos = pagos.map(async (pago) => {
         const pagoData = {
+          trabajo: trabajoGuardado.id,
           rango: pago.rango,
           valor_suma: pago.valor_suma,
           multiplicador: pago.multiplicador,
