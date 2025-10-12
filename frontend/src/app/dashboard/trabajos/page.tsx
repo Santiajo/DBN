@@ -45,37 +45,69 @@ export default function TrabajosPage() {
     const [editingTrabajo, setEditingTrabajo] = useState<Trabajo | null>(null);
     const [isAlertOpen, setIsAlertOpen] = useState(false);
 
-    // Fetch trabajos - IDÉNTICO a objetos
-     const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
-        if (!accessToken) return;
-        
-        const params = new URLSearchParams({
-            page: String(page),
-            search: searchQuery,
-        });
-        
-        const url = buildApiUrl(`trabajos/?${params.toString()}`);
+    // Fetch trabajos 
+    const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
+  if (!accessToken) return;
+  
+  const params = new URLSearchParams({
+    page: String(page),
+    search: searchQuery,
+  });
+  
+  const url = buildApiUrl(`trabajos/?${params.toString()}`);
+  
+  try {
+    const res = await fetch(url, { 
+      headers: { 'Authorization': `Bearer ${accessToken}` } 
+    });
+    
+    if (!res.ok) {
+      if (res.status === 401) logout();
+      throw new Error('Error al cargar los datos');
+    }
+    
+    const data = await res.json();
+    const trabajosData = data.results || data;
+    
+    // 👇 CARGAR PAGOS PARA CADA TRABAJO - CORREGIDO
+    const trabajosConPagos = await Promise.all(
+      trabajosData.map(async (trabajo: Trabajo) => {
         try {
-            const res = await fetch(url, { 
-                headers: { 'Authorization': `Bearer ${accessToken}` } 
-            });
-            if (!res.ok) {
-                if (res.status === 401) logout();
-                throw new Error('Error al cargar los datos');
-            }
-            const data = await res.json();
-            setTrabajos(data.results);
-            setTotalPages(Math.ceil(data.count / 12));
-            setCurrentPage(page);
-            if (data.results.length > 0 && !selectedTrabajo) {
-                setSelectedTrabajo(data.results[0]);
-            } else if (data.results.length === 0) {
-                setSelectedTrabajo(null);
-            }
+          const pagosRes = await fetch(
+            buildApiUrl(`trabajos/${trabajo.id}/pagos/`), 
+            { headers: { 'Authorization': `Bearer ${accessToken}` } }
+          );
+          
+          if (pagosRes.ok) {
+            const pagosData = await pagosRes.json();
+            // 👇 CORREGIDO: Usar operador seguro
+            trabajo.pagos = pagosData.results || pagosData || [];
+            console.log(`✅ Cargados ${trabajo.pagos?.length || 0} pagos para trabajo ${trabajo.nombre}`);
+          } else {
+            console.log(`❌ Error cargando pagos para trabajo ${trabajo.id}:`, pagosRes.status);
+            trabajo.pagos = []; // ← Inicializar como array vacío
+          }
         } catch (error) {
-            console.error('Error fetching trabajos:', error);
+          console.error(`Error cargando pagos para trabajo ${trabajo.id}:`, error);
+          trabajo.pagos = []; // ← Inicializar como array vacío
         }
-    }, [accessToken, logout, selectedTrabajo]);
+        return trabajo;
+      })
+    );
+    
+    setTrabajos(trabajosConPagos);
+    setTotalPages(Math.ceil(data.count / 12));
+    setCurrentPage(page);
+    
+    if (trabajosConPagos.length > 0 && !selectedTrabajo) {
+      setSelectedTrabajo(trabajosConPagos[0]);
+    } else if (trabajosConPagos.length === 0) {
+      setSelectedTrabajo(null);
+    }
+  } catch (error) {
+    console.error('Error fetching trabajos:', error);
+  }
+}, [accessToken, logout, selectedTrabajo]);
 
     // Fetch habilidades
     const fetchHabilidades = useCallback(async () => {
@@ -120,7 +152,6 @@ export default function TrabajosPage() {
     };
 
 const handleSaveTrabajo = async (trabajoData: Trabajo) => {
-    
   console.log('💾 Datos completos del trabajo:', trabajoData);
   
   if (!accessToken) return;
@@ -128,14 +159,13 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
   const isEditing = !!trabajoData.id;
   
   try {
-    // PRIMERO: Crear o actualizar el trabajo
+    // PRIMERO: Crear o actualizar el trabajo (esto ya funciona)
     const trabajoUrl = isEditing 
-        ? buildApiUrl(`trabajos/${trabajoData.id}/`)  // 
-        : buildApiUrl('trabajos/');                   // 
+      ? buildApiUrl(`trabajos/${trabajoData.id}/`)
+      : buildApiUrl('trabajos/');
     
     const trabajoMethod = isEditing ? 'PUT' : 'POST';
 
-    // Enviar solo los datos del trabajo (sin pagos)
     const { pagos, ...datosTrabajo } = trabajoData;
     
     const trabajoRes = await fetch(trabajoUrl, {
@@ -155,31 +185,60 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
     const trabajoGuardado = await trabajoRes.json();
     console.log('✅ Trabajo guardado:', trabajoGuardado);
     
-    // SEGUNDO: Guardar los pagos por rango
+    // SEGUNDO: Guardar los pagos por rango - CON MEJOR DEBUG
     if (pagos && pagos.length > 0) {
       console.log('💾 Guardando pagos para trabajo ID:', trabajoGuardado.id);
       
-      // Para cada rango, crear el pago asociado al trabajo
-      const promesasPagos = pagos.map(pago => {
+      const promesasPagos = pagos.map(async (pago) => {
         const pagoData = {
           rango: pago.rango,
           valor_suma: pago.valor_suma,
           multiplicador: pago.multiplicador,
-          // trabajo se asigna automáticamente en el backend via URL nested
         };
         
-        return fetch(buildApiUrl(`trabajos/${trabajoGuardado.id}/pagos/`), {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${accessToken}`,
-                },
-                body: JSON.stringify(pagoData),
-            });
+        console.log(`📤 Enviando pago rango ${pago.rango}:`, pagoData);
+        
+        const response = await fetch(buildApiUrl(`trabajos/${trabajoGuardado.id}/pagos/`), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify(pagoData),
+        });
+        
+        // 👇 CAPTURAR EL ERROR ESPECÍFICO
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`❌ Error en pago rango ${pago.rango}:`, {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorText
+          });
+          throw new Error(`Error en pago rango ${pago.rango}: ${errorText}`);
+        }
+        
+        return response;
       });
       
-      const resultados = await Promise.all(promesasPagos);
-      console.log('✅ Todos los pagos guardados:', resultados.length);
+      const resultados = await Promise.allSettled(promesasPagos);
+      
+      // 👇 ANALIZAR RESULTADOS
+      const exitosos = resultados.filter(r => r.status === 'fulfilled').length;
+      const fallidos = resultados.filter(r => r.status === 'rejected').length;
+      
+      console.log(`📊 Resultados pagos: ${exitosos} exitosos, ${fallidos} fallidos`);
+      
+      // Mostrar errores específicos
+      resultados.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          console.error(`❌ Falló pago rango ${pagos[index].rango}:`, result.reason);
+        }
+      });
+      
+      if (fallidos > 0) {
+        throw new Error(`${fallidos} pagos no se pudieron guardar`);
+      }
     }
     
     setIsModalOpen(false);
@@ -188,7 +247,8 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
     
   } catch (error) {
     console.error('❌ Error completo:', error);
-    // Podrías agregar un alert o notificación aquí
+    // Podrías mostrar un alert al usuario aquí
+    alert('Error al guardar: ' + error);
   }
 };
 
