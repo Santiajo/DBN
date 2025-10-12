@@ -15,15 +15,20 @@ import { FaSearch, FaTrash, FaPencilAlt, FaEye } from 'react-icons/fa';
 import { Trabajo, Habilidad } from '@/types';
 
 
+
+
 // Función helper para normalizar URLs
 const buildApiUrl = (endpoint: string) => {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-  // Asegurar que baseUrl termine con /
-  const normalizedBase = baseUrl?.endsWith('/') ? baseUrl : `${baseUrl}/`;
-  // Quitar / inicial del endpoint si existe
+  const baseUrl = 'https://dbn.onrender.com'; // ← Hardcodeado
   const normalizedEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
-  return `${normalizedBase}${normalizedEndpoint}`;
+  return `${baseUrl}/api/${normalizedEndpoint}`; // ← Incluir /api/
 };
+
+console.log('🔍 URLs que se generarán:', {
+  trabajos: buildApiUrl('trabajos/'),
+  pagos: buildApiUrl('trabajos/1/pagos/'),
+  habilidades: buildApiUrl('habilidades/')
+});
 
 export default function TrabajosPage() {
     const { user, accessToken, logout } = useAuth();
@@ -120,7 +125,6 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
   
   if (!accessToken) return;
   
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
   const isEditing = !!trabajoData.id;
   
   try {
