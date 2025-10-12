@@ -97,50 +97,77 @@ export default function TrabajosPage() {
         setIsModalOpen(true);
     };
 
-  const handleSaveTrabajo = async (trabajoData: Trabajo) => {
-    console.log('💾 Datos que se intentan guardar:', trabajoData);
+const handleSaveTrabajo = async (trabajoData: Trabajo) => {
+  console.log('💾 Datos completos del trabajo:', trabajoData);
+  
+  if (!accessToken) return;
+  
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  const isEditing = !!trabajoData.id;
+  
+  try {
+    // PRIMERO: Crear o actualizar el trabajo
+    const trabajoUrl = isEditing 
+      ? `${apiUrl}/api/trabajos/${trabajoData.id}/` 
+      : `${apiUrl}/api/trabajos/`;
     
-    if (!accessToken) {
-        console.log('❌ No hay accessToken');
-        return;
+    const trabajoMethod = isEditing ? 'PUT' : 'POST';
+
+    // Enviar solo los datos del trabajo (sin pagos)
+    const { pagos, ...datosTrabajo } = trabajoData;
+    
+    const trabajoRes = await fetch(trabajoUrl, {
+      method: trabajoMethod,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(datosTrabajo),
+    });
+    
+    if (!trabajoRes.ok) {
+      const errorData = await trabajoRes.json();
+      throw new Error(`Error al ${isEditing ? 'actualizar' : 'crear'} el trabajo: ${JSON.stringify(errorData)}`);
     }
     
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-    const isEditing = !!trabajoData.id;
-    const url = isEditing ? `${apiUrl}/api/trabajos/${trabajoData.id}/` : `${apiUrl}/api/trabajos/`;
-    const method = isEditing ? 'PUT' : 'POST';
-
-    console.log('🌐 Enviando a:', url);
-    console.log('📤 Método:', method);
-    console.log('🔐 Token:', accessToken ? 'PRESENTE' : 'AUSENTE');
-
-    try {
-        const res = await fetch(url, {
-        method: method,
-        headers: {
+    const trabajoGuardado = await trabajoRes.json();
+    console.log('✅ Trabajo guardado:', trabajoGuardado);
+    
+    // SEGUNDO: Guardar los pagos por rango
+    if (pagos && pagos.length > 0) {
+      console.log('💾 Guardando pagos para trabajo ID:', trabajoGuardado.id);
+      
+      // Para cada rango, crear el pago asociado al trabajo
+      const promesasPagos = pagos.map(pago => {
+        const pagoData = {
+          rango: pago.rango,
+          valor_suma: pago.valor_suma,
+          multiplicador: pago.multiplicador,
+          // trabajo se asigna automáticamente en el backend via URL nested
+        };
+        
+        return fetch(`${apiUrl}/api/trabajos/${trabajoGuardado.id}/pagos/`, {
+          method: 'POST',
+          headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(trabajoData),
+          },
+          body: JSON.stringify(pagoData),
         });
-        
-        console.log('📥 Respuesta del servidor:', res.status, res.statusText);
-        
-        if (!res.ok) {
-        // OBTENER EL ERROR ESPECÍFICO DEL SERVIDOR
-        const errorData = await res.json();
-        console.log('❌ Error detallado del servidor:', errorData);
-        throw new Error(`Error al ${isEditing ? 'actualizar' : 'crear'} el trabajo: ${JSON.stringify(errorData)}`);
-        }
-        
-        console.log('✅ Trabajo guardado exitosamente');
-        setIsModalOpen(false);
-        setEditingTrabajo(null);
-        fetchTrabajos(currentPage, '');
-        
-    } catch (error) {
-        console.error('❌ Error completo:', error);
+      });
+      
+      const resultados = await Promise.all(promesasPagos);
+      console.log('✅ Todos los pagos guardados:', resultados.length);
     }
+    
+    setIsModalOpen(false);
+    setEditingTrabajo(null);
+    fetchTrabajos(currentPage, '');
+    
+  } catch (error) {
+    console.error('❌ Error completo:', error);
+    // Podrías agregar un alert o notificación aquí
+  }
 };
 
     const handleDelete = async () => {
@@ -243,30 +270,78 @@ export default function TrabajosPage() {
                 </div>
 
                 <div className="lg:col-span-1">
-                    {selectedTrabajo ? (
-                        <Card variant="primary" className="h-full flex flex-col">
-                            <div>
-                                <h3 className="font-title text-xl">{selectedTrabajo.nombre}</h3>
-                                <p className="font-body text-xs italic text-stone-600">
-                                    Habilidad: {selectedTrabajo.requisito_habilidad_nombre || 'N/A'} | Rango Máx: {selectedTrabajo.rango_maximo}
-                                </p>
-                            </div>
-                            <div className="font-body text-sm flex-grow mt-4 border-t pt-4 border-madera-oscura">
-                                <p className="mb-3"><strong>Descripción:</strong> {selectedTrabajo.descripcion}</p>
-                                {selectedTrabajo.beneficio && (
-                                    <p><strong>Beneficio:</strong> {selectedTrabajo.beneficio}</p>
-                                )}
-                            </div>
-                            <div className="flex justify-end gap-2 mt-auto pt-4">
-                                <Button variant="dangerous" onClick={handleDelete}><FaTrash /></Button>
-                                <Button variant="secondary" onClick={() => handleOpenEditModal(selectedTrabajo)}><FaPencilAlt /></Button>
-                                <Button variant="secondary"><FaEye /></Button>
-                            </div>
-                        </Card>
-                    ) : (
-                        <Card variant="primary" className="h-full flex items-center justify-center">
-                            <p className="text-stone-500">No hay trabajo seleccionado.</p>
-                        </Card>
+                {selectedTrabajo ? (
+                    <Card variant="primary" className="h-full flex flex-col">
+                    <div>
+                        <h3 className="font-title text-xl text-madera-oscura">{selectedTrabajo.nombre}</h3>
+                        <p className="font-body text-xs italic text-stone-600">
+                        Habilidad: {selectedTrabajo.requisito_habilidad_nombre || 'N/A'} | 
+                        Rango Máx: {selectedTrabajo.rango_maximo}
+                        </p>
+                    </div>
+                    
+                    <div className="font-body text-sm flex-grow mt-4 border-t pt-4 border-madera-oscura">
+                        {/* DESCRIPCIÓN DEL TRABAJO */}
+                        {selectedTrabajo.descripcion && (
+                        <div className="mb-4">
+                            <p className="font-semibold text-madera-oscura mb-1">Descripción:</p>
+                            <p className="text-stone-700">{selectedTrabajo.descripcion}</p>
+                        </div>
+                        )}
+                        
+                        {/* PAGOS POR RANGO - NUEVA SECCIÓN */}
+                        <div className="mb-4">
+                        <p className="font-semibold text-madera-oscura mb-2">Pagos por Día:</p>
+                        <div className="space-y-2">
+                            {selectedTrabajo.pagos && selectedTrabajo.pagos.length > 0 ? (
+                            selectedTrabajo.pagos
+                                .sort((a, b) => a.rango - b.rango)
+                                .map((pago) => (
+                                <div 
+                                    key={pago.rango} 
+                                    className="flex items-center justify-between p-2 bg-pergamino/50 rounded-lg border border-madera-oscura/20"
+                                >
+                                    <div className="flex items-center gap-3">
+                                    <span className="font-bold text-madera-oscura min-w-12">Rango {pago.rango}</span>
+                                    <div className="text-xs font-mono bg-white/80 px-2 py-1 rounded border">
+                                        ({pago.valor_suma} + Eco) × {pago.multiplicador}
+                                    </div>
+                                    </div>
+                                    <div className="text-xs text-stone-500 text-right">
+                                    <div>Suma: {pago.valor_suma}</div>
+                                    <div>Mult: {pago.multiplicador}</div>
+                                    </div>
+                                </div>
+                                ))
+                            ) : (
+                            <p className="text-stone-500 text-sm italic">No hay pagos configurados</p>
+                            )}
+                        </div>
+                        </div>
+
+                        {/* BENEFICIO DEL TRABAJO */}
+                        {selectedTrabajo.beneficio && (
+                        <div>
+                            <p className="font-semibold text-madera-oscura mb-1">Beneficio:</p>
+                            <p className="text-stone-700">{selectedTrabajo.beneficio}</p>
+                        </div>
+                        )}
+                    </div>
+                    
+                    {/* BOTONES DE ACCIÓN */}
+                        <div className="flex justify-end gap-2 mt-auto pt-4 border-t border-madera-oscura">
+                            <Button variant="dangerous" onClick={handleDelete}>
+                                <FaTrash />
+                            </Button>
+                            <Button variant="secondary" onClick={() => handleOpenEditModal(selectedTrabajo)}>
+                                <FaPencilAlt />
+                            </Button>
+                        </div>
+                    </Card>
+                ) : (
+                    <Card variant="primary" className="h-full flex items-center justify-center">
+                        <p className="text-stone-500">Selecciona un trabajo para ver los detalles</p>
+                    </Card>
                     )}
                 </div>
             </div>
