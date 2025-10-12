@@ -18,10 +18,11 @@ router.register(r'proficiencias', ProficienciaViewSet)
 router.register(r'habilidades', HabilidadViewSet)
 router.register(r'bonusproficiencias', BonusProficienciaViewSet)
 router.register(r'trabajos', TrabajoViewSet)
-router.register(r'pagos-rango', PagoRangoViewSet)
 router.register(r'trabajos-realizados', TrabajoRealizadoViewSet)
 router.register(r'objetos', views.ObjetoViewSet, basename='objeto')
 router.register(r'tiendas', views.TiendaViewSet, basename='tienda')
+
+router.register(r'pagos-rango', views.PagoRangoViewSet, basename='pagorango')
 
 # Router anidado para el inventario de tiendas
 tiendas_router = routers.NestedSimpleRouter(router, r'tiendas', lookup='tienda')
@@ -30,6 +31,10 @@ tiendas_router.register(r'inventario', views.ObjetoTiendaViewSet, basename='tien
 # Router anidado para el inventario de personajes
 personajes_router = routers.NestedSimpleRouter(router, r'personajes', lookup='personaje')
 personajes_router.register(r'inventario', views.InventarioPersonajeViewSet, basename='personaje-inventario')
+
+# Router anidado para los trabajos y los pagos de rangos
+trabajos_router = routers.NestedSimpleRouter(router, r'trabajos', lookup='trabajo')
+trabajos_router.register(r'pagos', views.PagoRangoViewSet, basename='trabajo-pagos')
 
 urlpatterns = [
     # Rutas para los tokens JWT
@@ -42,4 +47,5 @@ urlpatterns = [
     path('', include(tiendas_router.urls)),
     path('', include(personajes_router.urls)),
     path('personajes/<int:personaje_pk>/comprar/', views.comprar_objeto, name='comprar-objeto'),
+    path('', include(trabajos_router.urls)),
 ]

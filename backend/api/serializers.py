@@ -109,13 +109,18 @@ class ProficienciaSerializer(serializers.ModelSerializer):
 
 
 class TrabajoSerializer(serializers.ModelSerializer):
-    #para enviar y recibir el id de requisito_habilidad para crear/editar
-    #también para ver el nombre de la habilidad relacionada (requisito_habilidad_nombre) al consultar
     requisito_habilidad_nombre = serializers.CharField(source='requisito_habilidad.nombre', read_only=True)
+    pagos = serializers.SerializerMethodField()  #  para mostrar pagos
 
     class Meta:
         model = Trabajo
-        fields = ['id', 'nombre', 'requisito_habilidad', 'requisito_habilidad_nombre', 'rango_maximo', 'descripcion']
+        fields = ['id', 'nombre', 'requisito_habilidad', 'requisito_habilidad_nombre', 
+                 'rango_maximo', 'descripcion', 'beneficio', 'pagos']  # agregar 'beneficio'
+
+    def get_pagos(self, obj):
+        """Obtener los pagos relacionados con este trabajo"""
+        pagos = obj.pagos.all().order_by('rango')
+        return PagoRangoSerializer(pagos, many=True).data
 
 
 class HabilidadSerializer(serializers.ModelSerializer):
