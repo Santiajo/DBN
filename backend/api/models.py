@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 class Personaje(models.Model):
     DND_CLASSES = [
@@ -19,6 +20,7 @@ class Personaje(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='personajes')
     
+    nombre_usuario = models.CharField(max_length=50, default="")
     nombre_personaje = models.CharField(max_length=60, default="")
     treasure_points = models.IntegerField(default=0)
     oro = models.IntegerField(default=0)
@@ -144,12 +146,85 @@ class Habilidad(models.Model):
 class Trabajo(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
     requisito_habilidad = models.ForeignKey("Habilidad", on_delete=models.CASCADE)
-    rango_maximo = models.IntegerField(default=5)
+    rango_maximo = models.IntegerField(default=5, validators=[MinValueValidator(1), MaxValueValidator(5)])
     descripcion = models.TextField(blank=True, null=True)
+    beneficio = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return self.nombre
+    
+# RANGOS DE PAGO DE LOS TRABAJOS
 
+class PagoRango(models.Model):
+    trabajo = models.ForeignKey(Trabajo, on_delete=models.CASCADE, related_name="pagos")
+    rango = models.PositiveIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
+    valor_suma = models.FloatField(help_text="Valor que se suma al bono de economía (ej: 1, 2, 3...)")
+    multiplicador = models.FloatField(help_text="Multiplicador base del trabajo (ej: 1.25, 3.75, 7.5...)")
+
+    class Meta:
+        unique_together = ("trabajo", "rango")
+
+    def __str__(self):
+        return f"{self.trabajo.nombre} - Rango {self.rango}"
+
+# TRABAJO REALIZADO Y RESULTADO DEL LA FORMULA
+
+class TrabajoRealizado(models.Model):
+    personaje = models.ForeignKey(Personaje, on_delete=models.CASCADE)
+    trabajo = models.ForeignKey(Trabajo, on_delete=models.CASCADE)
+    rango = models.PositiveIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
+    dias_trabajados = models.PositiveIntegerField(default=1)
+    bono_economia = models.IntegerField(default=0)
+    desempenio = models.FloatField(default=1.0, help_text="Multiplicador de desempeño (ej: 0.5 a 2.0)")
+    pago_total = models.FloatField(default=0, editable=False)
+
+    fecha_realizacion = models.DateTimeField(auto_now_add=True)
+
+    def calcular_pago(self):
+        try:
+            rango_info = self.trabajo.pagos.get(rango=self.rango)
+            pago_base = (rango_info.valor_suma + self.bono_economia) * rango_info.multiplicador
+            total = pago_base * self.dias_trabajados * self.desempenio
+            return round(total, 2)
+        except PagoRango.DoesNotExist:
+            return 0
+
+    def save(self, *args, **kwargs):
+        self.pago_total = self.calcular_pago()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.personaje.nombre_personaje} - {self.trabajo.nombre} (Rango {self.rango})"
+
+class ObjetoTienda(models.Model):
+    tienda = models.ForeignKey("Tienda", on_delete=models.CASCADE, related_name='inventario')
+    objeto = models.ForeignKey(Objeto, on_delete=models.CASCADE)
+    stock = models.PositiveIntegerField(default=1, help_text="Cantidad de este objeto disponible en la tienda.")
+    precio_personalizado = models.IntegerField(null=True, blank=True, help_text="Precio de venta en oro. Si se deja en blanco, se podría usar el valor base del objeto.")
+
+    class Meta:
+        # Asegura que no haya entradas duplicadas del mismo objeto en la misma tienda.
+        unique_together = ('tienda', 'objeto')
+
+    def __str__(self):
+        return f"{self.objeto.Name} en {self.tienda.nombre} (Stock: {self.stock})"
+
+
+class Tienda(models.Model):
+    nombre = models.CharField(max_length=100, unique=True)
+    descripcion = models.TextField(blank=True, null=True)
+    npc_asociado = models.CharField(max_length=100, blank=True, help_text="Nombre del NPC que regenta la tienda.")
+    
+    # Relación Many-to-Many para incluir objetos en el inventario de la tienda.
+    objetos = models.ManyToManyField(
+        Objeto, 
+        through=ObjetoTienda, 
+        related_name='tiendas',
+        blank=True
+    )
+
+    def __str__(self):
+        return self.nombre
 
 # ola
 # estoy stremeneado en maxima calidad bit rate

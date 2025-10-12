@@ -96,3 +96,68 @@ class InventarioSerializer(serializers.ModelSerializer):
     class Meta:
         model = Inventario
         fields = ['id', 'objeto', 'objeto_nombre', 'cantidad']
+
+
+
+class ProficienciaSerializer(serializers.ModelSerializer):
+    personaje_nombre = serializers.CharField(source='personaje.nombre_personaje', read_only=True)
+    habilidad_nombre = serializers.CharField(source='habilidad.nombre', read_only=True)
+
+    class Meta:
+        model = Proficiencia
+        fields = ['id', 'personaje', 'personaje_nombre', 'habilidad', 'habilidad_nombre', 'es_proficiente']
+
+
+class TrabajoSerializer(serializers.ModelSerializer):
+    requisito_habilidad_nombre = serializers.CharField(source='requisito_habilidad.nombre', read_only=True)
+    pagos = serializers.SerializerMethodField()  #  para mostrar pagos
+
+    class Meta:
+        model = Trabajo
+        fields = ['id', 'nombre', 'requisito_habilidad', 'requisito_habilidad_nombre', 
+                 'rango_maximo', 'descripcion', 'beneficio', 'pagos']  # agregar 'beneficio'
+
+    def get_pagos(self, obj):
+        """Obtener los pagos relacionados con este trabajo"""
+        pagos = obj.pagos.all().order_by('rango')
+        return PagoRangoSerializer(pagos, many=True).data
+
+
+class HabilidadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Habilidad
+        fields = '__all__'
+
+
+class BonusProficienciaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BonusProficiencia
+        fields = '__all__'
+
+
+class PagoRangoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PagoRango
+        fields = '__all__'
+
+class TrabajoRealizadoSerializer(serializers.ModelSerializer):
+    pago_total = serializers.FloatField(read_only=True)
+
+    class Meta:
+        model = TrabajoRealizado
+        fields = '__all__'
+        
+class ObjetoTiendaSerializer(serializers.ModelSerializer):
+    nombre_objeto = serializers.CharField(source='objeto.Name', read_only=True)
+
+    class Meta:
+        model = ObjetoTienda
+        fields = ['id', 'objeto', 'nombre_objeto', 'stock', 'precio_personalizado']
+
+
+class TiendaSerializer(serializers.ModelSerializer):
+    inventario = ObjetoTiendaSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Tienda
+        fields = ['id', 'nombre', 'descripcion', 'npc_asociado', 'inventario']

@@ -6,12 +6,13 @@ from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from .models import *
 from .serializers import *
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, IsAuthenticatedOrReadOnly
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import MyTokenObtainPairSerializer
+from django.db import transaction
 
 @api_view(['POST']) # Solo permite solicitudes POST
 @permission_classes([AllowAny]) # Permite que cualquiera pueda acceder a esta vista
@@ -45,6 +46,16 @@ def activate_account_view(request, uidb64, token):
     else:
         return Response({"error": "El enlace de activación es inválido."}, status=400)
 
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated, IsAdminUser])  # Solo admin puede eliminar
+def delete_user_view(request, user_id):
+    try:
+        user = User.objects.get(id=user_id)
+        user.delete()
+        return Response({"success": True, "message": "Usuario eliminado correctamente"}, status=200)
+    except User.DoesNotExist:
+        return Response({"success": False, "message": "Usuario no encontrado"}, status=404)
+
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
     
@@ -71,14 +82,130 @@ class IngredienteViewSet(viewsets.ModelViewSet):
     queryset= Ingredientes.objects.all()
     serializer_class = IngredientesSerializer
 
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def inventario_personaje(request, personaje_id):
-    try:
-        personaje = Personaje.objects.get(id=personaje_id, usuario=request.user)
-    except Personaje.DoesNotExist:
-        return Response({"detail": "Personaje no encontrado o no pertenece al usuario."}, status=404)
+class InventarioPersonajeViewSet(viewsets.ModelViewSet):
+    serializer_class = InventarioSerializer
+    permission_classes = [IsAuthenticated]
 
-    inventario = Inventario.objects.filter(personaje=personaje)
-    serializer = InventarioSerializer(inventario, many=True)
-    return Response(serializer.data)
+    def get_queryset(self):
+        personaje_pk = self.kwargs['personaje_pk']
+        return Inventario.objects.filter(
+            personaje__user=self.request.user, 
+            personaje_id=personaje_pk
+        )
+
+    def perform_create(self, serializer):
+        personaje_pk = self.kwargs['personaje_pk']
+        personaje = Personaje.objects.get(pk=personaje_pk, user=self.request.user)
+        serializer.save(personaje=personaje)
+
+
+class ProficienciaViewSet(viewsets.ModelViewSet):
+    queryset = Proficiencia.objects.all()
+    serializer_class = ProficienciaSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class HabilidadViewSet(viewsets.ModelViewSet):
+    queryset = Habilidad.objects.all()
+    serializer_class = HabilidadSerializer
+    permission_classes = [IsAuthenticated]
+
+class BonusProficienciaViewSet(viewsets.ModelViewSet):
+    queryset = BonusProficiencia.objects.all()
+    serializer_class = BonusProficienciaSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class TrabajoViewSet(viewsets.ModelViewSet):
+    queryset = Trabajo.objects.all()
+    serializer_class = TrabajoSerializer
+    permission_classes = [IsAuthenticated]  # o IsAdminUser si se restringir más
+
+class PagoRangoViewSet(viewsets.ModelViewSet):
+    queryset = PagoRango.objects.all()
+    serializer_class = PagoRangoSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Si viene de (/trabajos/1/pagos/) filtrar por trabajo
+        trabajo_pk = self.kwargs.get('trabajo_pk')
+        if trabajo_pk:
+            return PagoRango.objects.filter(trabajo_id=trabajo_pk)
+        # Si es ruta normal (/pagos-rango/) devolver todos
+        return PagoRango.objects.all()
+
+    def perform_create(self, serializer):
+        # Si viene de ruta nested asignar automáticamente el trabajo
+        trabajo_pk = self.kwargs.get('trabajo_pk')
+        if trabajo_pk:
+            trabajo = Trabajo.objects.get(id=trabajo_pk)
+            serializer.save(trabajo=trabajo)
+        else:
+            serializer.save()
+
+class TrabajoRealizadoViewSet(viewsets.ModelViewSet):
+    queryset = TrabajoRealizado.objects.all()
+    serializer_class = TrabajoRealizadoSerializer
+    permission_classes = [IsAuthenticated]
+
+# ViewSet para el CRUD de Tienda
+class TiendaViewSet(viewsets.ModelViewSet):
+    queryset = Tienda.objects.all()
+    serializer_class = TiendaSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly, IsAdminUser]
+    search_fields = ['nombre', 'npc_asociado']
+
+# ViewSet para gestionar el inventario DE UNA TIENDA ESPECÍFICA
+class ObjetoTiendaViewSet(viewsets.ModelViewSet):
+    serializer_class = ObjetoTiendaSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly, IsAdminUser]
+
+    def get_queryset(self):
+        return ObjetoTienda.objects.filter(tienda_id=self.kwargs['tienda_pk'])
+
+    def perform_create(self, serializer):
+        serializer.save(tienda_id=self.kwargs['tienda_pk'])
+        
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def comprar_objeto(request, personaje_pk):
+    try:
+        personaje = Personaje.objects.get(pk=personaje_pk, user=request.user)
+        objeto_tienda_id = request.data.get('objeto_tienda_id')
+        cantidad = int(request.data.get('cantidad', 1))
+        
+        if not objeto_tienda_id:
+            return Response({"error": "Falta el ID del objeto de la tienda."}, status=status.HTTP_400_BAD_REQUEST)
+
+        objeto_tienda = ObjetoTienda.objects.select_related('objeto').get(pk=objeto_tienda_id)
+        costo_total = (objeto_tienda.precio_personalizado or int(objeto_tienda.objeto.Value)) * cantidad
+
+        if personaje.oro < costo_total:
+            return Response({"error": "No tienes suficiente oro."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if objeto_tienda.stock < cantidad:
+            return Response({"error": "La tienda no tiene suficiente stock."}, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            personaje.oro -= costo_total
+            personaje.save()
+
+            objeto_tienda.stock -= cantidad
+            objeto_tienda.save()
+
+            item_inventario, created = Inventario.objects.get_or_create(
+                personaje=personaje,
+                objeto=objeto_tienda.objeto,
+                defaults={'cantidad': 0}
+            )
+            item_inventario.cantidad += cantidad
+            item_inventario.save()
+
+        return Response({"success": f"¡Compra exitosa! Has comprado {cantidad}x {objeto_tienda.objeto.Name}."}, status=status.HTTP_200_OK)
+
+    except Personaje.DoesNotExist:
+        return Response({"error": "Personaje no encontrado."}, status=status.HTTP_404_NOT_FOUND)
+    except ObjetoTienda.DoesNotExist:
+        return Response({"error": "El objeto no está disponible en esta tienda."}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -10,7 +10,8 @@ export interface OptionType {
 
 // Props del componente
 interface DropdownProps extends SelectHTMLAttributes<HTMLSelectElement> {
-  label: string;
+  // SOLUCIÓN: Hacemos que la prop 'label' sea opcional con '?'
+  label?: string;
   options: OptionType[];
   placeholder?: string;
   className?: string;
@@ -24,10 +25,15 @@ export default function Dropdown({
   ...props
 }: DropdownProps) {
   return (
+    // Hemos quitado la lógica del <label> de este div principal
+    // para manejarlo de forma condicional.
     <div className={`w-full font-body ${className}`}>
-      <label htmlFor={props.id || props.name} className="block text-stone-800 mb-2">
-        {label}
-      </label>
+      {/* SOLUCIÓN: El <label> solo se renderiza si la prop 'label' existe. */}
+      {label && (
+        <label htmlFor={props.id || props.name} className="block text-stone-800 mb-2">
+          {label}
+        </label>
+      )}
       <select
         className="w-full px-4 py-2 rounded-lg border border-stone-400 bg-white text-stone-900 
                    focus:ring-2 focus:ring-[#3E6B5C] focus:border-[#3E6B5C] focus:outline-none"
