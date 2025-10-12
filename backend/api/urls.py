@@ -23,6 +23,7 @@ router.register(r'trabajos-realizados', TrabajoRealizadoViewSet)
 router.register(r'objetos', views.ObjetoViewSet, basename='objeto')
 router.register(r'tiendas', views.TiendaViewSet, basename='tienda')
 
+router.register(r'pagos-rango', views.PagoRangoViewSet, basename='pagorango')
 
 # Router anidado para el inventario de tiendas
 tiendas_router = routers.NestedSimpleRouter(router, r'tiendas', lookup='tienda')
@@ -34,7 +35,7 @@ personajes_router.register(r'inventario', views.InventarioPersonajeViewSet, base
 
 # Router anidado para los trabajos y los pagos de rangos
 trabajos_router = routers.NestedSimpleRouter(router, r'trabajos', lookup='trabajo')
-trabajos_router.register(r'pagos', PagoRangoViewSet, basename='trabajo-pagos')
+trabajos_router.register(r'pagos', views.PagoRangoViewSet, basename='trabajo-pagos')
 
 urlpatterns = [
     # Rutas para los tokens JWT
