@@ -37,7 +37,7 @@ export default function TrabajosPage() {
             page: String(page),
             search: searchQuery,
         });
-        const url = `${apiUrl}/api/trabajos/?${params.toString()}`;
+        const url = `${apiUrl}trabajos/?${params.toString()}`;
         try {
             const res = await fetch(url, { 
                 headers: { 'Authorization': `Bearer ${accessToken}` } 
@@ -98,6 +98,7 @@ export default function TrabajosPage() {
     };
 
 const handleSaveTrabajo = async (trabajoData: Trabajo) => {
+    
   console.log('💾 Datos completos del trabajo:', trabajoData);
   
   if (!accessToken) return;
@@ -108,8 +109,8 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
   try {
     // PRIMERO: Crear o actualizar el trabajo
     const trabajoUrl = isEditing 
-      ? `${apiUrl}/api/trabajos/${trabajoData.id}/` 
-      : `${apiUrl}/api/trabajos/`;
+      ? `${apiUrl}trabajos/${trabajoData.id}/` 
+      : `${apiUrl}trabajos/`;
     
     const trabajoMethod = isEditing ? 'PUT' : 'POST';
 
@@ -146,7 +147,7 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
           // trabajo se asigna automáticamente en el backend via URL nested
         };
         
-        return fetch(`${apiUrl}/api/trabajos/${trabajoGuardado.id}/pagos/`, {
+        return fetch(`${apiUrl}trabajos/${trabajoGuardado.id}/pagos/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -180,7 +181,7 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
 
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
         try {
-            const res = await fetch(`${apiUrl}/api/trabajos/${selectedTrabajo.id}/`, {
+            const res = await fetch(`${apiUrl}trabajos/${selectedTrabajo.id}/`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${accessToken}` },
             });

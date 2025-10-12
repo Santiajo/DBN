@@ -121,7 +121,7 @@ class TrabajoViewSet(viewsets.ModelViewSet):
     serializer_class = TrabajoSerializer
     permission_classes = [IsAuthenticated]  # o IsAdminUser si se restringir más
 
-# En api/views.py
+
 class PagoRangoViewSet(viewsets.ModelViewSet):
     serializer_class = PagoRangoSerializer
     permission_classes = [IsAuthenticated]

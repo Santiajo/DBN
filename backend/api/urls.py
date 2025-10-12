@@ -47,5 +47,5 @@ urlpatterns = [
     path('', include(tiendas_router.urls)),
     path('', include(personajes_router.urls)),
     path('personajes/<int:personaje_pk>/comprar/', views.comprar_objeto, name='comprar-objeto'),
-    path('api/', include(trabajos_router.urls)),
+    path('', include(trabajos_router.urls)),
 ]
