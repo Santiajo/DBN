@@ -72,14 +72,24 @@ export interface Trabajo {
   rango_maximo: number;
   descripcion?: string | null;
   beneficio?: string | null;
+  pagos?: PagoRango[]; // Para cuando cargamos datos existentes
 }
 
 export interface PagoRango {
-  id: number;
-  trabajo: number;
+  id?: number;
+  trabajo?: number;
   rango: number;
   valor_suma: number;
   multiplicador: number;
+}
+
+export interface TrabajoFormData {
+  nombre: string;
+  requisito_habilidad: number;
+  rango_maximo: number;
+  descripcion?: string;
+  beneficio?: string;
+  pagos: PagoRango[]; // los pagos son parte del formulario
 }
 
 // RESPUESTA PAGINADA
