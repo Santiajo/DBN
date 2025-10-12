@@ -121,26 +121,27 @@ class TrabajoViewSet(viewsets.ModelViewSet):
     serializer_class = TrabajoSerializer
     permission_classes = [IsAuthenticated]  # o IsAdminUser si se restringir más
 
+# En api/views.py
 class PagoRangoViewSet(viewsets.ModelViewSet):
-    queryset = PagoRango.objects.all()
     serializer_class = PagoRangoSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # Si viene de (/trabajos/1/pagos/) filtrar por trabajo
+        # Si viene de ruta nested (/trabajos/1/pagos/), filtrar por trabajo
         trabajo_pk = self.kwargs.get('trabajo_pk')
-        if trabajo_pk:
+        if trabajo_pk is not None:
             return PagoRango.objects.filter(trabajo_id=trabajo_pk)
-        # Si es ruta normal (/pagos-rango/) devolver todos
+        # Si es ruta normal (/pagos-rango/), devolver todos
         return PagoRango.objects.all()
 
     def perform_create(self, serializer):
-        # Si viene de ruta nested asignar automáticamente el trabajo
+        # Si viene de ruta nested, asignar automáticamente el trabajo
         trabajo_pk = self.kwargs.get('trabajo_pk')
-        if trabajo_pk:
+        if trabajo_pk is not None:
             trabajo = Trabajo.objects.get(id=trabajo_pk)
             serializer.save(trabajo=trabajo)
         else:
+            # Para ruta normal, el trabajo debe venir en los datos
             serializer.save()
 
 class TrabajoRealizadoViewSet(viewsets.ModelViewSet):
