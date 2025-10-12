@@ -14,6 +14,17 @@ import ConfirmAlert from '@/components/confirm-alert';
 import { FaSearch, FaTrash, FaPencilAlt, FaEye } from 'react-icons/fa';
 import { Trabajo, Habilidad } from '@/types';
 
+
+// Función helper para normalizar URLs
+const buildApiUrl = (endpoint: string) => {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+  // Asegurar que baseUrl termine con /
+  const normalizedBase = baseUrl?.endsWith('/') ? baseUrl : `${baseUrl}/`;
+  // Quitar / inicial del endpoint si existe
+  const normalizedEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+  return `${normalizedBase}${normalizedEndpoint}`;
+};
+
 export default function TrabajosPage() {
     const { user, accessToken, logout } = useAuth();
     const router = useRouter();
@@ -30,14 +41,15 @@ export default function TrabajosPage() {
     const [isAlertOpen, setIsAlertOpen] = useState(false);
 
     // Fetch trabajos - IDÉNTICO a objetos
-    const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
+     const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
         if (!accessToken) return;
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        
         const params = new URLSearchParams({
             page: String(page),
             search: searchQuery,
         });
-        const url = `${apiUrl}trabajos/?${params.toString()}`;
+        
+        const url = buildApiUrl(`trabajos/?${params.toString()}`);
         try {
             const res = await fetch(url, { 
                 headers: { 'Authorization': `Bearer ${accessToken}` } 
@@ -63,11 +75,16 @@ export default function TrabajosPage() {
     // Fetch habilidades
     const fetchHabilidades = useCallback(async () => {
         if (!accessToken) return;
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        
+        // 👇 CORREGIDO: Quitar /api/
+        const url = buildApiUrl('habilidades/');
+        console.log('🌐 URL fetchHabilidades:', url);
+        
         try {
-            const res = await fetch(`${apiUrl}/api/habilidades/`, {
+             const res = await fetch(url, {
                 headers: { 'Authorization': `Bearer ${accessToken}` }
             });
+
             if (res.ok) {
                 const data = await res.json();
                 setHabilidades(data.results || data);
@@ -109,8 +126,8 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
   try {
     // PRIMERO: Crear o actualizar el trabajo
     const trabajoUrl = isEditing 
-      ? `${apiUrl}trabajos/${trabajoData.id}/` 
-      : `${apiUrl}trabajos/`;
+        ? buildApiUrl(`trabajos/${trabajoData.id}/`)  // 
+        : buildApiUrl('trabajos/');                   // 
     
     const trabajoMethod = isEditing ? 'PUT' : 'POST';
 
@@ -147,14 +164,14 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
           // trabajo se asigna automáticamente en el backend via URL nested
         };
         
-        return fetch(`${apiUrl}trabajos/${trabajoGuardado.id}/pagos/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify(pagoData),
-        });
+        return fetch(buildApiUrl(`trabajos/${trabajoGuardado.id}/pagos/`), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`,
+                },
+                body: JSON.stringify(pagoData),
+            });
       });
       
       const resultados = await Promise.all(promesasPagos);
@@ -179,9 +196,9 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
     const handleConfirmDelete = async () => {
         if (!selectedTrabajo || !accessToken) return;
 
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        const url = buildApiUrl(`trabajos/${selectedTrabajo.id}/`);
         try {
-            const res = await fetch(`${apiUrl}trabajos/${selectedTrabajo.id}/`, {
+            const res = await fetch(url, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${accessToken}` },
             });
