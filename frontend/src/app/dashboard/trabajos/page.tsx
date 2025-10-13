@@ -431,7 +431,6 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
                         )}
                         
                         {/* PAGOS POR RANGO - SOLO PARA STAFF */}
-                        {user?.is_staff && (
                             <div className="mb-4">
                                 <p className="font-semibold text-madera-oscura mb-2">Pagos por Día:</p>
                                 <div className="space-y-2">
@@ -460,7 +459,6 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
                                     )}
                                 </div>
                             </div>
-                        )}
 
                         {/* BENEFICIO DEL TRABAJO */}
                         {selectedTrabajo.beneficio && (
