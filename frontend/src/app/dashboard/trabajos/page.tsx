@@ -46,68 +46,73 @@ export default function TrabajosPage() {
     const [isAlertOpen, setIsAlertOpen] = useState(false);
 
     // Fetch trabajos 
-    const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
-  if (!accessToken) return;
-  
-  const params = new URLSearchParams({
-    page: String(page),
-    search: searchQuery,
-  });
-  
-  const url = buildApiUrl(`trabajos/?${params.toString()}`);
-  
-  try {
-    const res = await fetch(url, { 
-      headers: { 'Authorization': `Bearer ${accessToken}` } 
+const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
+    if (!accessToken) return;  // verifica el token, no si es staff
+    
+    const params = new URLSearchParams({
+      page: String(page),
+      search: searchQuery,
     });
     
-    if (!res.ok) {
-      if (res.status === 401) logout();
-      throw new Error('Error al cargar los datos');
-    }
+    const url = buildApiUrl(`trabajos/?${params.toString()}`);
     
-    const data = await res.json();
-    const trabajosData = data.results || data;
-    
-    // 👇 CARGAR PAGOS PARA CADA TRABAJO - CORREGIDO
-    const trabajosConPagos = await Promise.all(
-      trabajosData.map(async (trabajo: Trabajo) => {
-        try {
-          const pagosRes = await fetch(
-            buildApiUrl(`trabajos/${trabajo.id}/pagos/`), 
-            { headers: { 'Authorization': `Bearer ${accessToken}` } }
-          );
-          
-          if (pagosRes.ok) {
-            const pagosData = await pagosRes.json();
-            // 👇 CORREGIDO: Usar operador seguro
-            trabajo.pagos = pagosData.results || pagosData || [];
-            console.log(`✅ Cargados ${trabajo.pagos?.length || 0} pagos para trabajo ${trabajo.nombre}`);
-          } else {
-            console.log(`❌ Error cargando pagos para trabajo ${trabajo.id}:`, pagosRes.status);
-            trabajo.pagos = []; // ← Inicializar como array vacío
+    try {
+      const res = await fetch(url, { 
+        headers: { 'Authorization': `Bearer ${accessToken}` } 
+      });
+      
+      if (!res.ok) {
+        if (res.status === 401) logout();
+        throw new Error('Error al cargar los datos');
+      }
+      
+      const data = await res.json();
+      const trabajosData = data.results || data;
+      
+      // CARGAR PAGOS PARA CADA TRABAJO - PERO SOLO SI ES STAFF
+      const trabajosConPagos = await Promise.all(
+        trabajosData.map(async (trabajo: Trabajo) => {
+          // Si no es staff, no cargar los pagos (para optimizar)
+          if (!user?.is_staff) {
+            trabajo.pagos = []; // Array vacío para usuarios normales
+            return trabajo;
           }
-        } catch (error) {
-          console.error(`Error cargando pagos para trabajo ${trabajo.id}:`, error);
-          trabajo.pagos = []; // ← Inicializar como array vacío
-        }
-        return trabajo;
-      })
-    );
+          
+          try {
+            const pagosRes = await fetch(
+              buildApiUrl(`trabajos/${trabajo.id}/pagos/`), 
+              { headers: { 'Authorization': `Bearer ${accessToken}` } }
+            );
+            
+            if (pagosRes.ok) {
+              const pagosData = await pagosRes.json();
+              trabajo.pagos = pagosData.results || pagosData || [];
+              console.log(`✅ Cargados ${trabajo.pagos?.length || 0} pagos para trabajo ${trabajo.nombre}`);
+            } else {
+              console.log(`❌ Error cargando pagos para trabajo ${trabajo.id}:`, pagosRes.status);
+              trabajo.pagos = [];
+            }
+          } catch (error) {
+            console.error(`Error cargando pagos para trabajo ${trabajo.id}:`, error);
+            trabajo.pagos = [];
+          }
+          return trabajo;
+        })
+      );
+      
+      setTrabajos(trabajosConPagos);
+      setTotalPages(Math.ceil(data.count / 12));
+      setCurrentPage(page);
     
-    setTrabajos(trabajosConPagos);
-    setTotalPages(Math.ceil(data.count / 12));
-    setCurrentPage(page);
-    
-    if (trabajosConPagos.length > 0 && !selectedTrabajo) {
-      setSelectedTrabajo(trabajosConPagos[0]);
-    } else if (trabajosConPagos.length === 0) {
-      setSelectedTrabajo(null);
+      if (trabajosConPagos.length > 0 && !selectedTrabajo) {
+        setSelectedTrabajo(trabajosConPagos[0]);
+      } else if (trabajosConPagos.length === 0) {
+        setSelectedTrabajo(null);
+      }
+    } catch (error) {
+      console.error('Error fetching trabajos:', error);
     }
-  } catch (error) {
-    console.error('Error fetching trabajos:', error);
-  }
-}, [accessToken, logout, selectedTrabajo]);
+}, [accessToken, logout, selectedTrabajo, user?.is_staff]);
 
     // Fetch habilidades
     const fetchHabilidades = useCallback(async () => {
@@ -132,11 +137,14 @@ export default function TrabajosPage() {
     }, [accessToken]);
 
     useEffect(() => {
+    if (user) {  // cualquier usuario autenticado
+        fetchTrabajos(currentPage, searchTerm);
+        // Las habilidades solo las necesita el staff para crear/editar
         if (user?.is_staff) {
-            fetchTrabajos(currentPage, searchTerm);
             fetchHabilidades();
         }
-    }, [user, currentPage, fetchTrabajos, fetchHabilidades, searchTerm]);
+    }
+}, [user, currentPage, fetchTrabajos, fetchHabilidades, searchTerm]);;
 
     const handleSearch = () => { fetchTrabajos(1, searchTerm); };
     const handlePageChange = (newPage: number) => { fetchTrabajos(newPage, searchTerm); };
@@ -422,35 +430,37 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
                         </div>
                         )}
                         
-                        {/* PAGOS POR RANGO - NUEVA SECCIÓN */}
-                        <div className="mb-4">
-                        <p className="font-semibold text-madera-oscura mb-2">Pagos por Día:</p>
-                        <div className="space-y-2">
-                            {selectedTrabajo.pagos && selectedTrabajo.pagos.length > 0 ? (
-                            selectedTrabajo.pagos
-                                .sort((a, b) => a.rango - b.rango)
-                                .map((pago) => (
-                                <div 
-                                    key={pago.rango} 
-                                    className="flex items-center justify-between p-2 bg-pergamino/50 rounded-lg border border-madera-oscura/20"
-                                >
-                                    <div className="flex items-center gap-3">
-                                    <span className="font-bold text-madera-oscura min-w-12">Rango {pago.rango}</span>
-                                    <div className="text-xs font-mono bg-white/80 px-2 py-1 rounded border">
-                                        ({pago.valor_suma} + Eco) × {pago.multiplicador}
-                                    </div>
-                                    </div>
-                                    <div className="text-xs text-stone-500 text-right">
-                                    <div>Suma: {pago.valor_suma}</div>
-                                    <div>Mult: {pago.multiplicador}</div>
-                                    </div>
+                        {/* PAGOS POR RANGO - SOLO PARA STAFF */}
+                        {user?.is_staff && (
+                            <div className="mb-4">
+                                <p className="font-semibold text-madera-oscura mb-2">Pagos por Día:</p>
+                                <div className="space-y-2">
+                                    {selectedTrabajo.pagos && selectedTrabajo.pagos.length > 0 ? (
+                                        selectedTrabajo.pagos
+                                            .sort((a, b) => a.rango - b.rango)
+                                            .map((pago) => (
+                                                <div 
+                                                    key={pago.rango} 
+                                                    className="flex items-center justify-between p-2 bg-pergamino/50 rounded-lg border border-madera-oscura/20"
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="font-bold text-madera-oscura min-w-12">Rango {pago.rango}</span>
+                                                        <div className="text-xs font-mono bg-white/80 px-2 py-1 rounded border">
+                                                            ({pago.valor_suma} + Eco) × {pago.multiplicador}
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-xs text-stone-500 text-right">
+                                                        <div>Suma: {pago.valor_suma}</div>
+                                                        <div>Mult: {pago.multiplicador}</div>
+                                                    </div>
+                                                </div>
+                                            ))
+                                    ) : (
+                                        <p className="text-stone-500 text-sm italic">No hay pagos configurados</p>
+                                    )}
                                 </div>
-                                ))
-                            ) : (
-                            <p className="text-stone-500 text-sm italic">No hay pagos configurados</p>
-                            )}
-                        </div>
-                        </div>
+                            </div>
+                        )}
 
                         {/* BENEFICIO DEL TRABAJO */}
                         {selectedTrabajo.beneficio && (
