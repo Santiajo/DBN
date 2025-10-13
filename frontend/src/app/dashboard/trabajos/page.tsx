@@ -197,8 +197,18 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
             headers: { 'Authorization': `Bearer ${accessToken}` },
           });
           if (pagosRes.ok) {
-            pagosExistentes = await pagosRes.json();
-            console.log('📋 Pagos existentes:', pagosExistentes);
+            const pagosData = await pagosRes.json();
+            console.log('📋 Respuesta completa de pagos:', pagosData);
+            
+            // 👇 CORRECCIÓN: Extraer el array correctamente
+            pagosExistentes = pagosData.results || pagosData.data || pagosData || [];
+            console.log('📋 Pagos existentes extraídos:', pagosExistentes);
+            
+            // Validar que sea un array
+            if (!Array.isArray(pagosExistentes)) {
+              console.error('❌ Los pagos existentes no son un array:', typeof pagosExistentes);
+              pagosExistentes = [];
+            }
           }
         } catch (error) {
           console.error('Error obteniendo pagos existentes:', error);
@@ -213,12 +223,14 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
           multiplicador: pago.multiplicador,
         };
         
-        // Verificar si ya existe un pago para este rango - CORREGIDO EL TIPO
-        const pagoExistente = pagosExistentes.find((p: PagoRango) => p.rango === pago.rango);
+        // Verificar si ya existe un pago para este rango - CON VALIDACIÓN
+        const pagoExistente = Array.isArray(pagosExistentes) 
+          ? pagosExistentes.find((p: PagoRango) => p.rango === pago.rango)
+          : undefined;
         
         let urlPago, methodPago;
         
-        if (pagoExistente && isEditing) {
+        if (pagoExistente && pagoExistente.id && isEditing) {
           // ACTUALIZAR pago existente
           urlPago = buildApiUrl(`pagos-rango/${pagoExistente.id}/`);
           methodPago = 'PUT';
@@ -231,6 +243,10 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
         }
         
         console.log(`📤 Enviando pago rango ${pago.rango}:`, pagoData);
+        // Después de obtener los pagos existentes
+        console.log('🔍 DEBUG - Tipo de pagosExistentes:', typeof pagosExistentes);
+        console.log('🔍 DEBUG - Es array?:', Array.isArray(pagosExistentes));
+        console.log('🔍 DEBUG - Contenido:', pagosExistentes);
         
         const response = await fetch(urlPago, {
           method: methodPago,
@@ -282,6 +298,7 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
   }
 };
 
+// Handle para eliminar trabajos
 
     const handleDelete = async () => {
         if (!selectedTrabajo) return;
