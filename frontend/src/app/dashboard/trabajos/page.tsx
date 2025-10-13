@@ -142,11 +142,13 @@ export default function TrabajosPage() {
     const handlePageChange = (newPage: number) => { fetchTrabajos(newPage, searchTerm); };
 
     const handleOpenCreateModal = () => {
+        if (!user?.is_staff) return;
         setEditingTrabajo(null);
         setIsModalOpen(true);
     };
 
     const handleOpenEditModal = (trabajo: Trabajo) => {
+        if (!user?.is_staff) return;
         setEditingTrabajo(trabajo);
         setIsModalOpen(true);
     };
@@ -197,8 +199,18 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
             headers: { 'Authorization': `Bearer ${accessToken}` },
           });
           if (pagosRes.ok) {
-            pagosExistentes = await pagosRes.json();
-            console.log('📋 Pagos existentes:', pagosExistentes);
+            const pagosData = await pagosRes.json();
+            console.log('📋 Respuesta completa de pagos:', pagosData);
+            
+            // 👇 CORRECCIÓN: Extraer el array correctamente
+            pagosExistentes = pagosData.results || pagosData.data || pagosData || [];
+            console.log('📋 Pagos existentes extraídos:', pagosExistentes);
+            
+            // Validar que sea un array
+            if (!Array.isArray(pagosExistentes)) {
+              console.error('❌ Los pagos existentes no son un array:', typeof pagosExistentes);
+              pagosExistentes = [];
+            }
           }
         } catch (error) {
           console.error('Error obteniendo pagos existentes:', error);
@@ -213,12 +225,14 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
           multiplicador: pago.multiplicador,
         };
         
-        // Verificar si ya existe un pago para este rango - CORREGIDO EL TIPO
-        const pagoExistente = pagosExistentes.find((p: PagoRango) => p.rango === pago.rango);
+        // Verificar si ya existe un pago para este rango - CON VALIDACIÓN
+        const pagoExistente = Array.isArray(pagosExistentes) 
+          ? pagosExistentes.find((p: PagoRango) => p.rango === pago.rango)
+          : undefined;
         
         let urlPago, methodPago;
         
-        if (pagoExistente && isEditing) {
+        if (pagoExistente && pagoExistente.id && isEditing) {
           // ACTUALIZAR pago existente
           urlPago = buildApiUrl(`pagos-rango/${pagoExistente.id}/`);
           methodPago = 'PUT';
@@ -231,6 +245,10 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
         }
         
         console.log(`📤 Enviando pago rango ${pago.rango}:`, pagoData);
+        // Después de obtener los pagos existentes
+        console.log('🔍 DEBUG - Tipo de pagosExistentes:', typeof pagosExistentes);
+        console.log('🔍 DEBUG - Es array?:', Array.isArray(pagosExistentes));
+        console.log('🔍 DEBUG - Contenido:', pagosExistentes);
         
         const response = await fetch(urlPago, {
           method: methodPago,
@@ -282,6 +300,7 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
   }
 };
 
+// Handle para eliminar trabajos
 
     const handleDelete = async () => {
         if (!selectedTrabajo) return;
@@ -322,10 +341,9 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
         { key: 'rango_maximo', label: 'Rango Máx' },
     ];
 
-    if (!user?.is_staff) {
-        return <div className="p-8 font-title">Verificando acceso...</div>;
-    }
-
+    if (!user) {
+    return <div className="p-8 font-title">Verificando acceso...</div>;
+}
     return (
         <div className="p-8 space-y-6">
             <Modal
@@ -350,22 +368,24 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
             />
 
             {/* CREAR Y BUSCAR - IDÉNTICO A OBJETOS */}
-            <div className="flex justify-end items-center gap-4">
-                <Button variant="primary" onClick={handleOpenCreateModal}>
-                    Crear Trabajo
-                </Button>
-                <div className="flex items-center gap-2 flex-grow max-w-xs">
-                    <Input
-                        placeholder="Buscar por nombre..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    />
-                    <Button variant="secondary" onClick={handleSearch}>
-                        <FaSearch />
+            {user?.is_staff && (
+                <div className="flex justify-end items-center gap-4">
+                    <Button variant="primary" onClick={handleOpenCreateModal}>
+                        Crear Trabajo
                     </Button>
+                    <div className="flex items-center gap-2 flex-grow max-w-xs">
+                        <Input
+                            placeholder="Buscar por nombre..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                        />
+                        <Button variant="secondary" onClick={handleSearch}>
+                            <FaSearch />
+                        </Button>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* TABLA Y DESCRIPCIÓN - ESTRUCTURA IDÉNTICA */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
@@ -442,14 +462,16 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
                     </div>
                     
                     {/* BOTONES DE ACCIÓN */}
-                        <div className="flex justify-end gap-2 mt-auto pt-4 border-t border-madera-oscura">
-                            <Button variant="dangerous" onClick={handleDelete}>
-                                <FaTrash />
-                            </Button>
-                            <Button variant="secondary" onClick={() => handleOpenEditModal(selectedTrabajo)}>
-                                <FaPencilAlt />
-                            </Button>
-                        </div>
+                        {user?.is_staff && (
+                            <div className="flex justify-end gap-2 mt-auto pt-4 border-t border-madera-oscura">
+                                <Button variant="dangerous" onClick={handleDelete}>
+                                    <FaTrash />
+                                </Button>
+                                <Button variant="secondary" onClick={() => handleOpenEditModal(selectedTrabajo)}>
+                                    <FaPencilAlt />
+                                </Button>
+                            </div>
+                        )}
                     </Card>
                 ) : (
                     <Card variant="primary" className="h-full flex items-center justify-center">
