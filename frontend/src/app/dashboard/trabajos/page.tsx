@@ -142,11 +142,13 @@ export default function TrabajosPage() {
     const handlePageChange = (newPage: number) => { fetchTrabajos(newPage, searchTerm); };
 
     const handleOpenCreateModal = () => {
+        if (!user?.is_staff) return;
         setEditingTrabajo(null);
         setIsModalOpen(true);
     };
 
     const handleOpenEditModal = (trabajo: Trabajo) => {
+        if (!user?.is_staff) return;
         setEditingTrabajo(trabajo);
         setIsModalOpen(true);
     };
@@ -339,10 +341,9 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
         { key: 'rango_maximo', label: 'Rango Máx' },
     ];
 
-    if (!user?.is_staff) {
-        return <div className="p-8 font-title">Verificando acceso...</div>;
-    }
-
+    if (!user) {
+    return <div className="p-8 font-title">Verificando acceso...</div>;
+}
     return (
         <div className="p-8 space-y-6">
             <Modal
@@ -367,22 +368,24 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
             />
 
             {/* CREAR Y BUSCAR - IDÉNTICO A OBJETOS */}
-            <div className="flex justify-end items-center gap-4">
-                <Button variant="primary" onClick={handleOpenCreateModal}>
-                    Crear Trabajo
-                </Button>
-                <div className="flex items-center gap-2 flex-grow max-w-xs">
-                    <Input
-                        placeholder="Buscar por nombre..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    />
-                    <Button variant="secondary" onClick={handleSearch}>
-                        <FaSearch />
+            {user?.is_staff && (
+                <div className="flex justify-end items-center gap-4">
+                    <Button variant="primary" onClick={handleOpenCreateModal}>
+                        Crear Trabajo
                     </Button>
+                    <div className="flex items-center gap-2 flex-grow max-w-xs">
+                        <Input
+                            placeholder="Buscar por nombre..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                        />
+                        <Button variant="secondary" onClick={handleSearch}>
+                            <FaSearch />
+                        </Button>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* TABLA Y DESCRIPCIÓN - ESTRUCTURA IDÉNTICA */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
@@ -459,14 +462,16 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
                     </div>
                     
                     {/* BOTONES DE ACCIÓN */}
-                        <div className="flex justify-end gap-2 mt-auto pt-4 border-t border-madera-oscura">
-                            <Button variant="dangerous" onClick={handleDelete}>
-                                <FaTrash />
-                            </Button>
-                            <Button variant="secondary" onClick={() => handleOpenEditModal(selectedTrabajo)}>
-                                <FaPencilAlt />
-                            </Button>
-                        </div>
+                        {user?.is_staff && (
+                            <div className="flex justify-end gap-2 mt-auto pt-4 border-t border-madera-oscura">
+                                <Button variant="dangerous" onClick={handleDelete}>
+                                    <FaTrash />
+                                </Button>
+                                <Button variant="secondary" onClick={() => handleOpenEditModal(selectedTrabajo)}>
+                                    <FaPencilAlt />
+                                </Button>
+                            </div>
+                        )}
                     </Card>
                 ) : (
                     <Card variant="primary" className="h-full flex items-center justify-center">
