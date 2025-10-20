@@ -1,17 +1,17 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-// Asegúrate de que estas importaciones sean correctas para tu proyecto
 import Input from '@/components/input'; 
 import Button from '@/components/button';
+import Select from 'react-select'; // Importado para manejar grandes listas
 import { FaTrash, FaPlus, FaCoins, FaMagic } from 'react-icons/fa';
 import { useAuth } from '@/context/AuthContext'; 
 
 // ----------------------------------------------------
-// --- TIPOS DE DATOS (Necesarios para TypeScript) ---
+// --- TIPOS DE DATOS ---
 // ----------------------------------------------------
 
-// Definición de las opciones de dificultad (copiadas de tu modelo)
+// Definiciones de tipos y constantes (sin cambios, necesarias para TS)
 const DIFICULTAD_CHOICES = [
     { value: 'Facil', label: 'Fácil' },
     { value: 'Medio', label: 'Medio' },
@@ -20,43 +20,38 @@ const DIFICULTAD_CHOICES = [
     { value: 'Oculto', label: 'Oculto' },
 ];
 
-// Tipo para el Objeto (para los selects)
 interface Objeto {
     id: number;
-    Name: string; // Asumo que el campo es 'Name'
+    Name: string;
 }
 
-// Tipo para un Ingrediente en el formulario (incluye el nombre para visualización)
 interface IngredienteForm {
     id?: number; 
-    objeto: number | string; // ID del Objeto
+    objeto: number | string;
     cantidad: number;
-    nombre_objeto?: string; // Para mostrar el nombre sin hacer otra búsqueda
+    nombre_objeto?: string;
 }
 
-// Tipo para los datos que el formulario va a enviar (sin 'nombre_objeto_final', etc.)
 interface RecetaFormData {
     nombre: string;
-    objeto_final: number | string; // ID del Objeto final
+    objeto_final: number | string;
     cantidad_final: number;
     es_magico: boolean;
     oro_necesario: number;
     dificultad: string;
-    // Ingredientes anidados que se pasarán a la función onSave
     ingredientes: Omit<IngredienteForm, 'nombre_objeto'>[];
 }
 
-// Interfaz COMPLETA de la receta (tal como la devuelve tu API para initialData)
 interface Receta {
     id: number;
     nombre: string;
-    objeto_final: number; // ID del Objeto final
-    nombre_objeto_final: string; // Nombre para visualización
+    objeto_final: number;
+    nombre_objeto_final: string;
     ingredientes: {
         id: number;
-        objeto: number; // ID del Objeto ingrediente
+        objeto: number; 
         cantidad: number;
-        nombre_ingrediente: string; // Nombre para visualización
+        nombre_ingrediente: string;
     }[];
     cantidad_final: number;
     es_magico: boolean;
@@ -64,14 +59,12 @@ interface Receta {
     dificultad: string;
 }
 
-// Propiedades del componente
 interface RecetaFormProps {
     onSave: (receta: RecetaFormData) => Promise<void>;
     onCancel: () => void;
-    initialData?: Receta | null; // El objeto Receta completo (para edición)
+    initialData?: Receta | null;
 }
 
-// Estado inicial por defecto para una nueva receta.
 const defaultFormState: RecetaFormData = {
     nombre: '',
     objeto_final: '', 
@@ -96,18 +89,52 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
-    // 1. Cargar la lista de Objetos al montar el componente (para selects)
+    // Opciones para react-select, memorizadas para no recalcular
+    const objetoOptions = useMemo(() => {
+        return objetos.map(o => ({
+            value: o.id,
+            label: o.Name,
+        }));
+    }, [objetos]);
+
+    // Estilos personalizados para react-select (para seguir tu diseño)
+    const customSelectStyles = {
+        control: (base: any) => ({
+            ...base,
+            borderColor: '#a8a29e', // stone-400
+            boxShadow: 'none',
+            '&:hover': { borderColor: '#a8a29e' },
+        }),
+        option: (base: any, state: { isFocused: any; }) => ({
+            ...base,
+            backgroundColor: state.isFocused ? '#EBE3D6' : 'white', // stone-100
+            color: '#44403c', // stone-800
+            cursor: 'pointer',
+        }),
+        singleValue: (base: any) => ({
+            ...base,
+            color: '#44403c', // stone-800
+        }),
+        menu: (base: any) => ({
+            ...base,
+            zIndex: 9999, // Asegura que el dropdown esté por encima de otros elementos
+        })
+    };
+
+
+    // 1. Cargar la lista de Objetos (todos)
     useEffect(() => {
         const fetchObjetos = async () => {
             if (!accessToken) return;
             setLoadingObjetos(true);
             try {
-                // Endpoint para listar todos los Objetos
+                // Endpoint para listar todos los Objetos (usar paginación si es necesario en el backend)
                 const res = await fetch(`${apiUrl}/api/objetos/`, {
                     headers: { 'Authorization': `Bearer ${accessToken}` },
                 });
                 if (!res.ok) throw new Error('Error al cargar objetos');
                 
+                // Asumo que tu API devuelve una lista completa de objetos (o ya está paginada)
                 const data = await res.json();
                 setObjetos(data.results || data); 
             } catch (error) {
@@ -122,7 +149,6 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
     // 2. Cargar datos iniciales de la receta (para edición)
     useEffect(() => {
         if (initialData) {
-            // A. Cargar datos de la Receta principal
             const initialRecetaData: RecetaFormData = {
                 nombre: initialData.nombre,
                 objeto_final: initialData.objeto_final, 
@@ -130,7 +156,6 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
                 es_magico: initialData.es_magico,
                 oro_necesario: initialData.oro_necesario,
                 dificultad: initialData.dificultad,
-                // El campo ingredientes se sincroniza más abajo
                 ingredientes: initialData.ingredientes.map(ing => ({
                     id: ing.id,
                     objeto: ing.objeto, 
@@ -139,25 +164,18 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
             };
             setFormData(initialRecetaData);
             
-            // B. Cargar ingredientes para visualización en el formulario
             setIngredientesForm(initialData.ingredientes.map(ing => ({
                 id: ing.id,
                 objeto: ing.objeto, 
                 cantidad: ing.cantidad,
-                nombre_objeto: ing.nombre_ingrediente, // Usamos el nombre del serializer
+                nombre_objeto: ing.nombre_ingrediente, 
             })));
         } else {
-            // Creando nuevo
             setFormData(defaultFormState);
             setIngredientesForm([]);
         }
     }, [initialData]);
 
-    // Obtiene el nombre de un objeto por su ID (para visualización)
-    const getObjectNameById = (id: number | string): string => {
-        const objeto = objetos.find(o => o.id.toString() === id.toString());
-        return objeto ? objeto.Name : `ID: ${id}`;
-    };
 
     // 3. Manejadores de cambios para campos principales de la Receta
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -166,7 +184,7 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
         setFormData(prev => ({
             ...prev,
             [name]: type === 'number' 
-                ? parseInt(value, 10) || 0 
+                ? parseInt(value, 10) || 0 // Asegura que siempre se guarda un número
                 : type === 'checkbox'
                 ? checked
                 : value,
@@ -175,30 +193,51 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
 
     // 4. Manejadores para la lista de Ingredientes
 
+    // Función auxiliar para obtener el nombre (útil antes de que los objetos se carguen)
+    const getObjectNameById = (id: number | string): string => {
+        const objeto = objetos.find(o => o.id.toString() === id.toString());
+        return objeto ? objeto.Name : `ID: ${id}`;
+    };
+
     // Añadir nuevo ingrediente
     const handleAddIngrediente = () => {
+        // Usar un valor por defecto válido del primer objeto si la lista no está vacía
+        const defaultObject = objetos.length > 0 ? objetos[0] : { id: '', Name: '' };
+
         setIngredientesForm(prev => [
             ...prev,
-            // Usar el primer objeto como valor por defecto, si existe
-            { objeto: objetos[0]?.id || '', cantidad: 1, nombre_objeto: objetos[0]?.Name || '' }
+            { 
+                objeto: defaultObject.id, 
+                cantidad: 1, 
+                nombre_objeto: defaultObject.Name 
+            }
         ]);
-        // Se sincronizará con formData en la siguiente llamada a handleIngredienteChange/handleSubmit
+        // Sincronizar formData inmediatamente con el nuevo ingrediente por defecto
+        setFormData(prevForm => ({
+            ...prevForm,
+            ingredientes: [
+                ...prevForm.ingredientes, 
+                { objeto: defaultObject.id, cantidad: 1 } as Omit<IngredienteForm, 'nombre_objeto'>
+            ]
+        }));
     };
 
     // Cambiar ingrediente (Objeto o Cantidad)
     const handleIngredienteChange = (index: number, name: 'objeto' | 'cantidad', value: string | number) => {
         setIngredientesForm(prev => {
             const newIngredientes = [...prev];
+            
+            // Si es cantidad, aseguramos que sea un número válido. 
+            // Si es objeto, aseguramos que sea el ID.
             const newValue = name === 'cantidad' ? (typeof value === 'string' ? parseInt(value, 10) || 1 : value) : value;
             
             newIngredientes[index] = {
                 ...newIngredientes[index],
                 [name]: newValue,
-                // Actualizar nombre para visualización si se cambia el objeto
                 nombre_objeto: name === 'objeto' ? getObjectNameById(newValue) : newIngredientes[index].nombre_objeto
             };
 
-            // Sincronizar el estado de la RecetaFormData
+            // Sincronizar el estado de RecetaFormData (solo IDs y Cantidades)
             const formIngredientes = newIngredientes.map(ing => ({
                 id: ing.id, 
                 objeto: ing.objeto,
@@ -207,7 +246,7 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
 
             setFormData(prevForm => ({
                 ...prevForm,
-                // Filtrar ingredientes con ID de objeto válido antes de guardar
+                // Filtrar ingredientes con ID de objeto válido
                 ingredientes: formIngredientes.filter(i => i.objeto !== '') as Omit<IngredienteForm, 'nombre_objeto'>[]
             }));
 
@@ -220,7 +259,6 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
         setIngredientesForm(prev => {
             const newIngredientes = prev.filter((_, i) => i !== index);
 
-            // Sincronizar el estado de la RecetaFormData
             const formIngredientes = newIngredientes.map(ing => ({
                 id: ing.id, 
                 objeto: ing.objeto,
@@ -242,10 +280,9 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
         onSave(formData);
     };
 
-    // Mostrar un estado de carga
+    // Vista de carga y validación
     if (loadingObjetos) return <div className="p-4 text-center font-body">Cargando objetos disponibles... ⏳</div>;
     
-    // Validar si hay objetos para crear la receta
     if (objetos.length === 0) return <div className="p-4 text-center font-body text-red-600">No hay objetos disponibles. No se pueden crear recetas. 😥</div>;
 
 
@@ -263,16 +300,42 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label htmlFor="objeto_final" className="block mb-1 font-semibold">Objeto Final Producido</label>
-                    <select id="objeto_final" name="objeto_final" value={formData.objeto_final} onChange={handleChange} required className="w-full px-4 py-2 rounded-lg border border-stone-400 bg-white focus:ring-2 focus:ring-bosque">
-                        <option value="" disabled>Selecciona un objeto</option>
-                        {objetos.map(o => (
-                            <option key={o.id} value={o.id}>{o.Name}</option>
-                        ))}
-                    </select>
+                    
+                    {/* >>> CAMBIO: Uso de React-Select para Objeto Final <<< */}
+                    <Select
+                        id="objeto_final"
+                        name="objeto_final"
+                        options={objetoOptions}
+                        value={objetoOptions.find(option => option.value === formData.objeto_final)}
+                        onChange={(selectedOption) => {
+                            if (selectedOption) {
+                                setFormData(prev => ({
+                                    ...prev,
+                                    objeto_final: selectedOption.value,
+                                }));
+                            }
+                        }}
+                        isClearable={true}
+                        placeholder="Buscar y seleccionar objeto..."
+                        required
+                        className="text-stone-800"
+                        styles={customSelectStyles}
+                    />
+                    {/* >>> FIN CAMBIO <<< */}
+
                 </div>
                 <div>
                     <label htmlFor="cantidad_final" className="block mb-1 font-semibold">Cantidad Final</label>
-                    <Input id="cantidad_final" name="cantidad_final" type="number" value={formData.cantidad_final} onChange={handleChange} min={1} required />
+                    <Input 
+                        id="cantidad_final" 
+                        name="cantidad_final" 
+                        type="number" 
+                        // Cambio: Usar String() para asegurar que el input controlado funciona
+                        value={String(formData.cantidad_final)} 
+                        onChange={handleChange} 
+                        min={1} 
+                        required 
+                    />
                 </div>
             </div>
 
@@ -283,7 +346,7 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
                 </div>
                 <div>
                     <label htmlFor="oro_necesario" className="block mb-1 font-semibold flex items-center gap-2"><FaCoins className="text-yellow-500"/>Oro Necesario</label>
-                    <Input id="oro_necesario" name="oro_necesario" type="number" value={formData.oro_necesario} onChange={handleChange} min={0} />
+                    <Input id="oro_necesario" name="oro_necesario" type="number" value={String(formData.oro_necesario)} onChange={handleChange} min={0} />
                 </div>
             </div>
             
@@ -302,22 +365,29 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
             <div className="space-y-3">
                 {ingredientesForm.map((ingrediente, index) => (
                     <div key={index} className="flex items-end gap-3 p-3 border border-madera-oscura rounded-lg bg-stone-50">
-                        {/* Selector de Objeto */}
+                        {/* Selector de Objeto (Ingrediente) */}
                         <div className="flex-grow">
                             <label htmlFor={`ingrediente-objeto-${index}`} className="block mb-1 text-sm font-medium">Ingrediente</label>
-                            <select 
+                            
+                            {/* >>> CAMBIO: Uso de React-Select para Ingrediente <<< */}
+                            <Select
                                 id={`ingrediente-objeto-${index}`} 
-                                // El ID del objeto es el valor
-                                value={ingrediente.objeto} 
-                                onChange={(e) => handleIngredienteChange(index, 'objeto', e.target.value)} 
-                                required 
-                                className="w-full px-3 py-2 rounded-lg border border-stone-400 bg-white focus:ring-2 focus:ring-bosque text-sm"
-                            >
-                                <option value="" disabled>Selecciona un ingrediente</option>
-                                {objetos.map(o => (
-                                    <option key={o.id} value={o.id}>{o.Name}</option>
-                                ))}
-                            </select>
+                                name={`ingrediente-objeto-${index}`} 
+                                options={objetoOptions}
+                                value={objetoOptions.find(option => option.value === ingrediente.objeto)}
+                                onChange={(selectedOption) => {
+                                    // Se usa String() porque el valor del select/form data puede ser string o number
+                                    const value = selectedOption ? String(selectedOption.value) : '';
+                                    handleIngredienteChange(index, 'objeto', value);
+                                }}
+                                isClearable={true}
+                                placeholder="Buscar ingrediente..."
+                                required
+                                className="text-sm text-stone-800"
+                                styles={customSelectStyles}
+                            />
+                            {/* >>> FIN CAMBIO <<< */}
+
                         </div>
                         
                         {/* Cantidad */}
@@ -326,8 +396,13 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
                             <Input 
                                 id={`ingrediente-cantidad-${index}`} 
                                 type="number" 
-                                value={ingrediente.cantidad} 
-                                onChange={(e) => handleIngredienteChange(index, 'cantidad', e.target.value)} 
+                                // Cambio: Usar String() para ligar al input, resuelve el problema de "no cambiar"
+                                value={String(ingrediente.cantidad)} 
+                                onChange={(e) => {
+                                    // Cambio: Asegurar que se pasa un número válido a la función de cambio
+                                    const numValue = parseInt(e.target.value, 10) || 1;
+                                    handleIngredienteChange(index, 'cantidad', numValue);
+                                }} 
                                 min={1} 
                                 required
                                 className="text-sm text-center"
