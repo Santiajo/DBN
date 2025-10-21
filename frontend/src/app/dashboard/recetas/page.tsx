@@ -9,6 +9,7 @@ import Modal from '@/components/modal';
 import ConfirmAlert from '@/components/confirm-alert';
 import RecetaForm from '@/components/receta-form'; // Importamos el componente creado
 import { FaPlus, FaPencilAlt, FaTrash, FaTag, FaCoins, FaMagic, FaLevelUpAlt } from 'react-icons/fa';
+import { RecetaFormData, Receta } from '@/types/receta';
 
 // --- TIPOS DE DATOS (Asegúrate de que coincidan con tu serializer) ---
 
@@ -18,33 +19,6 @@ interface Ingrediente {
     objeto: number;
     nombre_ingrediente: string; // Vía source='objeto.Name' en el serializer
     cantidad: number;
-}
-
-interface Receta {
-    id: number;
-    objeto_final: number; // ID del Objeto final
-    nombre_objeto_final: string; // Vía source='objeto_final.Name'
-    ingredientes: Ingrediente[]; // Ingredientes anidados
-    cantidad_final: number;
-    es_magico: boolean;
-    oro_necesario: number;
-    dificultad: 'Facil' | 'Medio' | 'Dificil' | 'Muy dificil' | 'Oculto';
-    nombre: string;
-}
-
-// Tipo para el formulario (usado en RecetaForm)
-interface RecetaFormData {
-    nombre: string;
-    objeto_final: number | string;
-    cantidad_final: number;
-    es_magico: boolean;
-    oro_necesario: number;
-    dificultad: string;
-    ingredientes: {
-        id?: number; 
-        objeto: number | string; 
-        cantidad: number;
-    }[];
 }
 
 
