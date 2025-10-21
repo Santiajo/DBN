@@ -3,27 +3,23 @@
 import { useState, useEffect, useMemo } from 'react';
 import Input from '@/components/input'; 
 import Button from '@/components/button';
+// Importamos los tipos necesarios de react-select
 import Select, { StylesConfig, CSSObjectWithLabel, OptionProps, GroupBase } from 'react-select'; 
 import { FaTrash, FaPlus, FaCoins, FaMagic } from 'react-icons/fa';
 import { useAuth } from '@/context/AuthContext'; 
 
-// ----------------------------------------------------
-// --- TIPOS DE DATOS ---
-// ----------------------------------------------------
+// Importa todos los tipos y constantes desde el archivo central
+import { 
+    IngredienteForm, 
+    RecetaFormData, 
+    Receta, 
+    Objeto, 
+    DIFICULTAD_CHOICES 
+} from '@/types/receta'; 
 
-// Definiciones de tipos y constantes (sin cambios, necesarias para TS)
-const DIFICULTAD_CHOICES = [
-    { value: 'Facil', label: 'Fácil' },
-    { value: 'Medio', label: 'Medio' },
-    { value: 'Dificil', label: 'Difícil' },
-    { value: 'Muy dificil', label: 'Muy Difícil' },
-    { value: 'Oculto', label: 'Oculto' },
-];
-
-interface Objeto {
-    id: number;
-    Name: string;
-}
+// ----------------------------------------------------
+// --- TIPOS DE AYUDA LOCALES ---
+// ----------------------------------------------------
 
 // Tipo de opción para react-select
 type SelectOption = {
@@ -31,46 +27,14 @@ type SelectOption = {
     label: string;
 };
 
-interface IngredienteForm {
-    id?: number; 
-    objeto: number | string;
-    cantidad: number | string; // Permitimos string temporalmente para inputs vacíos
-    nombre_objeto?: string;
-}
-
-interface RecetaFormData {
-    nombre: string;
-    objeto_final: number | string;
-    cantidad_final: number;
-    es_magico: boolean;
-    oro_necesario: number;
-    dificultad: string;
-    ingredientes: Omit<IngredienteForm, 'nombre_objeto'>[];
-}
-
-interface Receta {
-    id: number;
-    nombre: string;
-    objeto_final: number;
-    nombre_objeto_final: string;
-    ingredientes: {
-        id: number;
-        objeto: number; 
-        cantidad: number;
-        nombre_ingrediente: string;
-    }[];
-    cantidad_final: number;
-    es_magico: boolean;
-    oro_necesario: number;
-    dificultad: string;
-}
-
 interface RecetaFormProps {
     onSave: (receta: RecetaFormData) => Promise<void>;
     onCancel: () => void;
     initialData?: Receta | null;
 }
 
+// El estado por defecto debe cumplir con la estructura de RecetaFormData
+// Nota: 'ingredientes' es un array vacío, lo cual es compatible con el tipo final.
 const defaultFormState: RecetaFormData = {
     nombre: '',
     objeto_final: '', 
@@ -82,7 +46,7 @@ const defaultFormState: RecetaFormData = {
 };
 
 // ----------------------------------------------------
-// --- TIPOS Y ESTILOS DE REACT-SELECT (SIN ANY) ---
+// --- ESTILOS DE REACT-SELECT (SIN ANY) ---
 // ----------------------------------------------------
 
 const customSelectStyles: StylesConfig<SelectOption, false, GroupBase<SelectOption>> = {
@@ -104,7 +68,7 @@ const customSelectStyles: StylesConfig<SelectOption, false, GroupBase<SelectOpti
     }),
     menu: (base: CSSObjectWithLabel) => ({
         ...base,
-        zIndex: 9999, // Asegura que el dropdown esté por encima de otros elementos
+        zIndex: 9999,
     })
 };
 
@@ -115,10 +79,10 @@ const customSelectStyles: StylesConfig<SelectOption, false, GroupBase<SelectOpti
 export default function RecetaForm({ onSave, onCancel, initialData }: RecetaFormProps) {
     const { accessToken } = useAuth();
     
+    // Usamos RecetaFormData para el estado final y IngredienteForm para el estado local del array
     const [formData, setFormData] = useState<RecetaFormData>(defaultFormState);
     const [objetos, setObjetos] = useState<Objeto[]>([]);
-    // Se ajustó el tipo de 'cantidad' a number | string en IngredienteForm para permitir inputs vacíos temporalmente
-    const [ingredientesForm, setIngredientesForm] = useState<IngredienteForm[]>([]); 
+    const [ingredientesForm, setIngredientesForm] = useState<IngredienteForm[]>([]);
     const [loadingObjetos, setLoadingObjetos] = useState(true);
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -155,6 +119,14 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
     // 2. Cargar datos iniciales de la receta (para edición)
     useEffect(() => {
         if (initialData) {
+            // Transformar datos de la API al formato del formulario
+            const initialIngredientesForm: IngredienteForm[] = initialData.ingredientes.map(ing => ({
+                id: ing.id,
+                objeto: ing.objeto, 
+                cantidad: ing.cantidad, // La cantidad es number, compatible
+                nombre_objeto: ing.nombre_ingrediente, 
+            }));
+
             const initialRecetaData: RecetaFormData = {
                 nombre: initialData.nombre,
                 objeto_final: initialData.objeto_final, 
@@ -162,21 +134,16 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
                 es_magico: initialData.es_magico,
                 oro_necesario: initialData.oro_necesario,
                 dificultad: initialData.dificultad,
+                // Mapeo directo de ingredientes con cantidad como number (API)
                 ingredientes: initialData.ingredientes.map(ing => ({
                     id: ing.id,
                     objeto: ing.objeto, 
                     cantidad: ing.cantidad,
-                })),
+                })) as RecetaFormData['ingredientes'],
             };
-            setFormData(initialRecetaData);
             
-            // La cantidad de initialData viene como number, es seguro
-            setIngredientesForm(initialData.ingredientes.map(ing => ({
-                id: ing.id,
-                objeto: ing.objeto, 
-                cantidad: ing.cantidad, 
-                nombre_objeto: ing.nombre_ingrediente, 
-            })));
+            setFormData(initialRecetaData);
+            setIngredientesForm(initialIngredientesForm);
         } else {
             setFormData(defaultFormState);
             setIngredientesForm([]);
@@ -224,12 +191,12 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
             ...prevForm,
             ingredientes: [
                 ...prevForm.ingredientes, 
-                { objeto: defaultObject.id as number | string, cantidad: 1 } as Omit<IngredienteForm, 'nombre_objeto'>
+                { objeto: defaultObject.id as number | string, cantidad: 1 } as RecetaFormData['ingredientes'][number]
             ]
         }));
     };
 
-    // FUNCIÓN DE CAMBIO CORREGIDA
+    // CORRECCIÓN DEL MANEJADOR DE CAMBIO DE CANTIDAD
     const handleIngredienteChange = (index: number, name: 'objeto' | 'cantidad', value: string | number) => {
         setIngredientesForm(prev => {
             const newIngredientes = [...prev];
@@ -240,7 +207,7 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
                 const rawValue = typeof value === 'string' ? value : String(value);
 
                 if (rawValue === '' || rawValue === '0') {
-                    // Mantiene el valor como string vacío o 0 en el Input para permitir la edición fluida
+                    // Mantiene el valor como string vacío o 0 en el Input local (ingredientesForm)
                     newValue = rawValue;
                 } else {
                     // Si hay un valor, lo parseamos a number
@@ -258,10 +225,10 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
                 nombre_objeto: name === 'objeto' ? getObjectNameById(newValue) : newIngredientes[index].nombre_objeto
             };
 
-            // 2. Sincronizar el estado de RecetaFormData (solo IDs y Cantidades)
+            // 2. Sincronizar el estado de RecetaFormData (el payload final)
             const formIngredientes = newIngredientes.map(ing => {
                 // Aseguramos que la cantidad para el modelo final (formData) sea un número válido (min 1)
-                const cantidadFinal = ing.cantidad === '' || ing.cantidad === 0 ? 1 : (ing.cantidad as number);
+                const cantidadFinal: number = ing.cantidad === '' || ing.cantidad === 0 ? 1 : (ing.cantidad as number);
                 return {
                     id: ing.id, 
                     objeto: ing.objeto,
@@ -271,7 +238,8 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
 
             setFormData(prevForm => ({
                 ...prevForm,
-                ingredientes: formIngredientes.filter(i => i.objeto !== '') as Omit<IngredienteForm, 'nombre_objeto'>[]
+                // El tipo RecetaFormData['ingredientes'] es ahora { objeto, cantidad: number }[]
+                ingredientes: formIngredientes.filter(i => i.objeto !== '') as RecetaFormData['ingredientes']
             }));
 
             return newIngredientes;
@@ -290,7 +258,7 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
 
             setFormData(prevForm => ({
                 ...prevForm,
-                ingredientes: formIngredientes.filter(i => i.objeto !== '') as Omit<IngredienteForm, 'nombre_objeto'>[]
+                ingredientes: formIngredientes.filter(i => i.objeto !== '') as RecetaFormData['ingredientes']
             }));
 
             return newIngredientes;
