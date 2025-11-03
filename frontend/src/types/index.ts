@@ -77,10 +77,10 @@ export interface Trabajo {
 
 export interface PagoRango {
   id?: number;
-  trabajo?: number;
   rango: number;
   valor_suma: number;
   multiplicador: number;
+  trabajo?: number;
 }
 
 export interface TrabajoFormData {

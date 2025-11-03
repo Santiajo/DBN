@@ -211,4 +211,16 @@ def comprar_objeto(request, personaje_pk):
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
-# amen2
+
+
+@api_view(['GET'])
+def debug_trabajo_pagos(request, trabajo_pk):
+    """Endpoint para debug de rutas nested"""
+    from django.urls import resolve, get_resolver
+    print(f"🔍 Debug: trabajo_pk = {trabajo_pk}")
+    print(f"🔍 Debug: kwargs = {request.resolver_match.kwargs if hasattr(request, 'resolver_match') else 'No resolver_match'}")
+    return Response({
+        'trabajo_pk': trabajo_pk,
+        'message': 'Endpoint de debug funcionando'
+    })
+
