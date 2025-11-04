@@ -177,13 +177,20 @@ class TrabajoRealizado(models.Model):
     bono_economia = models.IntegerField(default=0)
     desempenio = models.FloatField(default=1.0, help_text="Multiplicador de desempeño (ej: 0.5 a 2.0)")
     pago_total = models.FloatField(default=0, editable=False)
+    modificador_estadistica = models.IntegerField(default=0)
+    bonus_proficiencia = models.IntegerField(default=0)
 
     fecha_realizacion = models.DateTimeField(auto_now_add=True)
 
     def calcular_pago(self):
         try:
             rango_info = self.trabajo.pagos.get(rango=self.rango)
-            pago_base = (rango_info.valor_suma + self.bono_economia) * rango_info.multiplicador
+            pago_base = (
+                rango_info.valor_suma + 
+                self.bono_economia + 
+                self.modificador_estadistica + 
+                self.bonus_proficiencia
+            ) * rango_info.multiplicador
             total = pago_base * self.dias_trabajados * self.desempenio
             return round(total, 2)
         except PagoRango.DoesNotExist:

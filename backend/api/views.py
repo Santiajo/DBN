@@ -13,6 +13,7 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser, IsAuthentic
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import MyTokenObtainPairSerializer
 from django.db import transaction
+from django.db.models import F
 
 @api_view(['POST']) # Solo permite solicitudes POST
 @permission_classes([AllowAny]) # Permite que cualquiera pueda acceder a esta vista
@@ -148,6 +149,58 @@ class TrabajoRealizadoViewSet(viewsets.ModelViewSet):
     queryset = TrabajoRealizado.objects.all()
     serializer_class = TrabajoRealizadoSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """
+        Esta vista solo debe mostrar los trabajos realizados
+        por los personajes del usuario autenticado.
+        """
+        # Filtra los trabajos por los personajes que pertenecen al usuario logueado
+        return TrabajoRealizado.objects.filter(personaje__user=self.request.user)
+
+    def perform_create(self, serializer):
+        """
+        Sobrescribe la creación para:
+        1. Validar que el personaje pertenece al usuario.
+        2. Validar que el personaje tiene suficiente tiempo libre.
+        3. Ejecutar todo en una transacción atómica.
+        4. Actualizar el oro y tiempo libre del personaje.
+        """
+        
+        # 1. Obtener datos validados (serializer.is_valid() ya fue llamado)
+        personaje_obj = serializer.validated_data.get('personaje')
+        dias_gastados = serializer.validated_data.get('dias_trabajados', 1)
+        
+        # 2. Validar PROPIEDAD del personaje
+        try:
+            # Comprueba que el ID del personaje enviado
+            # realmente pertenece al usuario que hace la petición.
+            personaje = Personaje.objects.get(id=personaje_obj.id, user=self.request.user)
+        except Personaje.DoesNotExist:
+            raise serializers.ValidationError("Este personaje no te pertenece.")
+
+        # Validar tiempo libre
+        if personaje.tiempo_libre < dias_gastados:
+            raise serializers.ValidationError(
+                f"No tienes suficientes días de tiempo libre. Tienes {personaje.tiempo_libre}, necesitas {dias_gastados}."
+            )
+
+        try:
+            with transaction.atomic():
+                trabajo_realizado = serializer.save(personaje=personaje) 
+
+                pago_ganado = trabajo_realizado.pago_total
+                
+                personaje.oro = F('oro') + pago_ganado
+                personaje.tiempo_libre = F('tiempo_libre') - dias_gastados
+                personaje.save(update_fields=['oro', 'tiempo_libre'])
+                
+                # Opcional: recarga los datos del personaje en la instancia
+                personaje.refresh_from_db() 
+
+        except Exception as e:
+            # Si algo falla (ej. error de BDD), se revierte todo
+            raise serializers.ValidationError(f"Error en la transacción: {str(e)}")
 
 # ViewSet para el CRUD de Tienda
 class TiendaViewSet(viewsets.ModelViewSet):
