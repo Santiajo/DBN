@@ -110,12 +110,28 @@ class ProficienciaSerializer(serializers.ModelSerializer):
 
 class TrabajoSerializer(serializers.ModelSerializer):
     requisito_habilidad_nombre = serializers.CharField(source='requisito_habilidad.nombre', read_only=True)
-    pagos = serializers.SerializerMethodField()  #  para mostrar pagos
+    
+    # --- AÑADE ESTA LÍNEA ---
+    requisito_habilidad_estadistica = serializers.CharField(source='requisito_habilidad.estadistica_asociada', read_only=True)
+    
+    pagos = serializers.SerializerMethodField() 
 
     class Meta:
         model = Trabajo
-        fields = ['id', 'nombre', 'requisito_habilidad', 'requisito_habilidad_nombre', 
-                 'rango_maximo', 'descripcion', 'beneficio', 'pagos']  # agregar 'beneficio'
+        fields = [
+            'id', 
+            'nombre', 
+            'requisito_habilidad', 
+            'requisito_habilidad_nombre', 
+            
+            # --- Y AÑÁDELA AQUÍ TAMBIÉN ---
+            'requisito_habilidad_estadistica', 
+            
+            'rango_maximo', 
+            'descripcion', 
+            'beneficio', 
+            'pagos'
+        ]
 
     def get_pagos(self, obj):
         """Obtener los pagos relacionados con este trabajo"""

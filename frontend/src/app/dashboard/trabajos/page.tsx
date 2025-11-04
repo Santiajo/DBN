@@ -10,9 +10,10 @@ import Button from "@/components/button";
 import Pagination from '@/components/pagination';
 import Modal from '@/components/modal';
 import TrabajoForm from './trabajo-form';
+import TrabajarForm from './trabajar-form';
 import ConfirmAlert from '@/components/confirm-alert';
-import { FaSearch, FaTrash, FaPencilAlt, FaEye } from 'react-icons/fa';
-import { Trabajo, Habilidad, PagoRango  } from '@/types';
+import { FaSearch, FaTrash, FaPencilAlt, FaEye, FaHammer } from 'react-icons/fa';
+import { Trabajo, Habilidad, PagoRango, Personaje, Proficiencia, BonusProficiencia } from '@/types';
 
 
 
@@ -35,15 +36,25 @@ export default function TrabajosPage() {
     const router = useRouter();
 
     const [trabajos, setTrabajos] = useState<Trabajo[]>([]);
-    const [habilidades, setHabilidades] = useState<Habilidad[]>([]);
     const [selectedTrabajo, setSelectedTrabajo] = useState<Trabajo | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
 
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    // --- ESTADO PARA ADMINS ---
+    const [habilidades, setHabilidades] = useState<Habilidad[]>([]);
+    const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
     const [editingTrabajo, setEditingTrabajo] = useState<Trabajo | null>(null);
     const [isAlertOpen, setIsAlertOpen] = useState(false);
+    
+    // --- ESTADO NUEVO PARA USUARIOS NORMALES ---
+    const [personajes, setPersonajes] = useState<Personaje[]>([]);
+    const [proficiencias, setProficiencias] = useState<Proficiencia[]>([]);
+    const [bonusTabla, setBonusTabla] = useState<BonusProficiencia[]>([]);
+    const [isTrabajarModalOpen, setIsTrabajarModalOpen] = useState(false);
+
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
 
     // Fetch trabajos 
 const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
@@ -136,15 +147,60 @@ const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
         }
     }, [accessToken]);
 
+    // --- FETCH NUEVOS PARA EL MODAL DE "TRABAJAR" ---
+
+    const fetchPersonajes = useCallback(async () => {
+        if (!accessToken) return;
+        const url = buildApiUrl('personajes/');
+        try {
+            const res = await fetch(url, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+            if (res.ok) {
+                const data = await res.json();
+                setPersonajes(data.results || data);
+            }
+        } catch (error) { console.error('Error fetching personajes:', error); }
+    }, [accessToken]);
+
+    const fetchProficiencias = useCallback(async () => {
+        if (!accessToken) return;
+        // Obtenemos TODAS las proficiencias del usuario (para todos sus personajes)
+        const url = buildApiUrl('proficiencias/'); 
+        try {
+            const res = await fetch(url, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+            if (res.ok) {
+                const data = await res.json();
+                setProficiencias(data.results || data);
+            }
+        } catch (error) { console.error('Error fetching proficiencias:', error); }
+    }, [accessToken]);
+
+    const fetchBonus = useCallback(async () => {
+        if (!accessToken) return;
+        const url = buildApiUrl('bonusproficiencias/');
+        try {
+            const res = await fetch(url, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+            if (res.ok) {
+                const data = await res.json();
+                setBonusTabla(data.results || data);
+            }
+        } catch (error) { console.error('Error fetching bonus:', error); }
+    }, [accessToken]);
+
     useEffect(() => {
-    if (user) {  // cualquier usuario autenticado
-        fetchTrabajos(currentPage, searchTerm);
-        // Las habilidades solo las necesita el staff para crear/editar
-        if (user?.is_staff) {
-            fetchHabilidades();
+        if (user) {
+            fetchTrabajos(currentPage, searchTerm);
+            
+            if (user.is_staff) {
+                // El Admin necesita Habilidades para crear trabajos
+                fetchHabilidades();
+            } else {
+                // El Usuario Normal necesita sus datos para trabajar
+                fetchPersonajes();
+                fetchProficiencias();
+                fetchBonus();
+            }
         }
-    }
-}, [user, currentPage, fetchTrabajos, fetchHabilidades, searchTerm]);;
+    }, [user, currentPage, fetchTrabajos, fetchHabilidades, fetchPersonajes, fetchProficiencias, fetchBonus, searchTerm]);
 
     const handleSearch = () => { fetchTrabajos(1, searchTerm); };
     const handlePageChange = (newPage: number) => { fetchTrabajos(newPage, searchTerm); };
@@ -159,6 +215,17 @@ const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
         if (!user?.is_staff) return;
         setEditingTrabajo(trabajo);
         setIsModalOpen(true);
+    };
+    const handleOpenTrabajarModal = () => {
+        if (!selectedTrabajo) return;
+        setIsTrabajarModalOpen(true);
+    };
+
+    const handleWorkSuccess = () => {
+
+        setIsTrabajarModalOpen(false);
+        fetchPersonajes(); 
+        // se podria mostrar un toast/alerta de "¡Trabajo completado!"
     };
 
 const handleSaveTrabajo = async (trabajoData: Trabajo) => {
@@ -367,6 +434,24 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
                 />
             </Modal>
 
+            {selectedTrabajo && (
+                <Modal
+                    isOpen={isTrabajarModalOpen}
+                    onClose={() => setIsTrabajarModalOpen(false)}
+                    title={`Trabajar como: ${selectedTrabajo.nombre}`}
+                >
+                    <TrabajarForm
+                        trabajo={selectedTrabajo}
+                        personajes={personajes}
+                        proficiencias={proficiencias}
+                        bonusTabla={bonusTabla}
+                        accessToken={accessToken!}
+                        onClose={() => setIsTrabajarModalOpen(false)}
+                        onWorkSuccess={handleWorkSuccess}
+                    />
+                </Modal>
+            )}
+
             <ConfirmAlert
                 isOpen={isAlertOpen}
                 onClose={() => setIsAlertOpen(false)}
@@ -470,16 +555,27 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
                     </div>
                     
                     {/* BOTONES DE ACCIÓN */}
-                        {user?.is_staff && (
-                            <div className="flex justify-end gap-2 mt-auto pt-4 border-t border-madera-oscura">
-                                <Button variant="dangerous" onClick={handleDelete}>
-                                    <FaTrash />
-                                </Button>
-                                <Button variant="secondary" onClick={() => handleOpenEditModal(selectedTrabajo)}>
-                                    <FaPencilAlt />
-                                </Button>
-                            </div>
-                        )}
+                       {user.is_staff ? (
+                                    // --- BOTONES DE ADMIN ---
+                                    <>
+                                        <Button variant="dangerous" onClick={handleDelete}>
+                                            <FaTrash />
+                                        </Button>
+                                        <Button variant="secondary" onClick={() => handleOpenEditModal(selectedTrabajo)}>
+                                            <FaPencilAlt />
+                                        </Button>
+                                    </>
+                                ) : (
+                                    // --- BOTÓN DE USUARIO NORMAL ---
+                                    <Button 
+                                        variant="primary" 
+                                        onClick={handleOpenTrabajarModal} 
+                                        className="w-full"
+                                    >
+                                        <FaHammer className="mr-2" />
+                                        Trabajar
+                                    </Button>
+                                )}
                     </Card>
                 ) : (
                     <Card variant="primary" className="h-full flex items-center justify-center">

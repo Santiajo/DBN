@@ -69,6 +69,7 @@ export interface Trabajo {
   nombre: string;
   requisito_habilidad: number;
   requisito_habilidad_nombre?: string;
+  requisito_habilidad_estadistica: string;
   rango_maximo: number;
   descripcion?: string | null;
   beneficio?: string | null;
@@ -98,4 +99,19 @@ export interface ApiResponse<T> {
   next: string | null;
   previous: string | null;
   results: T[];
+}
+
+export interface Proficiencia {
+  id: number;
+  personaje: number; // ID del Personaje
+  personaje_nombre: string;
+  habilidad: number; // ID de la Habilidad
+  habilidad_nombre: string;
+  es_proficiente: boolean;
+}
+
+export interface BonusProficiencia {
+  id: number;
+  nivel: number;
+  bonus: number;
 }
