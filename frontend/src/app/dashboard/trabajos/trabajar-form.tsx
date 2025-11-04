@@ -3,7 +3,6 @@
 
 import { useState, useMemo } from 'react';
 import { Trabajo, Personaje, Proficiencia, BonusProficiencia } from '@/types';
-import { useAuth } from '@/context/AuthContext';
 import Input from '@/components/input';
 import Button from '@/components/button';
 import Dropdown, { OptionType } from '@/components/dropdown';
@@ -182,8 +181,17 @@ export default function TrabajarForm({
             // ¡Éxito!
             onWorkSuccess();
 
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) { 
+            
+            if (err instanceof Error) {
+                setError(err.message);
+            } else if (typeof err === 'string') {
+                setError(err);
+            } else {
+                setError("Ocurrió un error inesperado.");
+            }
+            // ---------------------------------
+
         } finally {
             setIsLoading(false);
         }
