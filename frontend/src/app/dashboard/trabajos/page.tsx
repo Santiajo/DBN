@@ -79,22 +79,15 @@ const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
       
       const data = await res.json();
       const trabajosData = data.results || data;
-      
-      // CARGAR PAGOS PARA CADA TRABAJO - PERO SOLO SI ES STAFF
+
       const trabajosConPagos = await Promise.all(
         trabajosData.map(async (trabajo: Trabajo) => {
-          // Si no es staff, no cargar los pagos (para optimizar)
-          if (!user?.is_staff) {
-            trabajo.pagos = []; // Array vacío para usuarios normales
-            return trabajo;
-          }
-          
           try {
             const pagosRes = await fetch(
               buildApiUrl(`trabajos/${trabajo.id}/pagos/`), 
               { headers: { 'Authorization': `Bearer ${accessToken}` } }
             );
-            
+
             if (pagosRes.ok) {
               const pagosData = await pagosRes.json();
               trabajo.pagos = pagosData.results || pagosData || [];
@@ -110,7 +103,7 @@ const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
           return trabajo;
         })
       );
-      
+        
       setTrabajos(trabajosConPagos);
       setTotalPages(Math.ceil(data.count / 12));
       setCurrentPage(page);
@@ -261,12 +254,10 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
     
     const trabajoGuardado = await trabajoRes.json();
     console.log('✅ Trabajo guardado:', trabajoGuardado);
-    
-    // SEGUNDO: Manejar los pagos - CORREGIDO
+
     if (pagos && pagos.length > 0) {
       console.log('💾 Procesando pagos para trabajo ID:', trabajoGuardado.id);
-      
-      // Para edición: primero obtener pagos existentes
+
       let pagosExistentes: PagoRango[] = [];
       if (isEditing) {
         try {
@@ -277,11 +268,9 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
             const pagosData = await pagosRes.json();
             console.log('📋 Respuesta completa de pagos:', pagosData);
             
-            // 👇 CORRECCIÓN: Extraer el array correctamente
             pagosExistentes = pagosData.results || pagosData.data || pagosData || [];
             console.log('📋 Pagos existentes extraídos:', pagosExistentes);
-            
-            // Validar que sea un array
+
             if (!Array.isArray(pagosExistentes)) {
               console.error('❌ Los pagos existentes no son un array:', typeof pagosExistentes);
               pagosExistentes = [];
