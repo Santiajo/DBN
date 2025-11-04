@@ -34,7 +34,6 @@ const getDesempenio = (tiradaD20: number): number => {
 const calcularModificador = (puntuacion: number): number => {
     return Math.floor((puntuacion - 10) / 2);
 };
-// -------------------------
 
 
 interface TrabajarFormProps {
@@ -69,9 +68,6 @@ export default function TrabajarForm({
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     
-
-    // --- DATOS CALCULADOS (¡La magia!) ---
-    // Usamos useMemo para que estos valores solo se recalculen si cambian las dependencias
    const { 
         personaje, 
         modificadorEstadistica, 
@@ -83,19 +79,16 @@ export default function TrabajarForm({
 
         // 1. Calcular Modificador de Estadística (¡CORREGIDO!)
         let mod = 0;
-        
-        // Obtenemos la 'key' de la estadística (ej: "fuerza", "inteligencia")
-        // que ahora viene en el objeto 'trabajo' gracias al paso 1.
+
         const statKey = trabajo.requisito_habilidad_estadistica as keyof Personaje;
         
         if (statKey && pj[statKey] !== undefined) {
             // Accedemos dinámicamente al valor (ej: pj['fuerza'] -> 16)
             const statValue = pj[statKey] as number;
-            // Usamos la función helper que ya teníamos
+
             mod = calcularModificador(statValue);
         } else {
-            // Advertencia por si algo saliera mal (ej. la stat se llama "sabiduría" 
-            // pero en el tipo Personaje se llama "sabiduria")
+
             console.warn(`No se pudo encontrar la estadística '${statKey}' en el personaje.`);
         }
         

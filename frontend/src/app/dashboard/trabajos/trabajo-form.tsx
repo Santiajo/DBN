@@ -79,12 +79,14 @@ export default function TrabajoForm({ onSave, onCancel, initialData, habilidades
     e.preventDefault();
     
     // Preparar datos para enviar
-    const trabajoData: Trabajo = {
-      ...(initialData || {}),
-      ...formData,
+   const trabajoData: Trabajo = {
+        requisito_habilidad_nombre: '', 
+        requisito_habilidad_estadistica: '', 
+      ...(initialData || {}), 
+      ...formData, 
       requisito_habilidad: Number(formData.requisito_habilidad),
-      pagos: pagos, // Incluir los pagos en los datos
-    };
+      pagos: pagos, 
+      };
     
     onSave(trabajoData);
   };
