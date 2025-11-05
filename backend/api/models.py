@@ -84,6 +84,7 @@ class Receta(models.Model):
     #  Campos nuevos
     es_magico = models.BooleanField(default=False)
     oro_necesario = models.IntegerField(default=0)
+    herramienta = models.CharField(max_length=100, blank=True, null=True)
 
     DIFICULTAD_CHOICES = [
         ('Facil', 'Fácil'),
