@@ -43,7 +43,7 @@ interface TrabajarFormProps {
     bonusTabla: BonusProficiencia[];
     accessToken: string;
     onClose: () => void;
-    onWorkSuccess: () => void;
+    onWorkSuccess: (oroGanado: number) => void;
 }
 
 export default function TrabajarForm({
@@ -171,8 +171,10 @@ export default function TrabajarForm({
                 throw new Error(errorData.detail || errorData[Object.keys(errorData)[0]] || "Error al registrar el trabajo");
             }
 
-            // ¡Éxito!
-            onWorkSuccess();
+            const trabajoCreado = await res.json(); 
+            
+            // ¡Éxito! Llama a la función y pásale el pago total
+            onWorkSuccess(trabajoCreado.pago_total);
 
         } catch (err: unknown) { 
             
