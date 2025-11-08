@@ -40,12 +40,11 @@ export default function TrabajosPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-
-    // --- ESTADO PARA ADMINS ---
     const [habilidades, setHabilidades] = useState<Habilidad[]>([]);
     const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
     const [editingTrabajo, setEditingTrabajo] = useState<Trabajo | null>(null);
     const [isAlertOpen, setIsAlertOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     
     // --- ESTADO NUEVO PARA USUARIOS NORMALES ---
     const [personajes, setPersonajes] = useState<Personaje[]>([]);
@@ -55,11 +54,12 @@ export default function TrabajosPage() {
 
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-
     // Fetch trabajos 
 const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
     if (!accessToken) return;  // verifica el token, no si es staff
-    
+
+    setIsLoading(true);
+
     const params = new URLSearchParams({
       page: String(page),
       search: searchQuery,
@@ -164,7 +164,11 @@ const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
                 const data = await res.json();
                 setProficiencias(data.results || data);
             }
-        } catch (error) { console.error('Error fetching proficiencias:', error); }
+        } catch (error) { console.error('Error fetching proficiencias:', error);
+
+        } finally {
+            setIsLoading(false); 
+        }
     }, [accessToken]);
 
     const fetchBonus = useCallback(async () => {
@@ -214,12 +218,15 @@ const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
         setIsTrabajarModalOpen(true);
     };
 
-    const handleWorkSuccess = () => {
+    const handleWorkSuccess = (oroGanado: number) => {
+        setIsTrabajarModalOpen(false); // Cierra el modal
+        fetchPersonajes(); // Refresca los datos del personaje (para ver el oro nuevo)
 
-        setIsTrabajarModalOpen(false);
-        fetchPersonajes(); 
-        // se podria mostrar un toast/alerta de "¡Trabajo completado!"
+        alert(`¡Trabajo completado! Has ganado ${oroGanado.toFixed(2)} de oro.`);
     };
+
+
+    
 
 const handleSaveTrabajo = async (trabajoData: Trabajo) => {
   console.log('💾 Datos completos del trabajo:', trabajoData);
@@ -398,6 +405,7 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
         }
     };
 
+
     // HEADERS ESPECÍFICOS PARA TRABAJOS
     const tableHeaders = [
         { key: 'nombre', label: 'Nombre' },
@@ -469,7 +477,12 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
                 </div>
             )}
 
-            {/* TABLA Y DESCRIPCIÓN - ESTRUCTURA IDÉNTICA */}
+            {/* TABLA Y DESCRIPCIÓN*/}
+            {isLoading ? (
+            <div className="p-8 font-title text-center text-stone-600">
+                Cargando los trabajos disponibles..
+            </div>
+           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 <div className="lg:col-span-2">
                     <Table 
@@ -573,6 +586,7 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
                     )}
                 </div>
             </div>
+            )}
         </div>
     );
 }
