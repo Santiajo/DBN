@@ -552,27 +552,31 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
                     </div>
                     
                     {/* BOTONES DE ACCIÓN */}
-                       {user.is_staff ? (
-                                    // --- BOTONES DE ADMIN ---
-                                    <>
-                                        <Button variant="dangerous" onClick={handleDelete}>
-                                            <FaTrash />
-                                        </Button>
-                                        <Button variant="secondary" onClick={() => handleOpenEditModal(selectedTrabajo)}>
-                                            <FaPencilAlt />
-                                        </Button>
-                                    </>
-                                ) : (
-                                    // --- BOTÓN DE USUARIO NORMAL ---
-                                    <Button 
-                                        variant="primary" 
-                                        onClick={handleOpenTrabajarModal} 
-                                        className="w-full"
-                                    >
-                                        <FaHammer className="mr-2" />
-                                        Trabajar
-                                    </Button>
-                                )}
+                    <div className="flex flex-wrap justify-end gap-2 mt-auto pt-4 border-t border-madera-oscura">
+
+                        {/* --- 1. Botones SOLO para Admin --- */}
+                        {user?.is_staff && (
+                            <>
+                                <Button variant="dangerous" onClick={handleDelete}>
+                                    <FaTrash />
+                                    Eliminar
+                                </Button>
+                                <Button variant="secondary" onClick={() => handleOpenEditModal(selectedTrabajo)}>
+                                    <FaPencilAlt />
+                                    Modificar
+                                </Button>
+                            </>
+                        )}
+                        <Button 
+                            variant="primary" 
+                            onClick={handleOpenTrabajarModal} 
+                            className={!user?.is_staff ? 'w-full' : ''}
+                        >
+                            <FaHammer className="mr-2" />
+                            Trabajar
+                        </Button>
+                        
+                    </div>
                     </Card>
                 ) : (
                     <Card variant="primary" className="h-full flex items-center justify-center">
