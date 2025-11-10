@@ -186,17 +186,15 @@ const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
     useEffect(() => {
         if (user) {
             fetchTrabajos(currentPage, searchTerm);
-            
+            fetchPersonajes();
+            fetchProficiencias();
+            fetchBonus();
+
             if (user.is_staff) {
-                // El Admin necesita Habilidades para crear trabajos
                 fetchHabilidades();
-            } else {
-                // El Usuario Normal necesita sus datos para trabajar
-                fetchPersonajes();
-                fetchProficiencias();
-                fetchBonus();
             }
         }
+    // Asegúrate de que todas las funciones fetch estén en el array de dependencias
     }, [user, currentPage, fetchTrabajos, fetchHabilidades, fetchPersonajes, fetchProficiencias, fetchBonus, searchTerm]);
 
     const handleSearch = () => { fetchTrabajos(1, searchTerm); };
