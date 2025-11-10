@@ -101,9 +101,14 @@ class InventarioPersonajeViewSet(viewsets.ModelViewSet):
 
 
 class ProficienciaViewSet(viewsets.ModelViewSet):
-    queryset = Proficiencia.objects.all()
     serializer_class = ProficienciaSerializer
     permission_classes = [IsAuthenticated]
+    def get_queryset(self):
+        """
+        Esta vista solo debe mostrar las proficiencias
+        de los personajes del usuario autenticado.
+        """
+        return Proficiencia.objects.filter(personaje__user=self.request.user)
 
 
 class HabilidadViewSet(viewsets.ModelViewSet):

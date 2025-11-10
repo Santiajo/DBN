@@ -40,12 +40,11 @@ export default function TrabajosPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-
-    // --- ESTADO PARA ADMINS ---
     const [habilidades, setHabilidades] = useState<Habilidad[]>([]);
     const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
     const [editingTrabajo, setEditingTrabajo] = useState<Trabajo | null>(null);
     const [isAlertOpen, setIsAlertOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     
     // --- ESTADO NUEVO PARA USUARIOS NORMALES ---
     const [personajes, setPersonajes] = useState<Personaje[]>([]);
@@ -55,11 +54,12 @@ export default function TrabajosPage() {
 
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-
     // Fetch trabajos 
 const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
     if (!accessToken) return;  // verifica el token, no si es staff
-    
+
+    setIsLoading(true);
+
     const params = new URLSearchParams({
       page: String(page),
       search: searchQuery,
@@ -79,22 +79,15 @@ const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
       
       const data = await res.json();
       const trabajosData = data.results || data;
-      
-      // CARGAR PAGOS PARA CADA TRABAJO - PERO SOLO SI ES STAFF
+
       const trabajosConPagos = await Promise.all(
         trabajosData.map(async (trabajo: Trabajo) => {
-          // Si no es staff, no cargar los pagos (para optimizar)
-          if (!user?.is_staff) {
-            trabajo.pagos = []; // Array vacío para usuarios normales
-            return trabajo;
-          }
-          
           try {
             const pagosRes = await fetch(
               buildApiUrl(`trabajos/${trabajo.id}/pagos/`), 
               { headers: { 'Authorization': `Bearer ${accessToken}` } }
             );
-            
+
             if (pagosRes.ok) {
               const pagosData = await pagosRes.json();
               trabajo.pagos = pagosData.results || pagosData || [];
@@ -110,7 +103,7 @@ const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
           return trabajo;
         })
       );
-      
+        
       setTrabajos(trabajosConPagos);
       setTotalPages(Math.ceil(data.count / 12));
       setCurrentPage(page);
@@ -171,7 +164,11 @@ const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
                 const data = await res.json();
                 setProficiencias(data.results || data);
             }
-        } catch (error) { console.error('Error fetching proficiencias:', error); }
+        } catch (error) { console.error('Error fetching proficiencias:', error);
+
+        } finally {
+            setIsLoading(false); 
+        }
     }, [accessToken]);
 
     const fetchBonus = useCallback(async () => {
@@ -221,12 +218,15 @@ const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
         setIsTrabajarModalOpen(true);
     };
 
-    const handleWorkSuccess = () => {
+    const handleWorkSuccess = (oroGanado: number) => {
+        setIsTrabajarModalOpen(false); // Cierra el modal
+        fetchPersonajes(); // Refresca los datos del personaje (para ver el oro nuevo)
 
-        setIsTrabajarModalOpen(false);
-        fetchPersonajes(); 
-        // se podria mostrar un toast/alerta de "¡Trabajo completado!"
+        alert(`¡Trabajo completado! Has ganado ${oroGanado.toFixed(2)} de oro.`);
     };
+
+
+    
 
 const handleSaveTrabajo = async (trabajoData: Trabajo) => {
   console.log('💾 Datos completos del trabajo:', trabajoData);
@@ -261,12 +261,10 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
     
     const trabajoGuardado = await trabajoRes.json();
     console.log('✅ Trabajo guardado:', trabajoGuardado);
-    
-    // SEGUNDO: Manejar los pagos - CORREGIDO
+
     if (pagos && pagos.length > 0) {
       console.log('💾 Procesando pagos para trabajo ID:', trabajoGuardado.id);
-      
-      // Para edición: primero obtener pagos existentes
+
       let pagosExistentes: PagoRango[] = [];
       if (isEditing) {
         try {
@@ -277,11 +275,9 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
             const pagosData = await pagosRes.json();
             console.log('📋 Respuesta completa de pagos:', pagosData);
             
-            // 👇 CORRECCIÓN: Extraer el array correctamente
             pagosExistentes = pagosData.results || pagosData.data || pagosData || [];
             console.log('📋 Pagos existentes extraídos:', pagosExistentes);
-            
-            // Validar que sea un array
+
             if (!Array.isArray(pagosExistentes)) {
               console.error('❌ Los pagos existentes no son un array:', typeof pagosExistentes);
               pagosExistentes = [];
@@ -409,6 +405,7 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
         }
     };
 
+
     // HEADERS ESPECÍFICOS PARA TRABAJOS
     const tableHeaders = [
         { key: 'nombre', label: 'Nombre' },
@@ -480,7 +477,12 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
                 </div>
             )}
 
-            {/* TABLA Y DESCRIPCIÓN - ESTRUCTURA IDÉNTICA */}
+            {/* TABLA Y DESCRIPCIÓN*/}
+            {isLoading ? (
+            <div className="p-8 font-title text-center text-stone-600">
+                Cargando los trabajos disponibles..
+            </div>
+           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 <div className="lg:col-span-2">
                     <Table 
@@ -584,6 +586,7 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
                     )}
                 </div>
             </div>
+            )}
         </div>
     );
 }
