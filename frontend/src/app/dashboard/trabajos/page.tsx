@@ -116,7 +116,7 @@ const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
     } catch (error) {
       console.error('Error fetching trabajos:', error);
     }
-}, [accessToken, logout, user?.is_staff, selectedTrabajo, currentPage, searchTerm]);
+}, [accessToken, logout, selectedTrabajo, user?.is_staff]);
 
     // Fetch habilidades
     const fetchHabilidades = useCallback(async () => {
@@ -478,11 +478,6 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
             )}
 
             {/* TABLA Y DESCRIPCIÓN*/}
-            {isLoading ? (
-            <div className="p-8 font-title text-center text-stone-600">
-                Cargando los trabajos disponibles..
-            </div>
-           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 <div className="lg:col-span-2">
                     <Table 
@@ -586,7 +581,6 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
                     )}
                 </div>
             </div>
-            )}
         </div>
     );
 }
