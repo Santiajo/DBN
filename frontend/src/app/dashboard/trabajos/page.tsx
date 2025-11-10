@@ -78,7 +78,7 @@ const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
       }
       
       const data = await res.json();
-      const trabajosData = data.results || data;
+      const trabajosData: Trabajo[] = Array.isArray(data.results) ? data.results : (Array.isArray(data) ? data : []);
 
       const trabajosConPagos = await Promise.all(
         trabajosData.map(async (trabajo: Trabajo) => {
@@ -116,7 +116,7 @@ const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
     } catch (error) {
       console.error('Error fetching trabajos:', error);
     }
-}, [accessToken, logout, selectedTrabajo, user?.is_staff]);
+}, [accessToken, logout, user?.is_staff, selectedTrabajo, currentPage, searchTerm]);
 
     // Fetch habilidades
     const fetchHabilidades = useCallback(async () => {
