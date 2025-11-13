@@ -32,7 +32,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             password=validated_data['password'],
             first_name=validated_data.get('first_name', ''),
             last_name=validated_data.get('last_name', ''),
-            is_active=False,  # El usuario se crea como inactivo hasta que verifique su email
+            is_active=True,  # El usuario se crea como activo inmediatamente
             is_staff=validated_data.get("is_staff", False) # Para determinar si es admin (True) o user normal (False)
         )
         return user

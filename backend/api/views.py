@@ -28,24 +28,25 @@ def register_view(request):
     # Si los datos no son válidos, devuelve los errores de validación
     return Response(serializer.errors, status=400)
 
-@api_view(['POST']) # Solo permite solicitudes POST
-@permission_classes([AllowAny]) # Permite que cualquiera pueda acceder a esta vista
-# Vista para activar la cuenta de un usuario mediante un enlace con token
-def activate_account_view(request, uidb64, token):
-    try:
-        # Decodifica el uid y obtiene el usuario correspondiente
-        uid = force_str(urlsafe_base64_decode(uidb64))
-        user = User.objects.get(pk=uid)
-    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-        user = None
+# DESACTIVADO: Activación por email deshabilitada temporalmente
+# @api_view(['POST']) # Solo permite solicitudes POST
+# @permission_classes([AllowAny]) # Permite que cualquiera pueda acceder a esta vista
+# # Vista para activar la cuenta de un usuario mediante un enlace con token
+# def activate_account_view(request, uidb64, token):
+#     try:
+#         # Decodifica el uid y obtiene el usuario correspondiente
+#         uid = force_str(urlsafe_base64_decode(uidb64))
+#         user = User.objects.get(pk=uid)
+#     except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+#         user = None
         
-    # Verifica el token y activa la cuenta si es válido
-    if user is not None and default_token_generator.check_token(user, token):
-        user.is_active = True # Activa el usuario
-        user.save() # Guarda los cambios
-        return Response({"message": "Cuenta activada exitosamente."}, status=200)
-    else:
-        return Response({"error": "El enlace de activación es inválido."}, status=400)
+#     # Verifica el token y activa la cuenta si es válido
+#     if user is not None and default_token_generator.check_token(user, token):
+#         user.is_active = True # Activa el usuario
+#         user.save() # Guarda los cambios
+#         return Response({"message": "Cuenta activada exitosamente."}, status=200)
+#     else:
+#         return Response({"error": "El enlace de activación es inválido."}, status=400)
 
 @api_view(["DELETE"])
 @permission_classes([IsAuthenticated, IsAdminUser])  # Solo admin puede eliminar
@@ -728,3 +729,5 @@ class CraftingViewSet(viewsets.ViewSet):
         
         serializer = CompetenciaHerramientaSerializer(competencias, many=True)
         return Response(serializer.data)
+    
+# ola
