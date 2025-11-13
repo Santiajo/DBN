@@ -4,19 +4,59 @@ import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { FaTimes, FaHammer, FaCoins, FaClock, FaTools, FaMagic, FaExclamationTriangle } from 'react-icons/fa';
 
-interface Receta {
+export interface Receta {
   id: number;
   nombre: string;
-  nombre_objeto_final: string;
+  objeto_final: string;
+  nombre_objeto_final: string; // 
   cantidad_final: number;
   es_magico: boolean;
   oro_necesario: number;
   herramienta: string;
-  ingredientes: any[];
+  ingredientes: Array<{
+    objeto_id: number;
+    nombre: string;
+    cantidad_necesaria: number;
+    es_material_raro?: boolean;
+  }>;
+  puede_craftear: boolean;
+  ingredientes_faltantes: Array<{
+    objeto: string;
+    necesaria: number;
+    actual: number;
+    faltante: number;
+  }>;
   rareza: string | null;
+  material_raro: number | null;
+  nombre_material_raro: string | null;
+  tipo_artesano: string | null;
+  grado_minimo_requerido: string;
+  es_consumible: boolean;
   dc: number;
   exitos_requeridos: number;
-  competencia_personaje: any;
+  competencia_personaje: {
+    id?: number;
+    grado: string;
+    exitos_acumulados: number;
+    modificador?: number;
+    modificador_competencia?: number;
+    modificador_habilidad?: number;
+    habilidad_maxima?: {
+      nombre: string;
+      valor: number;
+    };
+    info_grado?: {
+      suma_oro: number;
+      gasto_oro: number;
+    };
+    exitos_para_siguiente_grado?: number | null;
+    mensaje?: string;
+  } | null;
+  coste_magico: {
+    dias: number;
+    oro: number;
+  } | null;
+  puede_craftear_rareza: boolean;
 }
 
 interface Personaje {
