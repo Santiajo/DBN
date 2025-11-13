@@ -78,7 +78,7 @@ const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
       }
       
       const data = await res.json();
-      const trabajosData = data.results || data;
+      const trabajosData: Trabajo[] = Array.isArray(data.results) ? data.results : (Array.isArray(data) ? data : []);
 
       const trabajosConPagos = await Promise.all(
         trabajosData.map(async (trabajo: Trabajo) => {
@@ -186,17 +186,15 @@ const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
     useEffect(() => {
         if (user) {
             fetchTrabajos(currentPage, searchTerm);
-            
+            fetchPersonajes();
+            fetchProficiencias();
+            fetchBonus();
+
             if (user.is_staff) {
-                // El Admin necesita Habilidades para crear trabajos
                 fetchHabilidades();
-            } else {
-                // El Usuario Normal necesita sus datos para trabajar
-                fetchPersonajes();
-                fetchProficiencias();
-                fetchBonus();
             }
         }
+    // Asegúrate de que todas las funciones fetch estén en el array de dependencias
     }, [user, currentPage, fetchTrabajos, fetchHabilidades, fetchPersonajes, fetchProficiencias, fetchBonus, searchTerm]);
 
     const handleSearch = () => { fetchTrabajos(1, searchTerm); };
@@ -478,11 +476,6 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
             )}
 
             {/* TABLA Y DESCRIPCIÓN*/}
-            {isLoading ? (
-            <div className="p-8 font-title text-center text-stone-600">
-                Cargando los trabajos disponibles..
-            </div>
-           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 <div className="lg:col-span-2">
                     <Table 
@@ -557,27 +550,31 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
                     </div>
                     
                     {/* BOTONES DE ACCIÓN */}
-                       {user.is_staff ? (
-                                    // --- BOTONES DE ADMIN ---
-                                    <>
-                                        <Button variant="dangerous" onClick={handleDelete}>
-                                            <FaTrash />
-                                        </Button>
-                                        <Button variant="secondary" onClick={() => handleOpenEditModal(selectedTrabajo)}>
-                                            <FaPencilAlt />
-                                        </Button>
-                                    </>
-                                ) : (
-                                    // --- BOTÓN DE USUARIO NORMAL ---
-                                    <Button 
-                                        variant="primary" 
-                                        onClick={handleOpenTrabajarModal} 
-                                        className="w-full"
-                                    >
-                                        <FaHammer className="mr-2" />
-                                        Trabajar
-                                    </Button>
-                                )}
+                    <div className="flex flex-wrap justify-end gap-2 mt-auto pt-4 border-t border-madera-oscura">
+
+                        {/* --- 1. Botones SOLO para Admin --- */}
+                        {user?.is_staff && (
+                            <>
+                                <Button variant="dangerous" onClick={handleDelete}>
+                                    <FaTrash />
+                                    Eliminar
+                                </Button>
+                                <Button variant="secondary" onClick={() => handleOpenEditModal(selectedTrabajo)}>
+                                    <FaPencilAlt />
+                                    Modificar
+                                </Button>
+                            </>
+                        )}
+                        <Button 
+                            variant="primary" 
+                            onClick={handleOpenTrabajarModal} 
+                            className={!user?.is_staff ? 'w-full' : ''}
+                        >
+                            <FaHammer className="mr-2" />
+                            Trabajar
+                        </Button>
+                        
+                    </div>
                     </Card>
                 ) : (
                     <Card variant="primary" className="h-full flex items-center justify-center">
@@ -586,7 +583,6 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
                     )}
                 </div>
             </div>
-            )}
         </div>
     );
 }
