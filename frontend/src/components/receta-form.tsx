@@ -35,7 +35,7 @@ const defaultFormState: RecetaFormData = {
     cantidad_final: 1,
     es_magico: false,
     oro_necesario: 0,
-    grado_minimo_requerido: 'Novato', // Para no mágicos
+    grado_minimo_requerido: 'Novato',
     ingredientes: [],
     // Campos para objetos mágicos
     rareza: null,
@@ -135,11 +135,12 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
     // Cargar datos iniciales
     useEffect(() => {
         if (initialData) {
+            // Transformar datos de la API al formato del formulario
             const initialIngredientesForm: IngredienteForm[] = initialData.ingredientes.map(ing => ({
-                id: ing.id,
-                objeto: ing.objeto, 
-                cantidad: ing.cantidad,
-                nombre_objeto: ing.nombre_ingrediente, 
+                id: ing.objeto_id, // ✅ Cambiar de ing.id
+                objeto: ing.objeto_id, // ✅ Usar objeto_id
+                cantidad: ing.cantidad_necesaria, // ✅ Cambiar de ing.cantidad
+                nombre_objeto: ing.nombre, // ✅ Cambiar de ing.nombre_ingrediente
             }));
 
             const initialRecetaData: RecetaFormData = {
@@ -148,15 +149,15 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
                 cantidad_final: initialData.cantidad_final,
                 es_magico: initialData.es_magico,
                 oro_necesario: initialData.oro_necesario,
+                grado_minimo_requerido: initialData.grado_minimo_requerido,
+                // ✅ Mapeo correcto de ingredientes
                 ingredientes: initialData.ingredientes.map(ing => ({
-                    id: ing.id,
-                    objeto: ing.objeto, 
-                    cantidad: ing.cantidad,
+                    objeto: ing.objeto_id,
+                    cantidad: ing.cantidad_necesaria,
                 })) as RecetaFormData['ingredientes'],
-                // ✅ Nuevos campos
+                // Campos mágicos
                 rareza: initialData.rareza || null,
                 material_raro: initialData.material_raro || null,
-                grado_minimo_requerido: initialData.grado_minimo_requerido || 'Novato',
                 es_consumible: initialData.es_consumible || false,
                 herramienta: initialData.herramienta || '',
             };
