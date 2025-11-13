@@ -44,7 +44,7 @@ urlpatterns = [
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     # Rutas para autenticación y registro
     path('register/', register_view, name='register'),
-    path('activate/<str:uidb64>/<str:token>/', activate_account_view, name='activate'),
+    # path('activate/<str:uidb64>/<str:token>/', activate_account_view, name='activate'),
     path('', include(router.urls)),
     path('', include(tiendas_router.urls)),
     path('', include(personajes_router.urls)),
