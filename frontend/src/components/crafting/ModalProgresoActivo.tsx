@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { FaTimes, FaDice, FaCheckCircle, FaTimesCircle, FaCoins, FaClock, FaTools, FaStar, FaMagic, FaTrophy } from 'react-icons/fa';
+import type { SubidaGrado } from '@/types/receta';
 
 interface Tirada {
   id?: number;
@@ -80,7 +81,7 @@ export default function ModalProgresoActivo({ progreso: initialProgreso, persona
   const [error, setError] = useState('');
   const [ultimaTirada, setUltimaTirada] = useState<Tirada | null>(null);
   const [mostrarNotificacion, setMostrarNotificacion] = useState(false);
-  const [subidaGrado, setSubidaGrado] = useState<any>(null);
+  const [subidaGrado, setSubidaGrado] = useState<SubidaGrado | null>(null);
 
   const realizarTirada = async () => {
     setLoading(true);
