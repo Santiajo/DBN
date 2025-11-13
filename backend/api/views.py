@@ -729,3 +729,5 @@ class CraftingViewSet(viewsets.ViewSet):
         
         serializer = CompetenciaHerramientaSerializer(competencias, many=True)
         return Response(serializer.data)
+    
+# ola
