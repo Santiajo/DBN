@@ -74,7 +74,6 @@ export default function RecetasPage() {
                 // ✅ Campos de objetos mágicos
                 rareza: recetaData.es_magico ? recetaData.rareza : null,
                 material_raro: recetaData.es_magico ? recetaData.material_raro : null,
-                tipo_artesano: recetaData.es_magico ? recetaData.tipo_artesano : null,
                 es_consumible: recetaData.es_magico ? recetaData.es_consumible : false,
             };
 
@@ -96,7 +95,7 @@ export default function RecetasPage() {
             // 2. Gestión de Ingredientes
             if (isEditing) {
                 const deletePromises = editingReceta?.ingredientes.map(ing => 
-                    fetch(`${apiUrl}/api/ingredientes/${ing.id}/`, {
+                    fetch(`${apiUrl}/api/ingredientes/${ing.objeto_id}/`, {
                         method: 'DELETE',
                         headers: { 'Authorization': `Bearer ${accessToken}` },
                     })
@@ -265,8 +264,8 @@ export default function RecetasPage() {
                                     </h4>
                                     <ul className="list-disc list-inside ml-2">
                                         {receta.ingredientes.map(ing => (
-                                            <li key={ing.id} className="text-xs text-stone-700">
-                                                {ing.cantidad} x {ing.nombre_ingrediente}
+                                            <li key={ing.objeto_id} className="text-xs text-stone-700">
+                                                {ing.cantidad_necesaria} x {ing.nombre}
                                             </li>
                                         ))}
                                     </ul>
