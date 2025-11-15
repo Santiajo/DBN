@@ -161,7 +161,6 @@ class TrabajoRealizadoViewSet(viewsets.ModelViewSet):
         Esta vista solo debe mostrar los trabajos realizados
         por los personajes del usuario autenticado.
         """
-        # Filtra los trabajos por los personajes que pertenecen al usuario logueado
         return TrabajoRealizado.objects.filter(personaje__user=self.request.user)
 
     def perform_create(self, serializer):
@@ -172,20 +171,16 @@ class TrabajoRealizadoViewSet(viewsets.ModelViewSet):
         3. Ejecutar todo en una transacción atómica.
         4. Actualizar el oro y tiempo libre del personaje.
         """
-        
-        # 1. Obtener datos validados (serializer.is_valid() ya fue llamado)
+
         personaje_obj = serializer.validated_data.get('personaje')
         dias_gastados = serializer.validated_data.get('dias_trabajados', 1)
-        
-        # 2. Validar PROPIEDAD del personaje
+
         try:
-            # Comprueba que el ID del personaje enviado
-            # realmente pertenece al usuario que hace la petición.
+
             personaje = Personaje.objects.get(id=personaje_obj.id, user=self.request.user)
         except Personaje.DoesNotExist:
             raise serializers.ValidationError("Este personaje no te pertenece.")
 
-        # Validar tiempo libre
         if personaje.tiempo_libre < dias_gastados:
             raise serializers.ValidationError(
                 f"No tienes suficientes días de tiempo libre. Tienes {personaje.tiempo_libre}, necesitas {dias_gastados}."
@@ -200,12 +195,10 @@ class TrabajoRealizadoViewSet(viewsets.ModelViewSet):
                 personaje.oro = F('oro') + pago_ganado
                 personaje.tiempo_libre = F('tiempo_libre') - dias_gastados
                 personaje.save(update_fields=['oro', 'tiempo_libre'])
-                
-                # Opcional: recarga los datos del personaje en la instancia
+
                 personaje.refresh_from_db() 
 
         except Exception as e:
-            # Si algo falla (ej. error de BDD), se revierte todo
             raise serializers.ValidationError(f"Error en la transacción: {str(e)}")
 
 # ViewSet para el CRUD de Tienda

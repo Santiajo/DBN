@@ -275,6 +275,8 @@ class PagoRango(models.Model):
     valor_suma = models.FloatField(help_text="Valor que se suma al bono de economía (ej: 1, 2, 3...)")
     multiplicador = models.FloatField(help_text="Multiplicador base del trabajo (ej: 1.25, 3.75, 7.5...)")
 
+    dias_para_siguiente_rango = models.PositiveIntegerField(default=50)
+
     class Meta:
         unique_together = ("trabajo", "rango")
 
@@ -316,6 +318,29 @@ class TrabajoRealizado(models.Model):
 
     def __str__(self):
         return f"{self.personaje.nombre_personaje} - {self.trabajo.nombre} (Rango {self.rango})"
+
+class ProgresoTrabajo(models.Model):
+    """
+    Almacena el rango actual y el progreso de un personaje en un trabajo específico.
+    """
+    personaje = models.ForeignKey(Personaje, on_delete=models.CASCADE, related_name="progreso_trabajos")
+    trabajo = models.ForeignKey(Trabajo, on_delete=models.CASCADE, related_name="progreso_personajes")
+    
+    # el rango actual que tiene el personaje en este trabajo
+    rango_actual = models.PositiveIntegerField(
+        default=1, 
+        validators=[MinValueValidator(1), MaxValueValidator(5)]
+    )
+    
+    # Días acumulados para el *siguiente* rango
+    dias_acumulados_rango = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        # un personaje solo puede tener una entrada de progreso por trabajo
+        unique_together = ('personaje', 'trabajo')
+
+    def __str__(self):
+        return f"{self.personaje.nombre_personaje} - {self.trabajo.nombre} (Rango {self.rango_actual})"
 
 class ObjetoTienda(models.Model):
     tienda = models.ForeignKey("Tienda", on_delete=models.CASCADE, related_name='inventario')
