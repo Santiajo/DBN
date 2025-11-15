@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
+import math
 
 class Personaje(models.Model):
     DND_CLASSES = [
@@ -81,23 +82,135 @@ class Receta(models.Model):
     objeto_final = models.ForeignKey("Objeto", on_delete=models.CASCADE, related_name="recetas")
     cantidad_final = models.IntegerField(default=1, null=True)
 
-    #  Campos nuevos
+    # Campos básicos
     es_magico = models.BooleanField(default=False)
-    oro_necesario = models.IntegerField(default=0)
     herramienta = models.CharField(max_length=100, blank=True, null=True)
-
-    DIFICULTAD_CHOICES = [
-        ('Facil', 'Fácil'),
-        ('Medio', 'Medio'),
-        ('Dificil', 'Difícil'),
-        ('Muy dificil', 'Muy Difícil'),
-        ('Oculto', 'Oculto'),
+    
+    # ✅ oro_necesario: Solo para objetos NO mágicos
+    oro_necesario = models.IntegerField(
+        default=0,
+        help_text="Solo para objetos no mágicos. Los mágicos usan costes fijos según rareza."
+    )
+    
+    # ✅ grado_minimo_requerido: Solo para objetos NO mágicos
+    GRADO_MINIMO_CHOICES = [
+        ('Novato', 'Novato'),
+        ('Aprendiz', 'Aprendiz'),
+        ('Experto', 'Experto'),
+        ('Maestro Artesano', 'Maestro Artesano'),
+        ('Gran Maestro', 'Gran Maestro'),
     ]
-    dificultad = models.CharField(max_length=15, choices=DIFICULTAD_CHOICES, default='F')
-
+    grado_minimo_requerido = models.CharField(
+        max_length=20,
+        choices=GRADO_MINIMO_CHOICES,
+        default='Novato',
+        help_text="Solo para objetos no mágicos. Para mágicos se determina automáticamente por rareza."
+    )
+    
+    # ✅ Campos SOLO para objetos mágicos
+    RAREZA_CHOICES = [
+        ('Common', 'Common'),
+        ('Uncommon', 'Uncommon'),
+        ('Rare', 'Rare'),
+        ('Very Rare', 'Very Rare'),
+        ('Legendary', 'Legendary'),
+    ]
+    rareza = models.CharField(
+        max_length=15, 
+        choices=RAREZA_CHOICES, 
+        blank=True, 
+        null=True,
+        help_text="Solo para objetos mágicos. Determina DC, éxitos, coste y grado mínimo."
+    )
+    
+    material_raro = models.ForeignKey(
+        "Objeto",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="recetas_como_material_raro",
+        help_text="Material especial necesario para objetos mágicos"
+    )
+    
+    es_consumible = models.BooleanField(
+        default=False,
+        help_text="Si es un consumible mágico (DC más baja)"
+    )
+    
+    # ✅ ELIMINADO: tipo_artesano (no se usa)
+    
+    def obtener_grado_minimo_efectivo(self):
+        """
+        Retorna el grado mínimo requerido:
+        - Para NO mágicos: usa el campo grado_minimo_requerido
+        - Para mágicos: lo calcula automáticamente según rareza
+        """
+        if self.es_magico and self.rareza:
+            grados_por_rareza = {
+                'Common': 'Novato',
+                'Uncommon': 'Aprendiz',
+                'Rare': 'Experto',
+                'Very Rare': 'Maestro Artesano',
+                'Legendary': 'Gran Maestro',
+            }
+            return grados_por_rareza.get(self.rareza, 'Novato')
+        else:
+            # Para objetos no mágicos
+            return self.grado_minimo_requerido
+    
+    def obtener_dc(self):
+        """Calcula la DC según si es mágico o no"""
+        if not self.es_magico:
+            return 12  # DC fija para objetos no mágicos
+        
+        dc_por_rareza = {
+            'Common': 15,
+            'Uncommon': 18,
+            'Rare': 21,
+            'Very Rare': 24,
+            'Legendary': 30,
+        }
+        
+        dc_consumible = {
+            'Common': 10,
+            'Uncommon': 13,
+            'Rare': 16,
+            'Very Rare': 19,
+            'Legendary': 25,
+        }
+        
+        if self.es_consumible:
+            return dc_consumible.get(self.rareza, 12)
+        return dc_por_rareza.get(self.rareza, 12)
+    
+    def obtener_exitos_requeridos(self):
+        if not self.es_magico:
+            return 0
+        
+        exitos = {
+            'Common': 1,
+            'Uncommon': 1,
+            'Rare': 2,
+            'Very Rare': 5,
+            'Legendary': 10,
+        }
+        return exitos.get(self.rareza, 1)
+    
+    def obtener_coste_magico(self):
+        if not self.es_magico:
+            return {'dias': 0, 'oro': 0}
+        
+        costes = {
+            'Common': {'dias': 1, 'oro': 10},
+            'Uncommon': {'dias': 2, 'oro': 40},
+            'Rare': {'dias': 5, 'oro': 200},
+            'Very Rare': {'dias': 5, 'oro': 800},
+            'Legendary': {'dias': 5, 'oro': 2000},
+        }
+        return costes.get(self.rareza, {'dias': 1, 'oro': 10})
+    
     def __str__(self):
         return f"Receta: {self.nombre} → {self.objeto_final.Name}"
-
 
 class Ingredientes(models.Model):
     receta = models.ForeignKey(Receta, on_delete=models.CASCADE, related_name="ingredientes")
@@ -262,3 +375,181 @@ class Tienda(models.Model):
 # ola
 # estoy stremeneado en maxima calidad bit rate
 
+class CompetenciaHerramienta(models.Model):
+    """Representa el nivel de dominio de un personaje con una herramienta específica"""
+    
+    GRADO_CHOICES = [
+        ('Novato', 'Novato'),
+        ('Aprendiz', 'Aprendiz'),
+        ('Experto', 'Experto'),
+        ('Maestro Artesano', 'Maestro Artesano'),
+        ('Gran Maestro', 'Gran Maestro'),
+    ]
+    
+    personaje = models.ForeignKey(Personaje, on_delete=models.CASCADE, related_name='competencias_herramientas')
+    nombre_herramienta = models.CharField(max_length=100)
+    grado = models.CharField(max_length=20, choices=GRADO_CHOICES, default='Novato')
+    exitos_acumulados = models.IntegerField(default=0)
+    fecha_obtencion = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ('personaje', 'nombre_herramienta')
+        verbose_name_plural = "Competencias con Herramientas"
+    
+    def __str__(self):
+        return f"{self.personaje.nombre_personaje} - {self.nombre_herramienta} ({self.grado})"
+    
+    def obtener_modificador_habilidad(self):
+        """
+        Calcula el modificador de habilidad más alto del personaje.
+        Fórmula D&D: (habilidad - 10) / 2, redondeado hacia abajo
+        """
+        habilidades = [
+            self.personaje.fuerza,
+            self.personaje.inteligencia,
+            self.personaje.sabiduria,
+            self.personaje.destreza,
+            self.personaje.constitucion,
+            self.personaje.carisma,
+        ]
+        
+        habilidad_maxima = max(habilidades)
+        modificador = math.floor((habilidad_maxima - 10) / 2)
+        
+        return modificador
+    
+    def obtener_modificador_competencia(self):
+        """
+        Calcula el modificador de competencia según el grado y el PB del personaje
+        """
+        try:
+            pb = BonusProficiencia.objects.get(nivel=self.personaje.nivel).bonus
+        except BonusProficiencia.DoesNotExist:
+            pb = 2  # Default si no existe
+        
+        multiplicadores = {
+            'Novato': 0,
+            'Aprendiz': 0.5,
+            'Experto': 1,
+            'Maestro Artesano': 1.5,
+            'Gran Maestro': 2,
+        }
+        
+        multiplicador = multiplicadores.get(self.grado, 0)
+        return math.floor(pb * multiplicador)
+    
+    def obtener_modificador(self):
+        """
+        Calcula el modificador TOTAL para crafting:
+        Modificador de Competencia + Modificador de Habilidad más alta
+        
+        Ejemplo:
+        - Nivel 5, Experto: PB=3 × 1 = +3
+        - Inteligencia 14: (14-10)/2 = +2
+        - Total: +5
+        """
+        mod_competencia = self.obtener_modificador_competencia()
+        mod_habilidad = self.obtener_modificador_habilidad()
+        
+        return mod_competencia + mod_habilidad
+    
+    def obtener_info_grado(self):
+        """Retorna información del grado actual (progreso por día, coste)"""
+        info = {
+            'Novato': {'suma_oro': 5, 'gasto_oro': 2},
+            'Aprendiz': {'suma_oro': 10, 'gasto_oro': 3},
+            'Experto': {'suma_oro': 25, 'gasto_oro': 6},
+            'Maestro Artesano': {'suma_oro': 75, 'gasto_oro': 15},
+            'Gran Maestro': {'suma_oro': 150, 'gasto_oro': 25},
+        }
+        return info.get(self.grado, info['Novato'])
+    
+    def verificar_subida_grado(self):
+        """Verifica si debe subir de grado y lo hace automáticamente"""
+        requisitos = {
+            'Novato': ('Aprendiz', 1),
+            'Aprendiz': ('Experto', 2),
+            'Experto': ('Maestro Artesano', 10),
+            'Maestro Artesano': ('Gran Maestro', 50),
+            'Gran Maestro': (None, 250),  # Máximo nivel
+        }
+        
+        if self.grado in requisitos:
+            siguiente_grado, exitos_necesarios = requisitos[self.grado]
+            if siguiente_grado and self.exitos_acumulados >= exitos_necesarios:
+                self.grado = siguiente_grado
+                self.exitos_acumulados = 0  # Resetea el contador
+                self.save()
+                return siguiente_grado  # Retorna el nuevo grado para notificar
+        return None
+
+
+class ProgresoReceta(models.Model):
+    """Tracking del progreso de crafting de una receta"""
+    
+    ESTADO_CHOICES = [
+        ('en_progreso', 'En Progreso'),
+        ('completado', 'Completado'),
+        ('pausado', 'Pausado'),
+    ]
+    
+    personaje = models.ForeignKey(Personaje, on_delete=models.CASCADE, related_name='progresos_recetas')
+    receta = models.ForeignKey(Receta, on_delete=models.CASCADE)
+    competencia_utilizada = models.ForeignKey(CompetenciaHerramienta, on_delete=models.CASCADE, related_name='progresos')
+    
+    # Para objetos NO mágicos
+    oro_acumulado = models.IntegerField(default=0)
+    
+    # Para objetos mágicos
+    exitos_conseguidos = models.IntegerField(default=0)
+    exitos_requeridos = models.IntegerField(default=0)
+    
+    # Comunes
+    dias_trabajados = models.IntegerField(default=0)
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='en_progreso')
+    
+    fecha_inicio = models.DateTimeField(auto_now_add=True)
+    fecha_completado = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        verbose_name_plural = "Progresos de Recetas"
+    
+    def __str__(self):
+        return f"{self.personaje.nombre_personaje} - {self.receta.nombre} ({self.estado})"
+
+
+class HistorialTirada(models.Model):
+    """Historial de tiradas de crafting"""
+    progreso = models.ForeignKey(ProgresoReceta, on_delete=models.CASCADE, related_name='tiradas')
+    resultado_dado = models.IntegerField()  # Resultado del d20
+    modificador = models.IntegerField()
+    resultado_total = models.IntegerField()
+    exito = models.BooleanField()
+    oro_sumado = models.IntegerField(default=0)  # Para no mágicos
+    oro_gastado = models.IntegerField()
+    fecha = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"Tirada {self.resultado_total} - {'Éxito' if self.exito else 'Fallo'}"
+    
+def puede_craftear_rareza(grado_competencia: str, rareza: str) -> bool:
+    """
+    Verifica si un grado de competencia puede craftear una rareza específica.
+    
+    Jerarquía:
+    - Novato: Common
+    - Aprendiz: Common, Uncommon
+    - Experto: Common, Uncommon, Rare
+    - Maestro Artesano: Common, Uncommon, Rare, Very Rare
+    - Gran Maestro: Todas (Common, Uncommon, Rare, Very Rare, Legendary)
+    """
+    jerarquia_grados = {
+        'Novato': ['Common'],
+        'Aprendiz': ['Common', 'Uncommon'],
+        'Experto': ['Common', 'Uncommon', 'Rare'],
+        'Maestro Artesano': ['Common', 'Uncommon', 'Rare', 'Very Rare'],
+        'Gran Maestro': ['Common', 'Uncommon', 'Rare', 'Very Rare', 'Legendary'],
+    }
+    
+    rarezas_permitidas = jerarquia_grados.get(grado_competencia, [])
+    return rareza in rarezas_permitidas

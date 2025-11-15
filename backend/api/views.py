@@ -28,24 +28,25 @@ def register_view(request):
     # Si los datos no son válidos, devuelve los errores de validación
     return Response(serializer.errors, status=400)
 
-@api_view(['POST']) # Solo permite solicitudes POST
-@permission_classes([AllowAny]) # Permite que cualquiera pueda acceder a esta vista
-# Vista para activar la cuenta de un usuario mediante un enlace con token
-def activate_account_view(request, uidb64, token):
-    try:
-        # Decodifica el uid y obtiene el usuario correspondiente
-        uid = force_str(urlsafe_base64_decode(uidb64))
-        user = User.objects.get(pk=uid)
-    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-        user = None
+# DESACTIVADO: Activación por email deshabilitada temporalmente
+# @api_view(['POST']) # Solo permite solicitudes POST
+# @permission_classes([AllowAny]) # Permite que cualquiera pueda acceder a esta vista
+# # Vista para activar la cuenta de un usuario mediante un enlace con token
+# def activate_account_view(request, uidb64, token):
+#     try:
+#         # Decodifica el uid y obtiene el usuario correspondiente
+#         uid = force_str(urlsafe_base64_decode(uidb64))
+#         user = User.objects.get(pk=uid)
+#     except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+#         user = None
         
-    # Verifica el token y activa la cuenta si es válido
-    if user is not None and default_token_generator.check_token(user, token):
-        user.is_active = True # Activa el usuario
-        user.save() # Guarda los cambios
-        return Response({"message": "Cuenta activada exitosamente."}, status=200)
-    else:
-        return Response({"error": "El enlace de activación es inválido."}, status=400)
+#     # Verifica el token y activa la cuenta si es válido
+#     if user is not None and default_token_generator.check_token(user, token):
+#         user.is_active = True # Activa el usuario
+#         user.save() # Guarda los cambios
+#         return Response({"message": "Cuenta activada exitosamente."}, status=200)
+#     else:
+#         return Response({"error": "El enlace de activación es inválido."}, status=400)
 
 @api_view(["DELETE"])
 @permission_classes([IsAuthenticated, IsAdminUser])  # Solo admin puede eliminar
@@ -275,3 +276,451 @@ def debug_trabajo_pagos(request, trabajo_pk):
         'message': 'Endpoint de debug funcionando'
     })
 
+
+# views.py - AÑADIR ESTE VIEWSET
+
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from django.db import transaction
+from django.utils import timezone
+import random
+
+from .models import (
+    Personaje, Receta, Inventario, ProgresoReceta, 
+    CompetenciaHerramienta, HistorialTirada, Ingredientes
+)
+from .serializers import (
+    RecetaDisponibleSerializer, ProgresoRecetaSerializer,
+    IniciarCraftingSerializer, TiradaCraftingSerializer,
+    CompetenciaHerramientaSerializer
+)
+
+
+class CraftingViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+    
+    @action(detail=False, methods=['get'])
+    def recetas_disponibles(self, request):
+        """Lista todas las recetas y marca cuáles puede craftear el personaje"""
+        personaje_id = request.query_params.get('personaje_id')
+        
+        if not personaje_id:
+            return Response(
+                {'error': 'personaje_id es requerido'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            personaje = Personaje.objects.get(id=personaje_id, user=request.user)
+        except Personaje.DoesNotExist:
+            return Response(
+                {'error': 'Personaje no encontrado'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        recetas = Receta.objects.all()
+        serializer = RecetaDisponibleSerializer(
+            recetas,
+            many=True,
+            context={'personaje': personaje}
+        )
+        
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['post'])
+    def iniciar_crafting(self, request):
+        """Inicia el proceso de crafting de una receta"""
+        serializer = IniciarCraftingSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        receta_id = serializer.validated_data['receta_id']
+        personaje_id = serializer.validated_data['personaje_id']
+        
+        try:
+            personaje = Personaje.objects.get(id=personaje_id, user=request.user)
+            receta = Receta.objects.get(id=receta_id)
+        except (Personaje.DoesNotExist, Receta.DoesNotExist) as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        with transaction.atomic():
+            # 1. Verificar ingredientes normales
+            for ing in receta.ingredientes.all():
+                inventario_item = Inventario.objects.filter(
+                    personaje=personaje,
+                    objeto=ing.objeto
+                ).first()
+                
+                if not inventario_item or inventario_item.cantidad < ing.cantidad:
+                    return Response(
+                        {'error': f'No tienes suficiente {ing.objeto.Name}. Necesitas {ing.cantidad}, tienes {inventario_item.cantidad if inventario_item else 0}'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            
+            # 2. Verificar material raro si es mágico
+            if receta.es_magico and receta.material_raro:
+                material_inv = Inventario.objects.filter(
+                    personaje=personaje,
+                    objeto=receta.material_raro
+                ).first()
+                
+                if not material_inv or material_inv.cantidad < 1:
+                    return Response(
+                        {'error': f'No tienes el material raro necesario: {receta.material_raro.Name}'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            
+            # 3. Verificar herramienta en inventario
+            if receta.herramienta:
+                tiene_herramienta = Inventario.objects.filter(
+                    personaje=personaje,
+                    objeto__Name__icontains=receta.herramienta
+                ).exists()
+                
+                if not tiene_herramienta:
+                    return Response(
+                        {'error': f'Necesitas la herramienta: {receta.herramienta}'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            
+            # 4. Obtener o crear competencia con la herramienta
+            competencia, created = CompetenciaHerramienta.objects.get_or_create(
+                personaje=personaje,
+                nombre_herramienta=receta.herramienta,
+                defaults={'grado': 'Novato', 'exitos_acumulados': 0}
+            )
+            
+            # 5. Verificar grado mínimo requerido
+            grados_orden = ['Novato', 'Aprendiz', 'Experto', 'Maestro Artesano', 'Gran Maestro']
+            grado_actual_idx = grados_orden.index(competencia.grado)
+            grado_requerido_idx = grados_orden.index(receta.grado_minimo_requerido)
+            
+            if grado_actual_idx < grado_requerido_idx:
+                return Response(
+                    {'error': f'Necesitas ser al menos {receta.grado_minimo_requerido} con {receta.herramienta}. Actualmente eres {competencia.grado}'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # 6. CONSUMIR INGREDIENTES Y MATERIALES AL INICIO
+            for ing in receta.ingredientes.all():
+                inventario_item = Inventario.objects.get(
+                    personaje=personaje,
+                    objeto=ing.objeto
+                )
+                inventario_item.cantidad -= ing.cantidad
+                if inventario_item.cantidad <= 0:
+                    inventario_item.delete()
+                else:
+                    inventario_item.save()
+            
+            # Consumir material raro si es mágico
+            if receta.es_magico and receta.material_raro:
+                material_inv = Inventario.objects.get(
+                    personaje=personaje,
+                    objeto=receta.material_raro
+                )
+                material_inv.cantidad -= 1
+                if material_inv.cantidad <= 0:
+                    material_inv.delete()
+                else:
+                    material_inv.save()
+            
+            # 7. Crear progreso
+            progreso = ProgresoReceta.objects.create(
+                personaje=personaje,
+                receta=receta,
+                competencia_utilizada=competencia,
+                exitos_requeridos=receta.obtener_exitos_requeridos() if receta.es_magico else 0
+            )
+            
+            mensaje = f"Crafting iniciado. Ingredientes consumidos."
+            if created:
+                mensaje += f" Has comenzado a usar {receta.herramienta} como Novato."
+            
+            response_serializer = ProgresoRecetaSerializer(progreso)
+            return Response({
+                'progreso': response_serializer.data,
+                'mensaje': mensaje,
+                'competencia_creada': created
+            }, status=status.HTTP_201_CREATED)
+    
+    # views.py - CORREGIR en CraftingViewSet
+
+    @action(detail=False, methods=['post'])
+    def realizar_tirada(self, request):
+        """Realiza una tirada de crafting"""
+        serializer = TiradaCraftingSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        progreso_id = serializer.validated_data['progreso_id']
+        
+        try:
+            progreso = ProgresoReceta.objects.select_related(
+                'personaje', 'receta', 'competencia_utilizada'
+            ).get(
+                id=progreso_id,
+                personaje__user=request.user
+            )
+        except ProgresoReceta.DoesNotExist:
+            return Response(
+                {'error': 'Progreso no encontrado'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        if progreso.estado == 'completado':
+            return Response(
+                {'error': 'Este crafting ya está completado'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        personaje = progreso.personaje
+        competencia = progreso.competencia_utilizada
+        receta = progreso.receta
+        
+        # ✅ DIFERENTE LÓGICA PARA MÁGICOS Y NO MÁGICOS
+        if receta.es_magico:
+            # OBJETOS MÁGICOS: No se cobra por tirada, solo al completar
+            # Solo verificamos que tenga los recursos finales disponibles
+            coste_magico = receta.obtener_coste_magico()
+            
+            if personaje.tiempo_libre < coste_magico['dias']:
+                return Response(
+                    {'error': f"Necesitas {coste_magico['dias']} días libres para completar este objeto"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            if personaje.oro < coste_magico['oro']:
+                return Response(
+                    {'error': f"Necesitas {coste_magico['oro']} gp para completar este objeto"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        else:
+            # OBJETOS NO MÁGICOS: Cobro por día trabajado
+            info_grado = competencia.obtener_info_grado()
+            gasto_oro = info_grado['gasto_oro']
+            
+            if personaje.tiempo_libre < 1:
+                return Response(
+                    {'error': 'No tienes suficiente tiempo libre (Downtime)'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            if personaje.oro < gasto_oro:
+                return Response(
+                    {'error': f'No tienes suficiente oro. Necesitas {gasto_oro} gp'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        with transaction.atomic():
+            # Calcular DC
+            dc = receta.obtener_dc()
+            
+            # Tirada d20
+            resultado_dado = random.randint(1, 20)
+            modificador = competencia.obtener_modificador()
+            resultado_total = resultado_dado + modificador
+            
+            exito = resultado_total >= dc
+            
+            oro_sumado = 0
+            oro_gastado = 0
+            dias_gastados = 0
+            mensaje_resultado = ""
+            subio_grado = False
+            nuevo_grado = None
+            
+            if receta.es_magico:
+                # ✅ OBJETOS MÁGICOS: Sistema de éxitos SIN COSTE POR TIRADA
+                if exito:
+                    progreso.exitos_conseguidos += 1
+                    mensaje_resultado = f"¡Éxito! Progreso: {progreso.exitos_conseguidos}/{progreso.exitos_requeridos} éxitos"
+                    
+                    # Verificar si completó
+                    if progreso.exitos_conseguidos >= progreso.exitos_requeridos:
+                        progreso.estado = 'completado'
+                        progreso.fecha_completado = timezone.now()
+                        
+                        # ✅ COBRAR EL COSTE TOTAL AL FINALIZAR
+                        coste_magico = receta.obtener_coste_magico()
+                        personaje.tiempo_libre -= coste_magico['dias']
+                        personaje.oro -= coste_magico['oro']
+                        personaje.save()
+                        
+                        dias_gastados = coste_magico['dias']
+                        oro_gastado = coste_magico['oro']
+                        
+                        # Añadir objeto al inventario
+                        inventario_item, created = Inventario.objects.get_or_create(
+                            personaje=personaje,
+                            objeto=receta.objeto_final,
+                            defaults={'cantidad': receta.cantidad_final}
+                        )
+                        if not created:
+                            inventario_item.cantidad += receta.cantidad_final
+                            inventario_item.save()
+                        
+                        # Sumar éxito a competencia
+                        competencia.exitos_acumulados += 1
+                        competencia.save()
+                        
+                        # Verificar subida de grado
+                        nuevo_grado = competencia.verificar_subida_grado()
+                        if nuevo_grado:
+                            subio_grado = True
+                            competencia.refresh_from_db()
+                        
+                        mensaje_resultado = f"¡Objeto mágico completado! {receta.objeto_final.Name} añadido a tu inventario. Coste: {coste_magico['dias']} días, {coste_magico['oro']} gp"
+                else:
+                    mensaje_resultado = f"Fallo. Progreso: {progreso.exitos_conseguidos}/{progreso.exitos_requeridos} éxitos (sin coste)"
+            
+            else:
+                # OBJETOS NO MÁGICOS: Sistema existente (cobro por día)
+                info_grado = competencia.obtener_info_grado()
+                oro_gastado = info_grado['gasto_oro']
+                dias_gastados = 1
+                
+                if exito:
+                    oro_sumado = info_grado['suma_oro']
+                    progreso.oro_acumulado += oro_sumado
+                    mensaje_resultado = f"¡Éxito! Sumaste {oro_sumado} gp. Progreso: {progreso.oro_acumulado}/{receta.oro_necesario} gp"
+                    
+                    if progreso.oro_acumulado >= receta.oro_necesario:
+                        progreso.estado = 'completado'
+                        progreso.fecha_completado = timezone.now()
+                        
+                        inventario_item, created = Inventario.objects.get_or_create(
+                            personaje=personaje,
+                            objeto=receta.objeto_final,
+                            defaults={'cantidad': receta.cantidad_final}
+                        )
+                        if not created:
+                            inventario_item.cantidad += receta.cantidad_final
+                            inventario_item.save()
+                        
+                        competencia.exitos_acumulados += 1
+                        competencia.save()
+                        
+                        nuevo_grado = competencia.verificar_subida_grado()
+                        if nuevo_grado:
+                            subio_grado = True
+                            competencia.refresh_from_db()
+                        
+                        mensaje_resultado = f"¡Objeto completado! {receta.objeto_final.Name} añadido a tu inventario."
+                else:
+                    mensaje_resultado = f"Fallo. Progreso: {progreso.oro_acumulado}/{receta.oro_necesario} gp"
+                
+                # Gastar recursos por día (solo no mágicos)
+                personaje.tiempo_libre -= dias_gastados
+                personaje.oro -= oro_gastado
+                personaje.save()
+            
+            # Actualizar días trabajados
+            progreso.dias_trabajados += 1
+            progreso.save()
+            
+            # Registrar tirada
+            tirada = HistorialTirada.objects.create(
+                progreso=progreso,
+                resultado_dado=resultado_dado,
+                modificador=modificador,
+                resultado_total=resultado_total,
+                exito=exito,
+                oro_sumado=oro_sumado,
+                oro_gastado=oro_gastado
+            )
+            
+            # Preparar respuesta
+            response_data = {
+                'tirada': {
+                    'resultado_dado': resultado_dado,
+                    'modificador': modificador,
+                    'resultado_total': resultado_total,
+                    'dc': dc,
+                    'exito': exito,
+                    'oro_sumado': oro_sumado,
+                    'oro_gastado': oro_gastado,
+                    'dias_gastados': dias_gastados,
+                    'mensaje': mensaje_resultado
+                },
+                'progreso': ProgresoRecetaSerializer(progreso).data,
+                'personaje': {
+                    'oro': personaje.oro,
+                    'tiempo_libre': personaje.tiempo_libre
+                }
+            }
+            
+            if subio_grado:
+                response_data['subida_grado'] = {
+                    'mensaje': f'¡Has ascendido a {nuevo_grado} con {competencia.nombre_herramienta}!',
+                    'nuevo_grado': nuevo_grado,
+                    'competencia': CompetenciaHerramientaSerializer(competencia).data
+                }
+            
+            return Response(response_data)
+    
+    @action(detail=False, methods=['get'])
+    def mis_progresos(self, request):
+        """Lista los progresos de crafting del personaje"""
+        personaje_id = request.query_params.get('personaje_id')
+        
+        if not personaje_id:
+            return Response(
+                {'error': 'personaje_id es requerido'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            personaje = Personaje.objects.get(id=personaje_id, user=request.user)
+        except Personaje.DoesNotExist:
+            return Response(
+                {'error': 'Personaje no encontrado'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Separar por estado
+        en_progreso = ProgresoReceta.objects.filter(
+            personaje=personaje,
+            estado='en_progreso'
+        ).order_by('-fecha_inicio')
+        
+        completados = ProgresoReceta.objects.filter(
+            personaje=personaje,
+            estado='completado'
+        ).order_by('-fecha_completado')
+        
+        return Response({
+            'en_progreso': ProgresoRecetaSerializer(en_progreso, many=True).data,
+            'completados': ProgresoRecetaSerializer(completados, many=True).data
+        })
+    
+    @action(detail=False, methods=['get'])
+    def mis_competencias(self, request):
+        """Lista todas las competencias con herramientas del personaje"""
+        personaje_id = request.query_params.get('personaje_id')
+        
+        if not personaje_id:
+            return Response(
+                {'error': 'personaje_id es requerido'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            personaje = Personaje.objects.get(id=personaje_id, user=request.user)
+        except Personaje.DoesNotExist:
+            return Response(
+                {'error': 'Personaje no encontrado'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        competencias = CompetenciaHerramienta.objects.filter(
+            personaje=personaje
+        ).order_by('-grado', '-exitos_acumulados')
+        
+        serializer = CompetenciaHerramientaSerializer(competencias, many=True)
+        return Response(serializer.data)
+    
+# ola

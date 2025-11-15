@@ -21,8 +21,10 @@ router.register(r'trabajos', TrabajoViewSet)
 router.register(r'trabajos-realizados', TrabajoRealizadoViewSet)
 router.register(r'objetos', views.ObjetoViewSet, basename='objeto')
 router.register(r'tiendas', views.TiendaViewSet, basename='tienda')
-
 router.register(r'pagos-rango', views.PagoRangoViewSet, basename='pagorango')
+
+# ✨ NUEVO - Router de Crafting
+router.register(r'crafting', views.CraftingViewSet, basename='crafting')
 
 # Router anidado para el inventario de tiendas
 tiendas_router = routers.NestedSimpleRouter(router, r'tiendas', lookup='tienda')
@@ -42,8 +44,8 @@ urlpatterns = [
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     # Rutas para autenticación y registro
     path('register/', register_view, name='register'),
-    path('activate/<str:uidb64>/<str:token>/', activate_account_view, name='activate'),
-    path('', include(router.urls)),  # Solo una vez
+    # path('activate/<str:uidb64>/<str:token>/', activate_account_view, name='activate'),
+    path('', include(router.urls)),
     path('', include(tiendas_router.urls)),
     path('', include(personajes_router.urls)),
     path('personajes/<int:personaje_pk>/comprar/', views.comprar_objeto, name='comprar-objeto'),
