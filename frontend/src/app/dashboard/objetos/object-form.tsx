@@ -24,6 +24,7 @@ export default function ObjectForm({ onSave, onCancel, initialData }: ObjectForm
     Name: '', Source: 'DMG', Page: '', Rarity: 'Common', Type: '',
     Attunement: '', Damage: '', Properties: [], Mastery: [],
     Weight: '', Value: '', Text: '',
+    es_investigable: false,
   });
 
   useEffect(() => {
@@ -36,8 +37,13 @@ export default function ObjectForm({ onSave, onCancel, initialData }: ObjectForm
       const initialMastery = typeof initialData.Mastery === 'string'
         ? initialData.Mastery.split(', ').filter(p => p)
         : initialData.Mastery || [];
-      
-      setFormData({ ...initialData, Properties: initialProperties, Mastery: initialMastery });
+
+      setFormData({
+        ...initialData,
+        Properties: initialProperties,
+        Mastery: initialMastery,
+        es_investigable: initialData.es_investigable || false
+      });
     }
   }, [initialData]);
 
@@ -54,6 +60,11 @@ export default function ObjectForm({ onSave, onCancel, initialData }: ObjectForm
         : [...currentValues, value];
       return { ...prev, [group]: newValues };
     });
+  };
+
+  const handleBooleanChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setFormData(prev => ({ ...prev, [name]: checked }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -83,7 +94,7 @@ export default function ObjectForm({ onSave, onCancel, initialData }: ObjectForm
           <Input name="Page" type="number" value={String(formData.Page)} onChange={handleChange} />
         </div>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block mb-1 font-semibold">Rarity</label>
@@ -99,7 +110,17 @@ export default function ObjectForm({ onSave, onCancel, initialData }: ObjectForm
         <label className="block mb-1 font-semibold">Attunement</label>
         <Input name="Attunement" value={formData.Attunement} onChange={handleChange} placeholder="Ej: requires attunement by a wizard" />
       </div>
-      
+
+      <div>
+        <Checkbox
+          id="es_investigable"
+          name="es_investigable"
+          label="Apto para investigación"
+          checked={formData.es_investigable}
+          onChange={handleBooleanChange}
+        />
+      </div>
+
       <div>
         <label className="block mb-1 font-semibold">Damage</label>
         <Input name="Damage" value={formData.Damage} onChange={handleChange} placeholder="Ej: 1d8 + 2 slashing" />
@@ -118,7 +139,7 @@ export default function ObjectForm({ onSave, onCancel, initialData }: ObjectForm
           ))}
         </div>
       </div>
-      
+
       <div>
         <label className="block mb-2 font-semibold">Mastery</label>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
@@ -132,7 +153,7 @@ export default function ObjectForm({ onSave, onCancel, initialData }: ObjectForm
           ))}
         </div>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block mb-1 font-semibold">Weight (lbs)</label>
@@ -143,7 +164,7 @@ export default function ObjectForm({ onSave, onCancel, initialData }: ObjectForm
           <Input name="Value" value={String(formData.Value)} onChange={handleChange} />
         </div>
       </div>
-      
+
       <div>
         <label className="block mb-1 font-semibold">Text</label>
         <textarea name="Text" rows={6} value={formData.Text} onChange={handleChange}
@@ -153,11 +174,11 @@ export default function ObjectForm({ onSave, onCancel, initialData }: ObjectForm
 
       <div className="flex justify-end gap-4 pt-4">
         <div className="flex justify-end gap-4 pt-4">
-                <Button type="button" variant="secondary" onClick={onCancel}>Cancelar</Button>
-                <Button type="submit" variant="primary">
-                    {initialData ? 'Guardar Cambios' : 'Crear Objeto'}
-                </Button>
-            </div>
+          <Button type="button" variant="secondary" onClick={onCancel}>Cancelar</Button>
+          <Button type="submit" variant="primary">
+            {initialData ? 'Guardar Cambios' : 'Crear Objeto'}
+          </Button>
+        </div>
       </div>
     </form>
   );

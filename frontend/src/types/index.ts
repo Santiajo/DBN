@@ -2,6 +2,7 @@ export type Objeto = {
   id: number;
   Name: string;
   Source: string;
+  es_investigable: boolean; 
   Page: string | number; 
   Rarity: string;
   Type: string;
