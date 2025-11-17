@@ -2,6 +2,8 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 import math
+from django.utils.text import slugify
+from django.core.exceptions import ValidationError
 
 class Personaje(models.Model):
     DND_CLASSES = [
@@ -554,3 +556,153 @@ def puede_craftear_rareza(grado_competencia: str, rareza: str) -> bool:
     
     rarezas_permitidas = jerarquia_grados.get(grado_competencia, [])
     return rareza in rarezas_permitidas
+
+# Opciones para especies
+CREATURE_TYPES = [
+    ('Humanoid', 'Humanoide'),
+    ('Elemental', 'Elemental'),
+    ('Monstrosity', 'Monstruosidad'),
+    ('Fey', 'Feérico'),
+    ('Fiend', 'Infernal'),
+    ('Celestial', 'Celestial'),
+    ('Dragon', 'Dragón'),
+    ('Giant', 'Gigante'),
+    ('Aberration', 'Aberración'),
+    ('Beast', 'Bestia'),
+    ('Construct', 'Constructo'),
+    ('Ooze', 'Limo'),
+    ('Plant', 'Planta'),
+    ('Undead', 'No-muerto'),
+]
+
+SIZES = [
+    ('Tiny', 'Diminuto'),
+    ('Small', 'Pequeño'),
+    ('Medium', 'Mediano'),
+    ('Small or Medium', 'Pequeño o Mediano'), 
+    ('Medium or Large', 'Mediano o Grande'), 
+    ('Large', 'Grande'),
+    ('Huge', 'Enorme'),
+    ('Gargantuan', 'Gargantuesco'),
+]
+
+class Species(models.Model):
+    name = models.CharField(
+        max_length=150, 
+        unique=True, 
+        help_text="El nombre completo de la especie (ej. 'Aarakocra (New World Ancestry)')"
+    )
+    slug = models.SlugField(
+        max_length=150, 
+        unique=True, 
+        blank=True, 
+        help_text="Versión amigable para URLs del nombre (se genera automáticamente)"
+    )
+    description = models.TextField(
+        blank=True, 
+        help_text="Texto de ambientación (lore) o descripción general de la especie."
+    )
+    
+    creature_type = models.CharField(
+        max_length=50, 
+        choices=CREATURE_TYPES, 
+        default='Humanoid',
+        help_text="El tipo de criatura (ej. Humanoide, Elemental)."
+    )
+    size = models.CharField(
+        max_length=50, 
+        choices=SIZES, 
+        default='Medium',
+        help_text="El tamaño de la criatura (ej. Mediano, Pequeño o Mediano)."
+    )
+    walking_speed = models.PositiveIntegerField(
+        default=30, 
+        help_text="Velocidad base de movimiento en pies."
+    )
+    darkvision = models.PositiveIntegerField(
+        default=0, 
+        help_text="Rango de la visión en la oscuridad en pies (0 si no tiene)."
+    )
+    
+    class Meta:
+        verbose_name = "Species"
+        verbose_name_plural = "Species"
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+
+class Trait(models.Model):
+    species = models.ForeignKey(
+        Species, 
+        on_delete=models.CASCADE, 
+        related_name="traits",
+        help_text="La especie a la que pertenece este rasgo."
+    )
+    name = models.CharField(
+        max_length=200, 
+        help_text="El nombre del rasgo (ej. 'Wind Caller', 'Chikcha Legacy', 'Natural Armor')."
+    )
+    description = models.TextField(
+        help_text="La descripción completa y las reglas del rasgo."
+    )
+    
+    parent_choice = models.ForeignKey(
+        'self', 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True, 
+        related_name="options",
+        help_text="Si este rasgo es una *opción* seleccionable (ej. 'Natural Armor'), "
+                  "conéctalo aquí al rasgo 'padre' (ej. 'Chikcha Legacy')."
+    )
+    
+    min_choices = models.PositiveIntegerField(
+        default=0, 
+        help_text="Para un rasgo 'padre', el número MÍNIMO de opciones a elegir (ej. 2 para Chikcha Legacy)."
+    )
+    max_choices = models.PositiveIntegerField(
+        default=0, 
+        help_text="Para un rasgo 'padre', el número MÁXIMO de opciones a elegir (ej. 2 para Chikcha Legacy)."
+    )
+
+    display_order = models.PositiveIntegerField(
+        default=10, 
+        help_text="Orden para mostrar los rasgos. Menor número primero."
+    )
+
+    def clean(self):
+        super().clean()
+    
+        if self.parent_choice:
+            if self.parent_choice.species_id != self.species_id:
+                raise ValidationError(
+                    f"El rasgo padre '{self.parent_choice}' (especie: {self.parent_choice.species.name}) "
+                    f"no pertenece a la misma especie que este rasgo (especie: {self.species.name})."
+                )
+
+        if self.parent_choice and (self.min_choices > 0 or self.max_choices > 0):
+             raise ValidationError(
+                 "Un rasgo no puede ser una 'opción' (tener un 'parent_choice') "
+                 "y al mismo tiempo ser un 'grupo de opciones' (tener 'min_choices' o 'max_choices')."
+             )
+        
+        if self.max_choices > 0 and self.min_choices > self.max_choices:
+            raise ValidationError("El número 'min_choices' no puede ser mayor que 'max_choices'.")
+
+    class Meta:
+        verbose_name = "Trait"
+        verbose_name_plural = "Traits"
+        ordering = ['species', 'display_order', 'name']
+        constraints = []
+
+    def __str__(self):
+        if self.parent_choice:
+            return f"{self.species.name} -> {self.parent_choice.name} (Opción: {self.name})"
+        return f"{self.species.name} -> {self.name}"

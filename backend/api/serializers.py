@@ -520,3 +520,37 @@ class IniciarCraftingSerializer(serializers.Serializer):
 
 class TiradaCraftingSerializer(serializers.Serializer):
     progreso_id = serializers.IntegerField()
+    
+# Serializer para especies
+class TraitOptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Trait
+        exclude = ('species', 'parent_choice')
+
+
+class TraitSerializer(serializers.ModelSerializer):
+    options = TraitOptionSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Trait
+        fields = '__all__'
+
+
+class SpeciesSerializer(serializers.ModelSerializer):
+    traits = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = Species
+        fields = '__all__' 
+        read_only_fields = ('slug',) 
+
+    def get_traits(self, obj):
+        try:
+            all_traits = obj.traits.all() 
+            top_level_traits = [t for t in all_traits if t.parent_choice_id is None]
+            
+            top_level_traits.sort(key=lambda t: t.display_order)
+            
+            return TraitSerializer(top_level_traits, many=True, context=self.context).data
+        except AttributeError:
+            return []
