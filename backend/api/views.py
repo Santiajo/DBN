@@ -14,6 +14,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import MyTokenObtainPairSerializer
 from django.db import transaction
 from django.db.models import F
+import rest_framework.filters as filters
 
 @api_view(['POST']) # Solo permite solicitudes POST
 @permission_classes([AllowAny]) # Permite que cualquiera pueda acceder a esta vista
@@ -750,4 +751,36 @@ class CraftingViewSet(viewsets.ViewSet):
         serializer = CompetenciaHerramientaSerializer(competencias, many=True)
         return Response(serializer.data)
     
-# ola
+# Views para especies
+class SpeciesViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para el CRUD completo de Especies.
+    """
+    # prefetch_related es CLAVE para optimizar el serializer anidado
+    queryset = Species.objects.all().prefetch_related(
+        'traits',           # Precarga todos los rasgos
+        'traits__options'   # Precarga las opciones de esos rasgos
+    )
+    
+    serializer_class = SpeciesSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser] # Como pediste
+    
+    # Añadimos los filtros de búsqueda
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ['name'] # Como pediste
+    
+    # Usamos 'slug' (ej. 'aarakocra') en la URL en lugar de 'id' (ej. 1)
+    lookup_field = 'slug'
+
+class TraitViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para el CRUD completo de Rasgos.
+    Permite crear, editar y eliminar rasgos individuales.
+    """
+    queryset = Trait.objects.all().select_related('species', 'parent_choice')
+    serializer_class = TraitSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    
+    filter_backends = (filters.SearchFilter,)
+    # Permite buscar por nombre de rasgo o por nombre de la especie
+    search_fields = ['name', 'species__name']
