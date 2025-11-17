@@ -167,17 +167,18 @@ class TrabajoRealizadoViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """
         Sobrescribe la creación para:
-        1. Validar que el personaje pertenece al usuario.
-        2. Validar que el personaje tiene suficiente tiempo libre.
-        3. Ejecutar todo en una transacción atómica.
-        4. Actualizar el oro y tiempo libre del personaje.
+        1. Validar propiedad y tiempo libre.
+        2. Ejecutar todo en una transacción atómica.
+        3. Actualizar oro y tiempo libre.
+        4. (NUEVO) Actualizar el progreso del rango del trabajo.
         """
 
         personaje_obj = serializer.validated_data.get('personaje')
+        trabajo_obj = serializer.validated_data.get('trabajo') # 
         dias_gastados = serializer.validated_data.get('dias_trabajados', 1)
+        rango_trabajado = serializer.validated_data.get('rango') #
 
         try:
-
             personaje = Personaje.objects.get(id=personaje_obj.id, user=self.request.user)
         except Personaje.DoesNotExist:
             raise serializers.ValidationError("Este personaje no te pertenece.")
@@ -189,15 +190,41 @@ class TrabajoRealizadoViewSet(viewsets.ModelViewSet):
 
         try:
             with transaction.atomic():
-                trabajo_realizado = serializer.save(personaje=personaje) 
 
+                trabajo_realizado = serializer.save(personaje=personaje) 
                 pago_ganado = trabajo_realizado.pago_total
-                
+
                 personaje.oro = F('oro') + pago_ganado
                 personaje.tiempo_libre = F('tiempo_libre') - dias_gastados
-                personaje.save(update_fields=['oro', 'tiempo_libre'])
+                personaje.save(update_fields=['oro', 'tiempo_libre']) 
 
-                personaje.refresh_from_db() 
+                progreso, created = ProgresoTrabajo.objects.get_or_create(
+                    personaje=personaje,
+                    trabajo=trabajo_obj
+                )
+
+                if rango_trabajado == progreso.rango_actual and progreso.rango_actual < 5:
+
+                    progreso.dias_acumulados_rango = F('dias_acumulados_rango') + dias_gastados
+                    progreso.save()
+                    progreso.refresh_from_db()
+
+                    try:
+                        rango_info = PagoRango.objects.get(
+                            trabajo=trabajo_obj, 
+                            rango=progreso.rango_actual
+                        )
+                        dias_necesarios = rango_info.dias_para_siguiente_rango
+
+                        if progreso.dias_acumulados_rango >= dias_necesarios:
+                            progreso.rango_actual = F('rango_actual') + 1
+                            progreso.dias_acumulados_rango = 0 
+                            progreso.save()
+                    
+                    except PagoRango.DoesNotExist:
+                        raise serializers.ValidationError(
+                            f"Error de configuración: No se encontró 'PagoRango' para {trabajo_obj.nombre} Rango {progreso.rango_actual}"
+                        )
 
         except Exception as e:
             raise serializers.ValidationError(f"Error en la transacción: {str(e)}")
