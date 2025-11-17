@@ -80,7 +80,11 @@ export default function SpeciesForm({ onSave, onCancel, initialData }: SpeciesFo
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({ ...formData, id: initialData?.id });
+    onSave({ 
+      ...formData, 
+      id: initialData?.id,
+      slug: initialData?.slug
+    });
   };
 
   return (
