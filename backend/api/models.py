@@ -59,7 +59,8 @@ class Objeto(models.Model):
     Mastery = models.CharField(max_length=200, blank=True, null=True)  
     Weight = models.CharField(max_length=150, blank=True, null=True)  
     Value = models.CharField(max_length=150, blank=True, null=True)  
-    Text = models.TextField(blank=True, null=True)  
+    Text = models.TextField(blank=True, null=True)
+    es_investigable = models.BooleanField(default=False)  
 
     def __str__(self):
         return self.Name
