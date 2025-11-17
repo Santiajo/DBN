@@ -114,7 +114,7 @@ export default function SpeciesPage() {
             }
             setIsModalOpen(false);
             setEditingSpecies(null);
-            fetchSpecies(currentPage, ''); // Recarga la lista
+            fetchSpecies(currentPage, searchTerm); 
         } catch (error) {
             console.error(error);
         }
