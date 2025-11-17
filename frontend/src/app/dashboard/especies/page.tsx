@@ -90,12 +90,12 @@ export default function SpeciesPage() {
     const handleSaveSpecies = async (speciesData: Partial<DnDSpecies>) => {
         if (!accessToken) return;
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        
+
         const isEditing = !!speciesData.id;
-        const url = isEditing 
-            ? `${apiUrl}${API_ENDPOINT}${speciesData.slug}/` 
+        const url = isEditing
+            ? `${apiUrl}${API_ENDPOINT}${speciesData.slug}/`
             : `${apiUrl}${API_ENDPOINT}`;
-        
+
         const method = isEditing ? 'PUT' : 'POST';
 
         try {
@@ -114,7 +114,7 @@ export default function SpeciesPage() {
             }
             setIsModalOpen(false);
             setEditingSpecies(null);
-            fetchSpecies(currentPage, searchTerm); 
+            fetchSpecies(currentPage, searchTerm);
         } catch (error) {
             console.error(error);
         }
@@ -207,18 +207,18 @@ export default function SpeciesPage() {
 
             {/* Cuerpo: Tabla y Panel de Detalles */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                
+
                 {/* Columna Izquierda: Tabla y Paginación */}
                 <div className="lg:col-span-2">
-                    <Table 
-                        data={species} 
-                        headers={tableHeaders} 
-                        onRowClick={(sp) => setSelectedSpecies(sp as DnDSpecies)} 
+                    <Table
+                        data={species}
+                        headers={tableHeaders}
+                        onRowClick={(sp) => setSelectedSpecies(sp as DnDSpecies)}
                     />
-                    <Pagination 
-                        currentPage={currentPage} 
-                        totalPages={totalPages} 
-                        onPageChange={handlePageChange} 
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={handlePageChange}
                     />
                 </div>
 
@@ -239,7 +239,11 @@ export default function SpeciesPage() {
                                 <Button variant="dangerous" onClick={handleDelete}><FaTrash /></Button>
                                 <Button variant="secondary" onClick={() => handleOpenEditModal(selectedSpecies)}><FaPencilAlt /></Button>
                                 {/* Este botón ahora navega a la página de detalles de la especie */}
-                                <Button variant="secondary" onClick={() => router.push(`/species/${selectedSpecies.slug}`)}>
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => router.push(`/dashboard/especies/${selectedSpecies.slug}`)}
+                                    title="Gestionar Rasgos (Traits)"
+                                >
                                     <FaEye />
                                 </Button>
                             </div>
