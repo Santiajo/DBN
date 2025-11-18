@@ -22,7 +22,7 @@ export default function ClassesPage() {
 
     const [classes, setClasses] = useState<DnDClass[]>([]);
     const [selectedClass, setSelectedClass] = useState<DnDClass | null>(null);
-    
+
     // REF: Usamos esto para saber cuál está seleccionado DENTRO de fetchClasses
     // sin causar que fetchClasses se recree y genere un bucle infinito.
     const selectedClassRef = useRef<DnDClass | null>(null);
@@ -47,12 +47,12 @@ export default function ClassesPage() {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${API_ENDPOINT}?${params}`, {
                 headers: { 'Authorization': `Bearer ${accessToken}` }
             });
-            
+
             if (!res.ok) {
                 if (res.status === 401) logout();
                 throw new Error('Error fetching classes');
             }
-            
+
             const data = await res.json();
             setClasses(data.results);
             setTotalPages(Math.ceil(data.count / PAGE_SIZE));
@@ -60,7 +60,7 @@ export default function ClassesPage() {
 
             // LÓGICA DE SELECCIÓN CORREGIDA (Usando Ref para evitar el bucle)
             const currentSelected = selectedClassRef.current;
-            
+
             if (currentSelected) {
                 // Intentamos mantener la selección actual si existe en los nuevos datos
                 const stillExists = data.results.find((c: DnDClass) => c.id === currentSelected.id);
@@ -89,7 +89,7 @@ export default function ClassesPage() {
     const handleSaveClass = async (classData: DnDClassPayload) => {
         if (!accessToken) return;
         const isEditing = !!classData.id;
-        const url = isEditing 
+        const url = isEditing
             ? `${process.env.NEXT_PUBLIC_API_URL}${API_ENDPOINT}${classData.slug}/`
             : `${process.env.NEXT_PUBLIC_API_URL}${API_ENDPOINT}`;
         const method = isEditing ? 'PUT' : 'POST';
@@ -109,16 +109,16 @@ export default function ClassesPage() {
                 console.error("Error saving:", errorData); // Log para ver por qué falla la creación
                 throw new Error('Error saving class');
             }
-            
+
             const savedClass = await res.json();
             setIsModalOpen(false);
             setEditingClass(null);
-            
+
             // Forzamos la selección de la nueva clase manualmente en el Ref y el Estado
             // antes de recargar, para que la lógica de fetch la respete.
             setSelectedClass(savedClass);
             selectedClassRef.current = savedClass;
-            
+
             fetchClasses(currentPage, searchTerm);
 
         } catch (error) {
@@ -134,7 +134,7 @@ export default function ClassesPage() {
                 headers: { 'Authorization': `Bearer ${accessToken}` }
             });
             // Limpiamos selección antes de recargar para evitar errores 404
-            setSelectedClass(null); 
+            setSelectedClass(null);
             selectedClassRef.current = null;
             fetchClasses(currentPage, searchTerm);
         } catch (error) {
@@ -161,7 +161,7 @@ export default function ClassesPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 <div className="lg:col-span-2">
-                    
+
                     {/* TABLA INCRUSTADA (Para evitar errores de tipos 'RowData') */}
                     <div className="overflow-x-auto rounded-xl border border-madera-oscura">
                         <table className="min-w-full text-left text-sm font-body">
@@ -182,8 +182,8 @@ export default function ClassesPage() {
                                             onClick={() => setSelectedClass(dndClass)}
                                             className={`
                                                 transition border-b border-stone-200 last:border-0 cursor-pointer
-                                                ${isSelected 
-                                                    ? 'bg-bosque text-white' 
+                                                ${isSelected
+                                                    ? 'bg-bosque text-white'
                                                     : 'odd:bg-white even:bg-pergamino hover:bg-bosque/10 text-stone-800'
                                                 }
                                             `}
@@ -209,7 +209,7 @@ export default function ClassesPage() {
                             </tbody>
                         </table>
                     </div>
-                    
+
                     <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={(p) => fetchClasses(p, searchTerm)} />
                 </div>
 
@@ -220,12 +220,12 @@ export default function ClassesPage() {
                                 <h3 className="font-title text-2xl text-stone-900">{selectedClass.name}</h3>
                                 <div className="flex gap-2 mt-2 text-sm text-stone-700">
                                     <span className="bg-white/50 px-2 py-0.5 rounded border border-madera-oscura/20">d{selectedClass.hit_die}</span>
-                                    <span className="bg-white/50 px-2 py-0.5 rounded border border-madera-oscura/20 uppercase">{selectedClass.primary_ability.substring(0,3)}</span>
+                                    <span className="bg-white/50 px-2 py-0.5 rounded border border-madera-oscura/20 uppercase">{selectedClass.primary_ability.substring(0, 3)}</span>
                                 </div>
                             </div>
                             <div className="font-body text-sm flex-grow mt-4 border-t pt-4 border-madera-oscura/30">
                                 <p className="whitespace-pre-wrap text-stone-800 mb-4">{selectedClass.description}</p>
-                                
+
                                 <div className="space-y-2 bg-white/40 p-3 rounded border border-madera-oscura/10 text-sm">
                                     <p><strong className="text-madera-oscura">Salvaciones:</strong> <span className="capitalize">{selectedClass.saving_throws.join(', ')}</span></p>
                                     <p><strong className="text-madera-oscura">Skills:</strong> Elige {selectedClass.skill_choices_count}</p>
@@ -235,11 +235,11 @@ export default function ClassesPage() {
                             <div className="flex justify-end gap-2 mt-auto pt-6">
                                 <Button variant="dangerous" onClick={() => setIsAlertOpen(true)}><FaTrash /></Button>
                                 <Button variant="secondary" onClick={() => { setEditingClass(selectedClass); setIsModalOpen(true); }}><FaPencilAlt /></Button>
-                                
+
                                 {/* Botón de Navegación al Detalle */}
-                                <Button 
-                                    variant="secondary" 
-                                    onClick={() => router.push(`/admin/classes/${selectedClass.slug}`)} 
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => router.push(`/dashboard/especies/${selectedClass.slug}`)}
                                     title="Ver Tabla de Progresión"
                                 >
                                     <div className="flex items-center gap-2">
