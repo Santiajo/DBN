@@ -32,7 +32,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             password=validated_data['password'],
             first_name=validated_data.get('first_name', ''),
             last_name=validated_data.get('last_name', ''),
-            is_active=False,  # El usuario se crea como inactivo hasta que verifique su email
+            is_active=True,  # El usuario se crea como activo inmediatamente
             is_staff=validated_data.get("is_staff", False) # Para determinar si es admin (True) o user normal (False)
         )
         return user
@@ -520,3 +520,57 @@ class IniciarCraftingSerializer(serializers.Serializer):
 
 class TiradaCraftingSerializer(serializers.Serializer):
     progreso_id = serializers.IntegerField()
+    
+# Serializers para especies
+class TraitOptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Trait
+        exclude = ('species', 'parent_choice')
+
+
+class TraitSerializer(serializers.ModelSerializer):
+    options = TraitOptionSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Trait
+        fields = '__all__'
+
+
+class SpeciesSerializer(serializers.ModelSerializer):
+    traits = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = Species
+        fields = '__all__' 
+        read_only_fields = ('slug',) 
+
+    def get_traits(self, obj):
+        try:
+            all_traits = obj.traits.all() 
+            top_level_traits = [t for t in all_traits if t.parent_choice_id is None]
+            
+            top_level_traits.sort(key=lambda t: t.display_order)
+            
+            return TraitSerializer(top_level_traits, many=True, context=self.context).data
+        except AttributeError:
+            return []
+
+# Serializers para clases
+class ClassFeatureSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ClassFeature
+        fields = '__all__'
+
+class ClassResourceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ClassResource
+        fields = '__all__'
+
+class DnDClassSerializer(serializers.ModelSerializer):
+    features = ClassFeatureSerializer(many=True, read_only=True)
+    resources = ClassResourceSerializer(many=True, read_only=True)
+    skill_choices = HabilidadSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = DnDClass
+        fields = '__all__'

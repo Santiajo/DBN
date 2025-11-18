@@ -14,7 +14,7 @@ router = DefaultRouter()
 router.register(r'personajes', PersonajeViewSet, basename='personaje')
 router.register(r'recetas', RecetaViewSet)
 router.register(r'ingredientes', IngredienteViewSet)
-router.register(r'proficiencias', ProficienciaViewSet)
+router.register(r'proficiencias', ProficienciaViewSet, basename='proficiencia')
 router.register(r'habilidades', HabilidadViewSet)
 router.register(r'bonusproficiencias', BonusProficienciaViewSet)
 router.register(r'trabajos', TrabajoViewSet)
@@ -23,7 +23,16 @@ router.register(r'objetos', views.ObjetoViewSet, basename='objeto')
 router.register(r'tiendas', views.TiendaViewSet, basename='tienda')
 router.register(r'pagos-rango', views.PagoRangoViewSet, basename='pagorango')
 
-#  NUEVO - Router de Crafting
+# Routers para especies y rasgos de especies
+router.register(r'species', views.SpeciesViewSet, basename='species')
+router.register(r'traits', views.TraitViewSet, basename='trait')
+
+# Routers para clases y características de clases
+router.register(r'classes', views.DnDClassViewSet, basename='dndclass')
+router.register(r'class-features', views.ClassFeatureViewSet, basename='classfeature')
+router.register(r'class-resources', views.ClassResourceViewSet, basename='classresource')
+
+# Router de Crafting
 router.register(r'crafting', views.CraftingViewSet, basename='crafting')
 
 # Router anidado para el inventario de tiendas
@@ -44,7 +53,7 @@ urlpatterns = [
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     # Rutas para autenticación y registro
     path('register/', register_view, name='register'),
-    path('activate/<str:uidb64>/<str:token>/', activate_account_view, name='activate'),
+    # path('activate/<str:uidb64>/<str:token>/', activate_account_view, name='activate'),
     path('', include(router.urls)),
     path('', include(tiendas_router.urls)),
     path('', include(personajes_router.urls)),

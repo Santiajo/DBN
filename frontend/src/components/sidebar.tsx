@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 // íconos de react-icons
 import {
-  FaHome, FaUserShield, FaRing, FaBed, FaCoins, FaAngleLeft, FaAngleRight, FaBriefcase
+  FaHome, FaUserShield, FaRing, FaBed, FaCoins, FaAngleLeft, FaAngleRight, FaBriefcase, FaBrain
 } from 'react-icons/fa';
 
 type SidebarProps = {
@@ -17,11 +17,14 @@ type SidebarProps = {
 const navLinks = [
   { href: '/dashboard', icon: <FaHome />, label: 'Inicio' },
   { href: '/dashboard/personajes', icon: <FaUserShield />, label: 'Personajes' },
+  { href: '/dashboard/habilidades', icon: <FaBrain />, label: 'Habilidades' },
   { href: '/dashboard/objetos', icon: <FaRing />, label: 'Objetos' },
   { href: '/dashboard/tiempo-libre', icon: <FaBed />, label: 'Tiempo libre' },
   { href: '/dashboard/trabajos', icon: <FaBriefcase />, label: 'Trabajos' },
   { href: '/dashboard/tiendas', icon: <FaCoins />, label: 'Gestión tiendas' },
   { href: '/dashboard/compras', icon: <FaCoins />, label: 'Tiendas' },
+  { href: '/dashboard/especies', icon: <FaCoins />, label: 'Especies' },
+  { href: '/dashboard/clases', icon: <FaCoins />, label: 'Clases' },
 ];
 
 export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
@@ -56,3 +59,5 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
     </aside>
   );
 }
+
+// alo

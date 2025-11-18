@@ -14,6 +14,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import MyTokenObtainPairSerializer
 from django.db import transaction
 from django.db.models import F
+import rest_framework.filters as filters
 
 @api_view(['POST']) # Solo permite solicitudes POST
 @permission_classes([AllowAny]) # Permite que cualquiera pueda acceder a esta vista
@@ -28,24 +29,25 @@ def register_view(request):
     # Si los datos no son válidos, devuelve los errores de validación
     return Response(serializer.errors, status=400)
 
-@api_view(['POST']) # Solo permite solicitudes POST
-@permission_classes([AllowAny]) # Permite que cualquiera pueda acceder a esta vista
-# Vista para activar la cuenta de un usuario mediante un enlace con token
-def activate_account_view(request, uidb64, token):
-    try:
-        # Decodifica el uid y obtiene el usuario correspondiente
-        uid = force_str(urlsafe_base64_decode(uidb64))
-        user = User.objects.get(pk=uid)
-    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-        user = None
+# DESACTIVADO: Activación por email deshabilitada temporalmente
+# @api_view(['POST']) # Solo permite solicitudes POST
+# @permission_classes([AllowAny]) # Permite que cualquiera pueda acceder a esta vista
+# # Vista para activar la cuenta de un usuario mediante un enlace con token
+# def activate_account_view(request, uidb64, token):
+#     try:
+#         # Decodifica el uid y obtiene el usuario correspondiente
+#         uid = force_str(urlsafe_base64_decode(uidb64))
+#         user = User.objects.get(pk=uid)
+#     except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+#         user = None
         
-    # Verifica el token y activa la cuenta si es válido
-    if user is not None and default_token_generator.check_token(user, token):
-        user.is_active = True # Activa el usuario
-        user.save() # Guarda los cambios
-        return Response({"message": "Cuenta activada exitosamente."}, status=200)
-    else:
-        return Response({"error": "El enlace de activación es inválido."}, status=400)
+#     # Verifica el token y activa la cuenta si es válido
+#     if user is not None and default_token_generator.check_token(user, token):
+#         user.is_active = True # Activa el usuario
+#         user.save() # Guarda los cambios
+#         return Response({"message": "Cuenta activada exitosamente."}, status=200)
+#     else:
+#         return Response({"error": "El enlace de activación es inválido."}, status=400)
 
 @api_view(["DELETE"])
 @permission_classes([IsAuthenticated, IsAdminUser])  # Solo admin puede eliminar
@@ -112,9 +114,14 @@ class InventarioPersonajeViewSet(viewsets.ModelViewSet):
 
 
 class ProficienciaViewSet(viewsets.ModelViewSet):
-    queryset = Proficiencia.objects.all()
     serializer_class = ProficienciaSerializer
     permission_classes = [IsAuthenticated]
+    def get_queryset(self):
+        """
+        Esta vista solo debe mostrar las proficiencias
+        de los personajes del usuario autenticado.
+        """
+        return Proficiencia.objects.filter(personaje__user=self.request.user)
 
 
 class HabilidadViewSet(viewsets.ModelViewSet):
@@ -166,31 +173,27 @@ class TrabajoRealizadoViewSet(viewsets.ModelViewSet):
         Esta vista solo debe mostrar los trabajos realizados
         por los personajes del usuario autenticado.
         """
-        # Filtra los trabajos por los personajes que pertenecen al usuario logueado
         return TrabajoRealizado.objects.filter(personaje__user=self.request.user)
 
     def perform_create(self, serializer):
         """
         Sobrescribe la creación para:
-        1. Validar que el personaje pertenece al usuario.
-        2. Validar que el personaje tiene suficiente tiempo libre.
-        3. Ejecutar todo en una transacción atómica.
-        4. Actualizar el oro y tiempo libre del personaje.
+        1. Validar propiedad y tiempo libre.
+        2. Ejecutar todo en una transacción atómica.
+        3. Actualizar oro y tiempo libre.
+        4. (NUEVO) Actualizar el progreso del rango del trabajo.
         """
-        
-        # 1. Obtener datos validados (serializer.is_valid() ya fue llamado)
+
         personaje_obj = serializer.validated_data.get('personaje')
+        trabajo_obj = serializer.validated_data.get('trabajo') # 
         dias_gastados = serializer.validated_data.get('dias_trabajados', 1)
-        
-        # 2. Validar PROPIEDAD del personaje
+        rango_trabajado = serializer.validated_data.get('rango') #
+
         try:
-            # Comprueba que el ID del personaje enviado
-            # realmente pertenece al usuario que hace la petición.
             personaje = Personaje.objects.get(id=personaje_obj.id, user=self.request.user)
         except Personaje.DoesNotExist:
             raise serializers.ValidationError("Este personaje no te pertenece.")
 
-        # Validar tiempo libre
         if personaje.tiempo_libre < dias_gastados:
             raise serializers.ValidationError(
                 f"No tienes suficientes días de tiempo libre. Tienes {personaje.tiempo_libre}, necesitas {dias_gastados}."
@@ -198,19 +201,43 @@ class TrabajoRealizadoViewSet(viewsets.ModelViewSet):
 
         try:
             with transaction.atomic():
-                trabajo_realizado = serializer.save(personaje=personaje) 
 
+                trabajo_realizado = serializer.save(personaje=personaje) 
                 pago_ganado = trabajo_realizado.pago_total
-                
+
                 personaje.oro = F('oro') + pago_ganado
                 personaje.tiempo_libre = F('tiempo_libre') - dias_gastados
-                personaje.save(update_fields=['oro', 'tiempo_libre'])
-                
-                # Opcional: recarga los datos del personaje en la instancia
-                personaje.refresh_from_db() 
+                personaje.save(update_fields=['oro', 'tiempo_libre']) 
+
+                progreso, created = ProgresoTrabajo.objects.get_or_create(
+                    personaje=personaje,
+                    trabajo=trabajo_obj
+                )
+
+                if rango_trabajado == progreso.rango_actual and progreso.rango_actual < 5:
+
+                    progreso.dias_acumulados_rango = F('dias_acumulados_rango') + dias_gastados
+                    progreso.save()
+                    progreso.refresh_from_db()
+
+                    try:
+                        rango_info = PagoRango.objects.get(
+                            trabajo=trabajo_obj, 
+                            rango=progreso.rango_actual
+                        )
+                        dias_necesarios = rango_info.dias_para_siguiente_rango
+
+                        if progreso.dias_acumulados_rango >= dias_necesarios:
+                            progreso.rango_actual = F('rango_actual') + 1
+                            progreso.dias_acumulados_rango = 0 
+                            progreso.save()
+                    
+                    except PagoRango.DoesNotExist:
+                        raise serializers.ValidationError(
+                            f"Error de configuración: No se encontró 'PagoRango' para {trabajo_obj.nombre} Rango {progreso.rango_actual}"
+                        )
 
         except Exception as e:
-            # Si algo falla (ej. error de BDD), se revierte todo
             raise serializers.ValidationError(f"Error en la transacción: {str(e)}")
 
 # ViewSet para el CRUD de Tienda
@@ -734,3 +761,46 @@ class CraftingViewSet(viewsets.ViewSet):
         
         serializer = CompetenciaHerramientaSerializer(competencias, many=True)
         return Response(serializer.data)
+    
+# Views para especies
+class SpeciesViewSet(viewsets.ModelViewSet):
+    queryset = Species.objects.all().prefetch_related(
+        'traits',          
+        'traits__options'  
+    )
+    
+    serializer_class = SpeciesSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    
+    # Filtros de búsqueda
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ['name'] 
+    
+    lookup_field = 'slug'
+
+class TraitViewSet(viewsets.ModelViewSet):
+    queryset = Trait.objects.all().select_related('species', 'parent_choice')
+    serializer_class = TraitSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ['name', 'species__name']
+
+# Views para clases
+class DnDClassViewSet(viewsets.ModelViewSet):
+    queryset = DnDClass.objects.all().prefetch_related('features', 'resources', 'skill_choices')
+    serializer_class = DnDClassSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    lookup_field = 'slug'
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name']
+
+class ClassFeatureViewSet(viewsets.ModelViewSet):
+    queryset = ClassFeature.objects.all()
+    serializer_class = ClassFeatureSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+class ClassResourceViewSet(viewsets.ModelViewSet):
+    queryset = ClassResource.objects.all()
+    serializer_class = ClassResourceSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
