@@ -22,6 +22,7 @@ router.register(r'trabajos-realizados', TrabajoRealizadoViewSet)
 router.register(r'objetos', views.ObjetoViewSet, basename='objeto')
 router.register(r'tiendas', views.TiendaViewSet, basename='tienda')
 router.register(r'pagos-rango', views.PagoRangoViewSet, basename='pagorango')
+router.register(r'progreso-trabajos', ProgresoTrabajoViewSet, basename='progresotrabajo')
 
 # ✨ NUEVO - Router de Crafting
 router.register(r'crafting', views.CraftingViewSet, basename='crafting')

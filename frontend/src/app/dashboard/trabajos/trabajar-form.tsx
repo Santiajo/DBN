@@ -1,8 +1,8 @@
 // Crea este archivo en: trabajos/trabajar-form.tsx
 'use client';
 
-import { useState, useMemo } from 'react';
-import { Trabajo, Personaje, Proficiencia, BonusProficiencia } from '@/types';
+import { useState, useMemo, useEffect } from 'react';
+import { Trabajo, Personaje, Proficiencia, BonusProficiencia, ProgresoTrabajo } from '@/types';
 import Input from '@/components/input';
 import Button from '@/components/button';
 import Dropdown, { OptionType } from '@/components/dropdown';
@@ -41,6 +41,7 @@ interface TrabajarFormProps {
     personajes: Personaje[];
     proficiencias: Proficiencia[];
     bonusTabla: BonusProficiencia[];
+    progresoTrabajos: ProgresoTrabajo[];
     accessToken: string;
     onClose: () => void;
     onWorkSuccess: (oroGanado: number) => void;
@@ -53,6 +54,7 @@ export default function TrabajarForm({
     bonusTabla,
     accessToken,
     onClose,
+    progresoTrabajos,
     onWorkSuccess
 }: TrabajarFormProps) {
 
@@ -60,7 +62,20 @@ export default function TrabajarForm({
     const [selectedPersonajeId, setSelectedPersonajeId] = useState<string>(
         personajes.length > 0 ? String(personajes[0].id) : ''
     );
-    const [rango, setRango] = useState<number>(1);
+    
+    const currentRank = useMemo(() => {
+        const progreso = progresoTrabajos.find(
+            p => p.personaje === Number(selectedPersonajeId) && p.trabajo === trabajo.id
+        );
+        return progreso ? progreso.rango_actual : 1; 
+    }, [progresoTrabajos, selectedPersonajeId, trabajo.id]);
+
+    const [rango, setRango] = useState<number>(currentRank);
+    
+    useEffect(() => {
+        setRango(currentRank);
+    }, [currentRank]);
+
     const [diasTrabajados, setDiasTrabajados] = useState<number>(1);
     const [bonoEconomia, setBonoEconomia] = useState<number>(0);
     const [tiradaD20, setTiradaD20] = useState<number>(10);
@@ -122,11 +137,13 @@ export default function TrabajarForm({
 
     // Opciones para el dropdown de rango
     const rangoOptions: OptionType[] = (trabajo.pagos ?? [])
-        .sort((a, b) => a.rango - b.rango)
-        .map(p => ({
-            value: String(p.rango),
-            label: `Rango ${p.rango}`
+        .filter(pago => pago.rango === currentRank) 
+        .map(pago => ({
+            value: String(pago.rango),
+            label: `Rango ${pago.rango}`
         }));
+
+    const maxRank = (trabajo.pagos?.length ?? 0) === 0;
 
     // --- ENVÍO DEL FORMULARIO ---
     const handleSubmit = async (e: React.FormEvent) => {
@@ -217,7 +234,14 @@ export default function TrabajarForm({
                         options={rangoOptions}
                         value={String(rango)}
                         onChange={(e) => setRango(Number(e.target.value))}
+                        disabled={true} 
                     />
+                    {/* Muestra un mensaje si se alcanzó el rango 5 */}
+                    {rangoOptions.length === 0 && !maxRank && (
+                        <p className="text-xs text-stone-500 mt-1">
+                            ¡Rango máximo alcanzado en este trabajo!
+                        </p>
+                    )}
                 </div>
                 <div>
                     <label className="block mb-1 font-semibold">Días a trabajar</label>

@@ -228,6 +228,17 @@ class TrabajoRealizadoViewSet(viewsets.ModelViewSet):
         except Exception as e:
             raise serializers.ValidationError(f"Error en la transacción: {str(e)}")
 
+class ProgresoTrabajoViewSet(viewsets.ModelViewSet):
+    """
+    Permite a los usuarios ver su propio progreso en los trabajos.
+    """
+    serializer_class = ProgresoTrabajoSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Filtra para devolver solo el progreso del usuario logueado
+        return ProgresoTrabajo.objects.filter(personaje__user=self.request.user)
+
 # ViewSet para el CRUD de Tienda
 class TiendaViewSet(viewsets.ModelViewSet):
     queryset = Tienda.objects.all()

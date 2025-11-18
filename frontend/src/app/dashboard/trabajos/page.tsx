@@ -13,7 +13,7 @@ import TrabajoForm from './trabajo-form';
 import TrabajarForm from './trabajar-form';
 import ConfirmAlert from '@/components/confirm-alert';
 import { FaSearch, FaTrash, FaPencilAlt, FaEye, FaHammer } from 'react-icons/fa';
-import { Trabajo, Habilidad, PagoRango, Personaje, Proficiencia, BonusProficiencia } from '@/types';
+import { Trabajo, Habilidad, PagoRango, Personaje, Proficiencia, BonusProficiencia, ProgresoTrabajo } from '@/types';
 
 
 
@@ -53,6 +53,20 @@ export default function TrabajosPage() {
     const [isTrabajarModalOpen, setIsTrabajarModalOpen] = useState(false);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const [progresoTrabajos, setProgresoTrabajos] = useState<ProgresoTrabajo[]>([]);
+  
+const fetchProgresoTrabajos = useCallback(async () => {
+        if (!accessToken) return;
+        const url = buildApiUrl('progreso-trabajos/');
+        try {
+            const res = await fetch(url, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+            if (res.ok) {
+                const data = await res.json();
+                setProgresoTrabajos(data.results || data);
+            }
+        } catch (error) { console.error('Error fetching progreso trabajos:', error); }
+    }, [accessToken]);
 
     // Fetch trabajos 
 const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
@@ -189,13 +203,13 @@ const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
             fetchPersonajes();
             fetchProficiencias();
             fetchBonus();
-
+          fetchProgresoTrabajos();
             if (user.is_staff) {
                 fetchHabilidades();
             }
         }
     // Asegúrate de que todas las funciones fetch estén en el array de dependencias
-    }, [user, currentPage, fetchTrabajos, fetchHabilidades, fetchPersonajes, fetchProficiencias, fetchBonus, searchTerm]);
+    }, [user, currentPage, fetchTrabajos, fetchHabilidades, fetchPersonajes, fetchProficiencias, fetchBonus, searchTerm, fetchProgresoTrabajos]);
 
     const handleSearch = () => { fetchTrabajos(1, searchTerm); };
     const handlePageChange = (newPage: number) => { fetchTrabajos(newPage, searchTerm); };
@@ -443,6 +457,7 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
                         accessToken={accessToken!}
                         onClose={() => setIsTrabajarModalOpen(false)}
                         onWorkSuccess={handleWorkSuccess}
+                        progresoTrabajos={progresoTrabajos}
                     />
                 </Modal>
             )}

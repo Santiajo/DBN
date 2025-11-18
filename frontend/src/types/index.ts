@@ -84,6 +84,14 @@ export interface PagoRango {
   trabajo?: number;
 }
 
+export interface ProgresoTrabajo {
+  id: number;
+  personaje: number; // ID del Personaje
+  trabajo: number;   // ID del Trabajo
+  rango_actual: number;
+  dias_acumulados_rango: number;
+}
+
 export interface TrabajoFormData {
   nombre: string;
   requisito_habilidad: number;
