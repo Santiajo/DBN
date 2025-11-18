@@ -20,23 +20,20 @@ export default function ResourceForm({ onSave, onCancel, initialData, classId }:
     reset_on: 'Long Rest',
     has_die: false,
     dice_type: '',
-    progression: {}, // JSON: { "1": 2, "2": 2 ... }
+    progression: {}, 
   });
 
-  // Estado local para manejar los inputs de niveles (1-20)
   const [levels, setLevels] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (initialData) {
       setFormData(initialData);
-      // Convertir valores numéricos a string para los inputs
       const progStrings: Record<string, string> = {};
       for (let i = 1; i <= 20; i++) {
         progStrings[i] = initialData.progression[i] !== undefined ? String(initialData.progression[i]) : '';
       }
       setLevels(progStrings);
     } else {
-      // Inicializar vacío
       setFormData({ name: '', reset_on: 'Long Rest', has_die: false, dice_type: '', progression: {} });
       setLevels({});
     }
@@ -51,7 +48,6 @@ export default function ResourceForm({ onSave, onCancel, initialData, classId }:
       setFormData(prev => ({...prev, has_die: e.target.checked}));
   }
 
-  // Manejar cambios en la cuadrícula de niveles
   const handleLevelChange = (level: number, value: string) => {
     setLevels(prev => ({ ...prev, [level]: value }));
   };
@@ -59,24 +55,21 @@ export default function ResourceForm({ onSave, onCancel, initialData, classId }:
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Convertir los inputs de niveles a un objeto JSON limpio { "1": 2, "5": 3 }
+    // CORRECCIÓN 1: Eliminamos 'lastValue' que no se usaba
     const cleanProgression: Record<string, number> = {};
-    let lastValue: number | null = null;
     
-    // Lógica opcional: Si un nivel está vacío, ¿asumimos 0 o el valor anterior?
-    // Para D&D, generalmente si no pones nada, es que no cambia o no tienes.
-    // Aquí guardaremos explícitamente lo que el usuario escriba.
     Object.entries(levels).forEach(([lvl, val]) => {
         if (val.trim() !== '') {
-            cleanProgression[lvl] = parseFloat(val); // parseFloat para permitir decimales si fuera necesario, o int
+            cleanProgression[lvl] = parseFloat(val); 
         }
     });
 
+    // CORRECCIÓN 2: Reemplazamos 'as any' por un casteo seguro
     onSave({ 
         ...formData, 
         progression: cleanProgression,
         dnd_class: classId 
-    } as any);
+    } as unknown as Partial<ClassResource>);
   };
 
   return (
@@ -112,7 +105,7 @@ export default function ResourceForm({ onSave, onCancel, initialData, classId }:
 
       <div>
         <label className="block mb-2 font-semibold">Progresión por Nivel</label>
-        <p className="text-xs text-stone-500 mb-2">Ingresa el valor (cantidad de usos, daño, etc.) para cada nivel. Si dejas uno vacío, se asumirá que no tiene ese recurso en ese nivel.</p>
+        <p className="text-xs text-stone-500 mb-2">Ingresa el valor (cantidad de usos, daño, etc.) para cada nivel.</p>
         
         <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-10 gap-2">
             {Array.from({ length: 20 }, (_, i) => i + 1).map((lvl) => (
