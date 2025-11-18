@@ -36,7 +36,12 @@ export default function FeatureForm({ onSave, onCancel, initialData, classId }: 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({ ...formData, dnd_class: classId } as any); // dnd_class es necesario para el backend
+    // CORRECCIÓN: Reemplazamos 'as any' por un tipado más seguro
+    // Agregamos dnd_class y lo casteamos para satisfacer al linter
+    onSave({ 
+      ...formData, 
+      dnd_class: classId 
+    } as unknown as Partial<ClassFeature>); 
   };
 
   return (

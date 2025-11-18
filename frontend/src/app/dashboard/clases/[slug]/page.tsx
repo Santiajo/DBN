@@ -5,14 +5,14 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { DnDClass, ClassFeature, ClassResource } from '@/types';
 import Button from "@/components/button"; 
-import Card from "@/components/card";     
+// CORRECCIÓN: Eliminado 'Card' porque no se usa en este archivo
 import Modal from '@/components/modal';
 import ConfirmAlert from '@/components/confirm-alert';
 import FeatureForm from './feature-form';
 import ResourceForm from './resource-form';
-import { FaArrowLeft, FaPlus, FaPencilAlt, FaTrash, FaBolt, FaScroll } from 'react-icons/fa';
+// CORRECCIÓN: Eliminados FaBolt y FaScroll
+import { FaArrowLeft, FaPlus, FaPencilAlt, FaTrash } from 'react-icons/fa';
 
-// Función auxiliar para calcular el bono de competencia
 const getProficiencyBonus = (level: number) => Math.ceil(level / 4) + 1;
 
 export default function ClassDetailPage() {
@@ -24,14 +24,12 @@ export default function ClassDetailPage() {
   const [dndClass, setDnDClass] = useState<DnDClass | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Modales
   const [isFeatureModalOpen, setFeatureModalOpen] = useState(false);
   const [isResourceModalOpen, setResourceModalOpen] = useState(false);
   
   const [editingFeature, setEditingFeature] = useState<ClassFeature | null>(null);
   const [editingResource, setEditingResource] = useState<ClassResource | null>(null);
 
-  // Alertas
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ type: 'feature' | 'resource', id: number } | null>(null);
 
@@ -56,8 +54,6 @@ export default function ClassDetailPage() {
     fetchClassDetail();
   }, [fetchClassDetail]);
 
-  // --- GUARDAR DATOS ---
-  
   const handleSaveFeature = async (data: Partial<ClassFeature>) => {
       await saveData('class-features', data, editingFeature?.id);
       setFeatureModalOpen(false);
@@ -68,7 +64,12 @@ export default function ClassDetailPage() {
       setResourceModalOpen(false);
   };
 
-  const saveData = async (endpoint: string, data: any, id?: number) => {
+  // CORRECCIÓN: Eliminado 'any'. Usamos tipos específicos.
+  const saveData = async (
+      endpoint: string, 
+      data: Partial<ClassFeature> | Partial<ClassResource>, 
+      id?: number
+  ) => {
       if(!accessToken) return;
       const url = id 
         ? `${process.env.NEXT_PUBLIC_API_URL}/api/${endpoint}/${id}/`
@@ -85,13 +86,12 @@ export default function ClassDetailPage() {
               },
               body: JSON.stringify(data)
           });
-          fetchClassDetail(); // Recargar todo
+          fetchClassDetail(); 
       } catch(e) {
           console.error(e);
       }
   }
 
-  // --- BORRAR DATOS ---
   const handleDelete = async () => {
       if(!itemToDelete || !accessToken) return;
       const endpoint = itemToDelete.type === 'feature' ? 'class-features' : 'class-resources';
@@ -141,7 +141,6 @@ export default function ClassDetailPage() {
                     <th className="px-4 py-3 text-center w-24">Bono Comp.</th>
                     <th className="px-4 py-3">Rasgos de Clase</th>
                     
-                    {/* Columnas Dinámicas de Recursos */}
                     {dndClass.resources.map(res => (
                         <th key={res.id} className="px-2 py-3 text-center w-24 border-l border-white/20 group relative">
                             <div className="flex flex-col items-center cursor-pointer hover:text-pergamino" 
@@ -165,13 +164,9 @@ export default function ClassDetailPage() {
                     
                     return (
                         <tr key={level} className="hover:bg-bosque/5 transition-colors odd:bg-white even:bg-stone-50">
-                            {/* Nivel */}
                             <td className="px-4 py-3 text-center font-bold text-madera-oscura">{level}</td>
-                            
-                            {/* Bono Competencia */}
                             <td className="px-4 py-3 text-center text-stone-600">+{getProficiencyBonus(level)}</td>
                             
-                            {/* Features */}
                             <td className="px-4 py-3">
                                 <div className="flex flex-wrap gap-2">
                                     {featuresAtLevel.length === 0 && <span className="text-stone-300 text-xs">-</span>}
@@ -188,7 +183,6 @@ export default function ClassDetailPage() {
                                 </div>
                             </td>
 
-                            {/* Recursos Dinámicos */}
                             {dndClass.resources.map(res => (
                                 <td key={res.id} className="px-2 py-3 text-center text-stone-700 border-l border-stone-200">
                                     {res.progression[level] || '—'}
@@ -201,7 +195,6 @@ export default function ClassDetailPage() {
         </table>
       </div>
 
-      {/* Modales */}
       <Modal isOpen={isFeatureModalOpen} onClose={() => setFeatureModalOpen(false)} title={editingFeature ? "Editar Rasgo" : "Nuevo Rasgo"}>
           <FeatureForm 
              onSave={handleSaveFeature} 
