@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import Card from "@/components/card";
-import Table from "@/components/table"; 
 import Input from "@/components/input";
 import Button from "@/components/button";
 import Pagination from '@/components/pagination';
@@ -23,6 +22,11 @@ export default function ClassesPage() {
 
     const [classes, setClasses] = useState<DnDClass[]>([]);
     const [selectedClass, setSelectedClass] = useState<DnDClass | null>(null);
+    
+    // REF: Usamos esto para saber cuál está seleccionado DENTRO de fetchClasses
+    // sin causar que fetchClasses se recree y genere un bucle infinito.
+    const selectedClassRef = useRef<DnDClass | null>(null);
+
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -30,6 +34,11 @@ export default function ClassesPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingClass, setEditingClass] = useState<DnDClass | null>(null);
     const [isAlertOpen, setIsAlertOpen] = useState(false);
+
+    // Sincronizamos el ref con el estado cada vez que cambia
+    useEffect(() => {
+        selectedClassRef.current = selectedClass;
+    }, [selectedClass]);
 
     const fetchClasses = useCallback(async (page = 1, searchQuery = '') => {
         if (!accessToken) return;
@@ -49,19 +58,29 @@ export default function ClassesPage() {
             setTotalPages(Math.ceil(data.count / PAGE_SIZE));
             setCurrentPage(page);
 
-            // Mantener la selección si el objeto sigue existiendo en la nueva página
-            if (selectedClass) {
-                const stillExists = data.results.find((c: DnDClass) => c.id === selectedClass.id);
-                if (stillExists) setSelectedClass(stillExists);
-                else if (data.results.length > 0) setSelectedClass(data.results[0]);
+            // LÓGICA DE SELECCIÓN CORREGIDA (Usando Ref para evitar el bucle)
+            const currentSelected = selectedClassRef.current;
+            
+            if (currentSelected) {
+                // Intentamos mantener la selección actual si existe en los nuevos datos
+                const stillExists = data.results.find((c: DnDClass) => c.id === currentSelected.id);
+                if (stillExists) {
+                    setSelectedClass(stillExists);
+                } else if (data.results.length > 0) {
+                    // Si no existe (ej. se borró o cambió de página), seleccionamos el primero
+                    setSelectedClass(data.results[0]);
+                } else {
+                    setSelectedClass(null);
+                }
             } else if (data.results.length > 0) {
+                // Si no había nada seleccionado, seleccionamos el primero
                 setSelectedClass(data.results[0]);
             }
 
         } catch (error) {
             console.error(error);
         }
-    }, [accessToken, logout, selectedClass]);
+    }, [accessToken, logout]); // <--- ¡YA NO DEPENDE DE selectedClass!
 
     useEffect(() => {
         if (user?.is_staff) fetchClasses(currentPage, searchTerm);
@@ -85,13 +104,23 @@ export default function ClassesPage() {
                 body: JSON.stringify(classData),
             });
 
-            if (!res.ok) throw new Error('Error saving class');
+            if (!res.ok) {
+                const errorData = await res.json();
+                console.error("Error saving:", errorData); // Log para ver por qué falla la creación
+                throw new Error('Error saving class');
+            }
             
             const savedClass = await res.json();
             setIsModalOpen(false);
             setEditingClass(null);
-            // Recargamos y seleccionamos la clase guardada
-            fetchClasses(currentPage, searchTerm).then(() => setSelectedClass(savedClass));
+            
+            // Forzamos la selección de la nueva clase manualmente en el Ref y el Estado
+            // antes de recargar, para que la lógica de fetch la respete.
+            setSelectedClass(savedClass);
+            selectedClassRef.current = savedClass;
+            
+            fetchClasses(currentPage, searchTerm);
+
         } catch (error) {
             console.error(error);
         }
@@ -104,8 +133,10 @@ export default function ClassesPage() {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${accessToken}` }
             });
+            // Limpiamos selección antes de recargar para evitar errores 404
+            setSelectedClass(null); 
+            selectedClassRef.current = null;
             fetchClasses(currentPage, searchTerm);
-            setSelectedClass(null);
         } catch (error) {
             console.error(error);
         } finally {
@@ -117,7 +148,7 @@ export default function ClassesPage() {
 
     return (
         <div className="p-8 space-y-6 font-body text-stone-800">
-            {/* Header y Búsqueda */}
+            {/* Header */}
             <div className="flex justify-end items-center gap-4">
                 <Button variant="primary" onClick={() => { setEditingClass(null); setIsModalOpen(true); }}>
                     <div className="flex items-center gap-2"><FaPlus /> Crear Clase</div>
@@ -128,26 +159,60 @@ export default function ClassesPage() {
                 </div>
             </div>
 
-            {/* Contenido Principal */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                
-                {/* Columna Izquierda: Tabla Específica */}
                 <div className="lg:col-span-2">
-                    <Table 
-                        headers={[
-                            { key: 'name', label: 'Nombre' },
-                            { key: 'hit_die', label: 'Dado de Golpe' },
-                            { key: 'primary_ability', label: 'Habilidad Principal' },
-                            { key: 'source', label: 'Fuente' }
-                        ]}
-                        data={classes} 
-                        onRowClick={(c) => setSelectedClass(c)} 
-                        selectedRowId={selectedClass?.id}
-                    />
+                    
+                    {/* TABLA INCRUSTADA (Para evitar errores de tipos 'RowData') */}
+                    <div className="overflow-x-auto rounded-xl border border-madera-oscura">
+                        <table className="min-w-full text-left text-sm font-body">
+                            <thead className="bg-cuero text-white font-title uppercase">
+                                <tr>
+                                    <th className="px-4 py-3">Nombre</th>
+                                    <th className="px-4 py-3">Dado</th>
+                                    <th className="px-4 py-3">Stat Principal</th>
+                                    <th className="px-4 py-3">Fuente</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {classes.map((dndClass, rowIndex) => {
+                                    const isSelected = selectedClass?.id === dndClass.id;
+                                    return (
+                                        <tr
+                                            key={dndClass.id || rowIndex}
+                                            onClick={() => setSelectedClass(dndClass)}
+                                            className={`
+                                                transition border-b border-stone-200 last:border-0 cursor-pointer
+                                                ${isSelected 
+                                                    ? 'bg-bosque text-white' 
+                                                    : 'odd:bg-white even:bg-pergamino hover:bg-bosque/10 text-stone-800'
+                                                }
+                                            `}
+                                        >
+                                            <td className="px-4 py-2 font-semibold">{dndClass.name}</td>
+                                            <td className="px-4 py-2">d{dndClass.hit_die}</td>
+                                            <td className="px-4 py-2 capitalize">{dndClass.primary_ability}</td>
+                                            <td className="px-4 py-2">
+                                                <span className={`inline-block px-2 py-0.5 rounded text-xs border border-stone-300 ${isSelected ? 'bg-white/20' : 'bg-stone-200/50'}`}>
+                                                    {dndClass.source}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                                {classes.length === 0 && (
+                                    <tr>
+                                        <td colSpan={4} className="px-4 py-8 text-center text-stone-500 italic bg-white">
+                                            No se encontraron clases.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                    
                     <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={(p) => fetchClasses(p, searchTerm)} />
                 </div>
 
-                {/* Columna Derecha: Detalles */}
                 <div className="lg:col-span-1">
                     {selectedClass ? (
                         <Card variant="primary" className="h-full flex flex-col">
@@ -191,7 +256,6 @@ export default function ClassesPage() {
                 </div>
             </div>
 
-            {/* Modales */}
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingClass ? "Editar Clase" : "Nueva Clase"}>
                 <ClassForm onSave={handleSaveClass} onCancel={() => setIsModalOpen(false)} initialData={editingClass} />
             </Modal>
