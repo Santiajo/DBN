@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import Card from "@/components/card";
-import ClassesTable from "@/components/classes-table"; 
+import Table from "@/components/table"; 
 import Input from "@/components/input";
 import Button from "@/components/button";
 import Pagination from '@/components/pagination';
@@ -133,10 +133,16 @@ export default function ClassesPage() {
                 
                 {/* Columna Izquierda: Tabla Específica */}
                 <div className="lg:col-span-2">
-                    <ClassesTable 
+                    <Table 
+                        headers={[
+                            { key: 'name', label: 'Nombre' },
+                            { key: 'hit_die', label: 'Dado de Golpe' },
+                            { key: 'primary_ability', label: 'Habilidad Principal' },
+                            { key: 'source', label: 'Fuente' }
+                        ]}
                         data={classes} 
                         onRowClick={(c) => setSelectedClass(c)} 
-                        selectedId={selectedClass?.id}
+                        selectedRowId={selectedClass?.id}
                     />
                     <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={(p) => fetchClasses(p, searchTerm)} />
                 </div>
