@@ -238,7 +238,6 @@ export default function SpeciesPage() {
                             <div className="flex justify-end gap-2 mt-auto pt-4">
                                 <Button variant="dangerous" onClick={handleDelete}><FaTrash /></Button>
                                 <Button variant="secondary" onClick={() => handleOpenEditModal(selectedSpecies)}><FaPencilAlt /></Button>
-                                {/* Este botón ahora navega a la página de detalles de la especie */}
                                 <Button
                                     variant="secondary"
                                     onClick={() => router.push(`/dashboard/especies/${selectedSpecies.slug}`)}
