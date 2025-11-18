@@ -45,15 +45,13 @@ export default function Table<T extends BaseRecord>({
                   transition border-b border-stone-200 last:border-0
                   ${isSelected 
                     ? 'bg-bosque text-white' 
-                    : 'odd:bg-white even:bg-pergamino hover:bg-bosque/10 text-stone-800'
+                    : 'odd:bg-white even:bg-pergamino hover:bg-bosque text-stone-800 hover:text-white' 
                   }
                   ${onRowClick ? 'cursor-pointer' : ''}
                 `}
                 onClick={() => onRowClick?.(row)}
               >
                 {headers.map((header) => {
-                  
-
                   const rawValue = (row as unknown as Record<string, unknown>)[header.key];
 
                   return (
