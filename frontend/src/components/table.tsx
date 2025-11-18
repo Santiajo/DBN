@@ -5,19 +5,18 @@ type TableHeader = {
   label: string;
 };
 
-interface TableRow {
+type BaseRecord = {
   id?: number | string;
-  [key: string]: any; 
-}
+};
 
-type TableProps<T extends TableRow> = {
+type TableProps<T extends BaseRecord> = {
   headers: TableHeader[];
   data: T[];
   onRowClick?: (row: T) => void;
   selectedRowId?: number | string;
 };
 
-export default function Table<T extends TableRow>({ 
+export default function Table<T extends BaseRecord>({ 
   headers, 
   data, 
   onRowClick, 
@@ -41,7 +40,7 @@ export default function Table<T extends TableRow>({
 
             return (
               <tr
-                key={row.id || rowIndex} // Usamos ID como key si existe, si no el index
+                key={row.id || rowIndex} 
                 className={`
                   transition border-b border-stone-200 last:border-0
                   ${isSelected 
@@ -52,12 +51,15 @@ export default function Table<T extends TableRow>({
                 `}
                 onClick={() => onRowClick?.(row)}
               >
-                {headers.map((header) => (
-                  <td key={`${rowIndex}-${header.key}`} className="px-4 py-2">
-                    {/* 4. TypeScript permite esto gracias a [key: string]: any en TableRow */}
-                    {row[header.key] as React.ReactNode}
-                  </td>
-                ))}
+                {headers.map((header) => {
+                  const rawValue = (row as Record<string, unknown>)[header.key];
+
+                  return (
+                    <td key={`${rowIndex}-${header.key}`} className="px-4 py-2">
+                      {rawValue as React.ReactNode}
+                    </td>
+                  );
+                })}
               </tr>
             );
           })}
