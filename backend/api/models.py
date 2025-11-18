@@ -780,11 +780,12 @@ class ClassFeature(models.Model):
 
 class ClassResource(models.Model):
     dnd_class = models.ForeignKey(DnDClass, related_name='resources', on_delete=models.CASCADE)
-    name = models.CharField(max_length=100, help_text="Ej: Wild Shape, Infusions Known")
-    progression = models.JSONField(default=dict, help_text="Diccionario Nivel: Cantidad (Ej: {'1': 2, '2': 3})")
-    reset_on = models.CharField(max_length=50, default="Long Rest", help_text="Ej: Short Rest, Long Rest")
-    has_die = models.BooleanField(default=False, help_text="¿Este recurso usa un dado (ej. dado de golpe, dado de bardo)?")
-    dice_type = models.CharField(max_length=10, blank=True, help_text="Ej: d6, d8 (si aplica)")
+    name = models.CharField(max_length=100)
+    quantity_type = models.CharField(max_length=20, default='Fixed') 
+    quantity_stat = models.CharField(max_length=20, blank=True, null=True)
+    progression = models.JSONField(default=dict, blank=True)
+    value_progression = models.JSONField(default=dict, blank=True)
+    reset_on = models.CharField(max_length=50, default="Long Rest")
 
     def __str__(self):
-        return f"{self.dnd_class.name} Resource: {self.name}"
+        return f"{self.name} ({self.dnd_class.name})"

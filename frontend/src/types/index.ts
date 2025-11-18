@@ -199,6 +199,16 @@ export interface ClassResource {
   dice_type?: string;
 }
 
+export interface ClassResource {
+  id: number;
+  name: string;
+  quantity_type: 'Fixed' | 'Stat' | 'Proficiency' | 'Unlimited';
+  quantity_stat?: string; 
+  progression: Record<string, number>; 
+  value_progression: Record<string, string>;
+  reset_on: string;
+}
+
 export interface DnDClass {
   id: number;
   name: string;
