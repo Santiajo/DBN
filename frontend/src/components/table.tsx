@@ -7,7 +7,6 @@ type TableHeader = {
 
 export interface BaseRecord {
   id?: number | string;
-  [key: string]: unknown; 
 }
 
 type TableProps<T extends BaseRecord> = {
@@ -53,9 +52,9 @@ export default function Table<T extends BaseRecord>({
                 onClick={() => onRowClick?.(row)}
               >
                 {headers.map((header) => {
-                  // Como BaseRecord ya tiene [key: string]: unknown, 
-                  // podemos acceder directamente sin casteos raros.
-                  const rawValue = row[header.key];
+                  
+
+                  const rawValue = (row as unknown as Record<string, unknown>)[header.key];
 
                   return (
                     <td key={`${rowIndex}-${header.key}`} className="px-4 py-2">
