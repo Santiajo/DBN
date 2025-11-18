@@ -59,3 +59,5 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
     </aside>
   );
 }
+
+// alo
