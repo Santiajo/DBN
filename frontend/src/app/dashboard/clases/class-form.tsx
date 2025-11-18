@@ -82,9 +82,15 @@ export default function ClassForm({ onSave, onCancel, initialData }: ClassFormPr
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
-        let processedValue: any = value;
-        if (type === 'number') processedValue = parseInt(value, 10) || 0;
-        setFormData(prev => ({ ...prev, [name]: processedValue }));
+        const processedValue: string | number = type === 'number'
+            ? (parseInt(value, 10) || 0)
+            : value;
+
+        // 'as DnDClassPayload' ayuda a TS a entender que la actualización es válida para el estado
+        setFormData(prev => ({
+            ...prev,
+            [name]: processedValue
+        } as DnDClassPayload));
     };
 
     // Manejo de Checkboxes usando tu componente
