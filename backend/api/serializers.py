@@ -521,7 +521,7 @@ class IniciarCraftingSerializer(serializers.Serializer):
 class TiradaCraftingSerializer(serializers.Serializer):
     progreso_id = serializers.IntegerField()
     
-# Serializer para especies
+# Serializers para especies
 class TraitOptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Trait
@@ -554,3 +554,23 @@ class SpeciesSerializer(serializers.ModelSerializer):
             return TraitSerializer(top_level_traits, many=True, context=self.context).data
         except AttributeError:
             return []
+
+# Serializers para clases
+class ClassFeatureSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ClassFeature
+        fields = '__all__'
+
+class ClassResourceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ClassResource
+        fields = '__all__'
+
+class DnDClassSerializer(serializers.ModelSerializer):
+    features = ClassFeatureSerializer(many=True, read_only=True)
+    resources = ClassResourceSerializer(many=True, read_only=True)
+    skill_choices = HabilidadSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = DnDClass
+        fields = '__all__'

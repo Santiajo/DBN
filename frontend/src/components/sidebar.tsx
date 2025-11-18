@@ -24,6 +24,7 @@ const navLinks = [
   { href: '/dashboard/tiendas', icon: <FaCoins />, label: 'Gestión tiendas' },
   { href: '/dashboard/compras', icon: <FaCoins />, label: 'Tiendas' },
   { href: '/dashboard/especies', icon: <FaCoins />, label: 'Especies' },
+  { href: '/dashboard/clases', icon: <FaCoins />, label: 'Clases' },
 ];
 
 export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {

@@ -753,34 +753,43 @@ class CraftingViewSet(viewsets.ViewSet):
     
 # Views para especies
 class SpeciesViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet para el CRUD completo de Especies.
-    """
-    # prefetch_related es CLAVE para optimizar el serializer anidado
     queryset = Species.objects.all().prefetch_related(
-        'traits',           # Precarga todos los rasgos
-        'traits__options'   # Precarga las opciones de esos rasgos
+        'traits',          
+        'traits__options'  
     )
     
     serializer_class = SpeciesSerializer
-    permission_classes = [IsAuthenticated, IsAdminUser] # Como pediste
+    permission_classes = [IsAuthenticated, IsAdminUser]
     
-    # Añadimos los filtros de búsqueda
+    # Filtros de búsqueda
     filter_backends = (filters.SearchFilter,)
-    search_fields = ['name'] # Como pediste
+    search_fields = ['name'] 
     
-    # Usamos 'slug' (ej. 'aarakocra') en la URL en lugar de 'id' (ej. 1)
     lookup_field = 'slug'
 
 class TraitViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet para el CRUD completo de Rasgos.
-    Permite crear, editar y eliminar rasgos individuales.
-    """
     queryset = Trait.objects.all().select_related('species', 'parent_choice')
     serializer_class = TraitSerializer
     permission_classes = [IsAuthenticated, IsAdminUser]
     
     filter_backends = (filters.SearchFilter,)
-    # Permite buscar por nombre de rasgo o por nombre de la especie
     search_fields = ['name', 'species__name']
+
+# Views para clases
+class DnDClassViewSet(viewsets.ModelViewSet):
+    queryset = DnDClass.objects.all().prefetch_related('features', 'resources', 'skill_choices')
+    serializer_class = DnDClassSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    lookup_field = 'slug'
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name']
+
+class ClassFeatureViewSet(viewsets.ModelViewSet):
+    queryset = ClassFeature.objects.all()
+    serializer_class = ClassFeatureSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+class ClassResourceViewSet(viewsets.ModelViewSet):
+    queryset = ClassResource.objects.all()
+    serializer_class = ClassResourceSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
