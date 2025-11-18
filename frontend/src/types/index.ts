@@ -170,3 +170,67 @@ export interface DnDSpecies {
   darkvision: number;
   traits: DnDTrait[]; 
 }
+
+// Interfaces para clases y features
+export type HitDie = 6 | 8 | 10 | 12;
+
+export type StatName = 
+  | 'fuerza' 
+  | 'destreza' 
+  | 'constitucion' 
+  | 'inteligencia' 
+  | 'sabiduria' 
+  | 'carisma';
+
+export interface ClassFeature {
+  id: number;
+  name: string;
+  level: number;
+  description: string;
+  display_order: number;
+}
+
+export interface ClassResource {
+  id: number;
+  name: string;
+  progression: Record<string, number>; 
+  reset_on: string;
+  has_die: boolean;
+  dice_type?: string;
+}
+
+export interface DnDClass {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  source: string;
+  hit_die: HitDie;
+  primary_ability: StatName;
+  saving_throws: StatName[];
+  skill_choices: Habilidad[];
+  skill_choices_count: number;
+  armor_proficiencies: string;
+  weapon_proficiencies: string;
+  tool_proficiencies: string;
+  starting_equipment: string;
+  features: ClassFeature[];
+  resources: ClassResource[];
+} 
+
+export interface DnDClassPayload {
+  id?: number;
+  name: string;
+  slug?: string;
+  description: string;
+  source: string;
+  hit_die: number;
+  primary_ability: string;
+  saving_throws: string[];
+  skill_choices_ids: number[]; 
+  skill_choices_count: number;
+  armor_proficiencies: string;
+  weapon_proficiencies: string;
+  tool_proficiencies: string;
+  starting_equipment: string;
+}
