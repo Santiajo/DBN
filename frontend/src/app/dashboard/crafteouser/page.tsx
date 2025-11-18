@@ -27,9 +27,6 @@ interface Personaje {
     nivel: number;
 }
 
-
-
-
 export default function CrafteoPage() {
     const { accessToken } = useAuth();
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;

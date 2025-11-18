@@ -23,7 +23,7 @@ router.register(r'objetos', views.ObjetoViewSet, basename='objeto')
 router.register(r'tiendas', views.TiendaViewSet, basename='tienda')
 router.register(r'pagos-rango', views.PagoRangoViewSet, basename='pagorango')
 
-# ✨ NUEVO - Router de Crafting
+#  NUEVO - Router de Crafting
 router.register(r'crafting', views.CraftingViewSet, basename='crafting')
 
 # Router anidado para el inventario de tiendas

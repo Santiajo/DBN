@@ -80,8 +80,19 @@ class RecetaViewSet(viewsets.ModelViewSet):
     serializer_class = RecetaSerializer
 
 class IngredienteViewSet(viewsets.ModelViewSet):
-    queryset= Ingredientes.objects.all()
+    queryset = Ingredientes.objects.all()
     serializer_class = IngredientesSerializer
+    permission_classes = [IsAuthenticated]  # 
+    
+    def get_queryset(self):
+        """Filtrar ingredientes por receta si se proporciona el parámetro"""
+        queryset = Ingredientes.objects.all()
+        receta_id = self.request.query_params.get('receta', None)
+        
+        if receta_id is not None:
+            queryset = queryset.filter(receta_id=receta_id)
+        
+        return queryset
 
 class InventarioPersonajeViewSet(viewsets.ModelViewSet):
     serializer_class = InventarioSerializer
