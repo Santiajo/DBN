@@ -28,7 +28,7 @@ export default function SpeciesDetailPage() {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [traitToDelete, setTraitToDelete] = useState<DnDTrait | null>(null);
 
-  // --- Cargar Datos ---
+  // Cargar Datos
   const fetchSpeciesDetail = useCallback(async () => {
     if (!accessToken || !slug) return;
     try {
@@ -50,8 +50,7 @@ export default function SpeciesDetailPage() {
     fetchSpeciesDetail();
   }, [fetchSpeciesDetail]);
 
-  // --- Handlers CRUD ---
-
+  // --- CRUD ---
   const handleOpenCreate = (parentId: number | null = null) => {
     setEditingTrait(null);
     setParentForNewTrait(parentId);
@@ -129,11 +128,11 @@ export default function SpeciesDetailPage() {
 
       {/* Info Principal (Usando tu componente Card Primary/Pergamino) */}
       <Card variant="secondary">
-        <h1 className="text-3xl font-title mb-2 text-stone-900">{species.name}</h1>
+        <h1 className="text-3xl font-title mb-2 text-bosque">{species.name}</h1>
         <div className="flex gap-4 text-sm text-stone-700 font-body mb-4">
-          <span className="bg-white/50 px-3 py-1 rounded-full border border-madera-oscura/30">{species.creature_type}</span>
-          <span className="bg-white/50 px-3 py-1 rounded-full border border-madera-oscura/30">{species.size}</span>
-          <span className="bg-white/50 px-3 py-1 rounded-full border border-madera-oscura/30">Velocidad: {species.walking_speed}ft</span>
+          <span className="bg-cuero/10 px-3 py-1 rounded-full border border-cuero/40">{species.creature_type}</span>
+          <span className="bg-cuero/10 px-3 py-1 rounded-full border border-cuero/40">{species.size}</span>
+          <span className="bg-cuero/10 px-3 py-1 rounded-full border border-cuero/40">Velocidad: {species.walking_speed}ft</span>
         </div>
         <p className="text-stone-800 whitespace-pre-wrap leading-relaxed">{species.description}</p>
       </Card>
