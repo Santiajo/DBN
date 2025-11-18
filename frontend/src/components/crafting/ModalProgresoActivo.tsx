@@ -3,66 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { FaTimes, FaDice, FaCheckCircle, FaTimesCircle, FaCoins, FaClock, FaTools, FaStar, FaMagic, FaTrophy } from 'react-icons/fa';
-import type { SubidaGrado } from '@/types/receta';
-
-interface Tirada {
-  id?: number;
-  resultado_dado: number;
-  modificador: number;
-  resultado_total: number;
-  dc?: number;
-  exito: boolean;
-  oro_sumado: number;
-  oro_gastado: number;
-  fecha?: string;
-  mensaje?: string;
-}
-
-export interface Competencia {
-  id: number;
-  nombre_herramienta: string;
-  grado: string;
-  exitos_acumulados: number;
-  modificador: number; // Total
-  modificador_competencia: number; // Solo PB × grado
-  modificador_habilidad: number; // Solo habilidad
-  habilidad_maxima: {
-    nombre: string;
-    valor: number;
-  };
-  info_grado: {
-    suma_oro: number;
-    gasto_oro: number;
-  };
-  exitos_para_siguiente_grado: number | null;
-  fecha_obtencion?: string;
-}
-
-export interface Progreso {
-  id: number;
-  receta_nombre: string;
-  objeto_final: string;
-  es_magico: boolean;
-  oro_acumulado: number;
-  exitos_conseguidos: number;
-  exitos_requeridos: number;
-  oro_necesario: number;  // 
-  dc: number;             // 
-  dias_trabajados: number;
-  estado: 'en_progreso' | 'completado' | 'pausado';
-  porcentaje_completado: number;
-  tiradas: Tirada[];
-  competencia: Competencia;
-  fecha_inicio: string;
-  fecha_completado?: string | null;
-}
-
-interface Personaje {
-  id: number;
-  nombre_personaje: string;
-  oro: number;
-  tiempo_libre: number;
-}
+import { Progreso, Personaje, Tirada, SubidaGrado } from '@/types/receta';
 
 interface Props {
   progreso: Progreso;
@@ -402,7 +343,7 @@ export default function ModalProgresoActivo({ progreso: initialProgreso, persona
               </button>
 
               <p className="text-center text-xs text-stone-600 mt-2">
-                DC: {progreso.es_magico ? `${ultimaTirada?.dc || 'calculando...'}` : '12'} | 
+                DC: {progreso.es_magico ? `${ultimaTirada?.dc || progreso.dc}` : '12'} | 
                 d20 + {progreso.competencia.modificador} (modificador)
               </p>
             </div>

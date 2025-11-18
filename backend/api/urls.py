@@ -24,7 +24,16 @@ router.register(r'tiendas', views.TiendaViewSet, basename='tienda')
 router.register(r'pagos-rango', views.PagoRangoViewSet, basename='pagorango')
 router.register(r'progreso-trabajos', ProgresoTrabajoViewSet, basename='progresotrabajo')
 
-# ✨ NUEVO - Router de Crafting
+# Routers para especies y rasgos de especies
+router.register(r'species', views.SpeciesViewSet, basename='species')
+router.register(r'traits', views.TraitViewSet, basename='trait')
+
+# Routers para clases y características de clases
+router.register(r'classes', views.DnDClassViewSet, basename='dndclass')
+router.register(r'class-features', views.ClassFeatureViewSet, basename='classfeature')
+router.register(r'class-resources', views.ClassResourceViewSet, basename='classresource')
+
+# Router de Crafting
 router.register(r'crafting', views.CraftingViewSet, basename='crafting')
 
 # Router anidado para el inventario de tiendas

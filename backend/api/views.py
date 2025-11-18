@@ -14,6 +14,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import MyTokenObtainPairSerializer
 from django.db import transaction
 from django.db.models import F
+import rest_framework.filters as filters
 
 @api_view(['POST']) # Solo permite solicitudes POST
 @permission_classes([AllowAny]) # Permite que cualquiera pueda acceder a esta vista
@@ -81,8 +82,19 @@ class RecetaViewSet(viewsets.ModelViewSet):
     serializer_class = RecetaSerializer
 
 class IngredienteViewSet(viewsets.ModelViewSet):
-    queryset= Ingredientes.objects.all()
+    queryset = Ingredientes.objects.all()
     serializer_class = IngredientesSerializer
+    permission_classes = [IsAuthenticated]  # 
+    
+    def get_queryset(self):
+        """Filtrar ingredientes por receta si se proporciona el parámetro"""
+        queryset = Ingredientes.objects.all()
+        receta_id = self.request.query_params.get('receta', None)
+        
+        if receta_id is not None:
+            queryset = queryset.filter(receta_id=receta_id)
+        
+        return queryset
 
 class InventarioPersonajeViewSet(viewsets.ModelViewSet):
     serializer_class = InventarioSerializer
@@ -761,4 +773,45 @@ class CraftingViewSet(viewsets.ViewSet):
         serializer = CompetenciaHerramientaSerializer(competencias, many=True)
         return Response(serializer.data)
     
-# ola
+# Views para especies
+class SpeciesViewSet(viewsets.ModelViewSet):
+    queryset = Species.objects.all().prefetch_related(
+        'traits',          
+        'traits__options'  
+    )
+    
+    serializer_class = SpeciesSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    
+    # Filtros de búsqueda
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ['name'] 
+    
+    lookup_field = 'slug'
+
+class TraitViewSet(viewsets.ModelViewSet):
+    queryset = Trait.objects.all().select_related('species', 'parent_choice')
+    serializer_class = TraitSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ['name', 'species__name']
+
+# Views para clases
+class DnDClassViewSet(viewsets.ModelViewSet):
+    queryset = DnDClass.objects.all().prefetch_related('features', 'resources', 'skill_choices')
+    serializer_class = DnDClassSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    lookup_field = 'slug'
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name']
+
+class ClassFeatureViewSet(viewsets.ModelViewSet):
+    queryset = ClassFeature.objects.all()
+    serializer_class = ClassFeatureSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+class ClassResourceViewSet(viewsets.ModelViewSet):
+    queryset = ClassResource.objects.all()
+    serializer_class = ClassResourceSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]

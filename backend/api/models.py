@@ -2,6 +2,8 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 import math
+from django.utils.text import slugify
+from django.core.exceptions import ValidationError
 
 class Personaje(models.Model):
     DND_CLASSES = [
@@ -59,7 +61,8 @@ class Objeto(models.Model):
     Mastery = models.CharField(max_length=200, blank=True, null=True)  
     Weight = models.CharField(max_length=150, blank=True, null=True)  
     Value = models.CharField(max_length=150, blank=True, null=True)  
-    Text = models.TextField(blank=True, null=True)  
+    Text = models.TextField(blank=True, null=True)
+    es_investigable = models.BooleanField(default=False)  
 
     def __str__(self):
         return self.Name
@@ -553,3 +556,236 @@ def puede_craftear_rareza(grado_competencia: str, rareza: str) -> bool:
     
     rarezas_permitidas = jerarquia_grados.get(grado_competencia, [])
     return rareza in rarezas_permitidas
+
+# Opciones para especies
+CREATURE_TYPES = [
+    ('Humanoid', 'Humanoide'),
+    ('Elemental', 'Elemental'),
+    ('Monstrosity', 'Monstruosidad'),
+    ('Fey', 'Feérico'),
+    ('Fiend', 'Infernal'),
+    ('Celestial', 'Celestial'),
+    ('Dragon', 'Dragón'),
+    ('Giant', 'Gigante'),
+    ('Aberration', 'Aberración'),
+    ('Beast', 'Bestia'),
+    ('Construct', 'Constructo'),
+    ('Ooze', 'Limo'),
+    ('Plant', 'Planta'),
+    ('Undead', 'No-muerto'),
+]
+
+SIZES = [
+    ('Tiny', 'Diminuto'),
+    ('Small', 'Pequeño'),
+    ('Medium', 'Mediano'),
+    ('Small or Medium', 'Pequeño o Mediano'), 
+    ('Medium or Large', 'Mediano o Grande'), 
+    ('Large', 'Grande'),
+    ('Huge', 'Enorme'),
+    ('Gargantuan', 'Gargantuesco'),
+]
+
+class Species(models.Model):
+    name = models.CharField(
+        max_length=150, 
+        unique=True, 
+        help_text="El nombre completo de la especie (ej. 'Aarakocra (New World Ancestry)')"
+    )
+    slug = models.SlugField(
+        max_length=150, 
+        unique=True, 
+        blank=True, 
+        help_text="Versión amigable para URLs del nombre (se genera automáticamente)"
+    )
+    description = models.TextField(
+        blank=True, 
+        help_text="Texto de ambientación (lore) o descripción general de la especie."
+    )
+    
+    creature_type = models.CharField(
+        max_length=50, 
+        choices=CREATURE_TYPES, 
+        default='Humanoid',
+        help_text="El tipo de criatura (ej. Humanoide, Elemental)."
+    )
+    size = models.CharField(
+        max_length=50, 
+        choices=SIZES, 
+        default='Medium',
+        help_text="El tamaño de la criatura (ej. Mediano, Pequeño o Mediano)."
+    )
+    walking_speed = models.PositiveIntegerField(
+        default=30, 
+        help_text="Velocidad base de movimiento en pies."
+    )
+    darkvision = models.PositiveIntegerField(
+        default=0, 
+        help_text="Rango de la visión en la oscuridad en pies (0 si no tiene)."
+    )
+    
+    class Meta:
+        verbose_name = "Species"
+        verbose_name_plural = "Species"
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+
+class Trait(models.Model):
+    species = models.ForeignKey(
+        Species, 
+        on_delete=models.CASCADE, 
+        related_name="traits",
+        help_text="La especie a la que pertenece este rasgo."
+    )
+    name = models.CharField(
+        max_length=200, 
+        help_text="El nombre del rasgo (ej. 'Wind Caller', 'Chikcha Legacy', 'Natural Armor')."
+    )
+    description = models.TextField(
+        help_text="La descripción completa y las reglas del rasgo."
+    )
+    
+    parent_choice = models.ForeignKey(
+        'self', 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True, 
+        related_name="options",
+        help_text="Si este rasgo es una *opción* seleccionable (ej. 'Natural Armor'), "
+                  "conéctalo aquí al rasgo 'padre' (ej. 'Chikcha Legacy')."
+    )
+    
+    min_choices = models.PositiveIntegerField(
+        default=0, 
+        help_text="Para un rasgo 'padre', el número MÍNIMO de opciones a elegir (ej. 2 para Chikcha Legacy)."
+    )
+    max_choices = models.PositiveIntegerField(
+        default=0, 
+        help_text="Para un rasgo 'padre', el número MÁXIMO de opciones a elegir (ej. 2 para Chikcha Legacy)."
+    )
+
+    display_order = models.PositiveIntegerField(
+        default=10, 
+        help_text="Orden para mostrar los rasgos. Menor número primero."
+    )
+
+    def clean(self):
+        super().clean()
+    
+        if self.parent_choice:
+            if self.parent_choice.species_id != self.species_id:
+                raise ValidationError(
+                    f"El rasgo padre '{self.parent_choice}' (especie: {self.parent_choice.species.name}) "
+                    f"no pertenece a la misma especie que este rasgo (especie: {self.species.name})."
+                )
+
+        if self.parent_choice and (self.min_choices > 0 or self.max_choices > 0):
+             raise ValidationError(
+                 "Un rasgo no puede ser una 'opción' (tener un 'parent_choice') "
+                 "y al mismo tiempo ser un 'grupo de opciones' (tener 'min_choices' o 'max_choices')."
+             )
+        
+        if self.max_choices > 0 and self.min_choices > self.max_choices:
+            raise ValidationError("El número 'min_choices' no puede ser mayor que 'max_choices'.")
+
+    class Meta:
+        verbose_name = "Trait"
+        verbose_name_plural = "Traits"
+        ordering = ['species', 'display_order', 'name']
+        constraints = []
+
+    def __str__(self):
+        if self.parent_choice:
+            return f"{self.species.name} -> {self.parent_choice.name} (Opción: {self.name})"
+        return f"{self.species.name} -> {self.name}"
+    
+# Modelos para clases de D&D
+STAT_FIELDS = [
+    ('fuerza', 'Fuerza'),
+    ('destreza', 'Destreza'),
+    ('constitucion', 'Constitución'),
+    ('inteligencia', 'Inteligencia'),
+    ('sabiduria', 'Sabiduría'),
+    ('carisma', 'Carisma'),
+]
+
+HIT_DIE_CHOICES = [(6, 'd6'), (8, 'd8'), (10, 'd10'), (12, 'd12')]
+
+RESET_CHOICES = [
+    ('Short Rest', 'Descanso Corto'),
+    ('Long Rest', 'Descanso Largo'),
+    ('Special', 'Especial'),
+]
+
+class DnDClass(models.Model):
+    name = models.CharField(max_length=100, unique=True, help_text="Ej: Artificer")
+    slug = models.SlugField(max_length=100, unique=True, blank=True)
+    description = models.TextField()
+    hit_die = models.IntegerField(choices=HIT_DIE_CHOICES, default=8)
+    primary_ability = models.CharField(
+        max_length=20, 
+        choices=STAT_FIELDS, 
+        default='fuerza',
+        help_text="Estadística principal de la clase (ej. 'inteligencia' para Artificer)."
+    )
+    
+    saving_throws = models.JSONField(
+        default=list, 
+        help_text="Lista de campos de estadística para salvaciones."
+    )
+    
+    skill_choices = models.ManyToManyField(
+        'Habilidad', 
+        related_name='class_options',
+        blank=True,
+        help_text="Qué habilidades puede elegir el jugador."
+    )
+    skill_choices_count = models.PositiveIntegerField(default=2)
+    
+    armor_proficiencies = models.TextField(blank=True, help_text="Ej: Light and Medium armor, Shields")
+    weapon_proficiencies = models.TextField(blank=True, help_text="Ej: Simple weapons, firearms")
+    tool_proficiencies = models.TextField(blank=True, help_text="Ej: Thieves' tools, tinker's tools")
+    starting_equipment = models.TextField(blank=True, help_text="Descripción del equipo inicial.")
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
+
+class ClassFeature(models.Model):
+    dnd_class = models.ForeignKey(DnDClass, related_name='features', on_delete=models.CASCADE)
+    name = models.CharField(max_length=150)
+    level = models.PositiveIntegerField(default=1)
+    description = models.TextField()
+    display_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['level', 'display_order']
+
+    def __str__(self):
+        return f"{self.dnd_class.name} Lvl {self.level}: {self.name}"
+
+
+class ClassResource(models.Model):
+    dnd_class = models.ForeignKey(DnDClass, related_name='resources', on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+    quantity_type = models.CharField(max_length=20, default='Fixed') 
+    quantity_stat = models.CharField(max_length=20, blank=True, null=True)
+    progression = models.JSONField(default=dict, blank=True)
+    value_progression = models.JSONField(default=dict, blank=True)
+    reset_on = models.CharField(max_length=50, default="Long Rest")
+
+    def __str__(self):
+        return f"{self.name} ({self.dnd_class.name})"

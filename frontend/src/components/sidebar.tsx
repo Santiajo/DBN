@@ -23,6 +23,8 @@ const navLinks = [
   { href: '/dashboard/trabajos', icon: <FaBriefcase />, label: 'Trabajos' },
   { href: '/dashboard/tiendas', icon: <FaCoins />, label: 'Gestión tiendas' },
   { href: '/dashboard/compras', icon: <FaCoins />, label: 'Tiendas' },
+  { href: '/dashboard/especies', icon: <FaCoins />, label: 'Especies' },
+  { href: '/dashboard/clases', icon: <FaCoins />, label: 'Clases' },
 ];
 
 export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
@@ -57,3 +59,5 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
     </aside>
   );
 }
+
+// alo

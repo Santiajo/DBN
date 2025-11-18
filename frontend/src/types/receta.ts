@@ -1,56 +1,62 @@
 // types/receta.ts
 
 export interface Objeto {
-    id: number;
-    Name: string;
+  id: number;
+  Name: string;
 }
 
+// Tipo para ingredientes que vienen del endpoint /api/ingredientes/
+export interface IngredienteAPI {
+  id: number;
+  receta: number;
+  objeto: number;
+  cantidad: number;
+}
 
 // 1. IngredienteForm: Usado para la gestión del estado local en el formulario. 
 // Permite que 'cantidad' sea string temporalmente para inputs.
 export interface IngredienteForm {
-    id?: number; 
-    objeto: number | string;
-    cantidad: number | string; // <-- Acepta string para el input
-    nombre_objeto?: string;
+  id?: number; 
+  objeto: number | string;
+  cantidad: number | string; // <-- Acepta string para el input
+  nombre_objeto?: string;
 }
 
 // 2. RecetaFormData: Usado para la estructura final que se envía a la API (el payload).
-// ¡Aquí la cantidad debe ser number, como espera la API!
 export interface RecetaFormData {
-    nombre: string;
-    objeto_final: number | string;
-    cantidad_final: number;
-    es_magico: boolean;
-    oro_necesario: number;
-    ingredientes: Array<Omit<IngredienteForm, 'nombre_objeto'> & { cantidad: number }>;
-    
-    //  Nuevos campos para objetos mágicos
-    rareza: string | null;
-    material_raro: number | null;
-    grado_minimo_requerido: string;
-    es_consumible: boolean;
-    herramienta: string;
+  nombre: string;
+  objeto_final: number | string;
+  cantidad_final: number;
+  es_magico: boolean;
+  oro_necesario: number;
+  ingredientes: Array<Omit<IngredienteForm, 'nombre_objeto'> & { cantidad: number }>;
+  rareza: string | null;
+  material_raro: number | null;
+  grado_minimo_requerido: string;
+  es_consumible: boolean;
+  herramienta: string;
 }
 
-// 3. Receta: Usado para la estructura que se recibe de la API.
+// ============ RECETA ============
+
 export interface Receta {
   id: number;
   nombre: string;
-  objeto_final: string;
-  nombre_objeto_final: string; // ✅ Añadir este campo que viene del serializer
+  objeto_final: string | number;
+  nombre_objeto_final: string;
   cantidad_final: number;
   es_magico: boolean;
   oro_necesario: number;
   herramienta: string;
   ingredientes: Array<{
-    objeto_id: number;
-    nombre: string;
-    cantidad_necesaria: number;
-    es_material_raro?: boolean;
+    id: number;                    // ✅ ID del ingrediente
+    receta: number;                // ✅ ID de la receta
+    objeto: number;                // ✅ ID del objeto (no objeto_id)
+    nombre_ingrediente: string;    // ✅ Nombre (no nombre)
+    cantidad: number;              // ✅ Cantidad (no cantidad_necesaria)
   }>;
-  puede_craftear: boolean;
-  ingredientes_faltantes: Array<{
+  puede_craftear?: boolean;
+  ingredientes_faltantes?: Array<{
     objeto: string;
     necesaria: number;
     actual: number;
@@ -64,30 +70,12 @@ export interface Receta {
   es_consumible: boolean;
   dc: number;
   exitos_requeridos: number;
-  competencia_personaje: {
-    id?: number;
-    grado: string;
-    exitos_acumulados: number;
-    modificador?: number;
-    modificador_competencia?: number;
-    modificador_habilidad?: number;
-    habilidad_maxima?: {
-      nombre: string;
-      valor: number;
-    };
-    info_grado?: {
-      suma_oro: number;
-      gasto_oro: number;
-    };
-    exitos_para_siguiente_grado?: number | null;
-    mensaje?: string;
-  } | null;
-  coste_magico: {
-    dias: number;
-    oro: number;
-  } | null;
-  puede_craftear_rareza: boolean;
+  competencia_personaje?: CompetenciaPersonaje | null;
+  coste_magico?: CosteMagico | null;
+  puede_craftear_rareza?: boolean;
 }
+
+// ============ PERSONAJE ============
 
 export interface Personaje {
   id: number;
@@ -109,6 +97,8 @@ export interface Personaje {
   carisma?: number;
 }
 
+// ============ TIRADAS Y COMPETENCIAS ============
+
 export interface Tirada {
   id?: number;
   resultado_dado: number;
@@ -127,9 +117,9 @@ export interface Competencia {
   nombre_herramienta: string;
   grado: string;
   exitos_acumulados: number;
-  modificador: number; // Total
-  modificador_competencia: number; // Solo PB × grado
-  modificador_habilidad: number; // Solo habilidad
+  modificador: number;
+  modificador_competencia: number;
+  modificador_habilidad: number;
   habilidad_maxima: {
     nombre: string;
     valor: number;
@@ -142,7 +132,28 @@ export interface Competencia {
   fecha_obtencion?: string;
 }
 
-//  INTERFACE DE PROGRESO
+// Alias para competencia_personaje dentro de receta
+export interface CompetenciaPersonaje {
+  id?: number;
+  grado: string;
+  exitos_acumulados: number;
+  modificador?: number;
+  modificador_competencia?: number;
+  modificador_habilidad?: number;
+  habilidad_maxima?: {
+    nombre: string;
+    valor: number;
+  };
+  info_grado?: {
+    suma_oro: number;
+    gasto_oro: number;
+  };
+  exitos_para_siguiente_grado?: number | null;
+  mensaje?: string;
+}
+
+// ============ PROGRESO DE CRAFTING ============
+
 export interface Progreso {
   id: number;
   receta_nombre: string;
@@ -151,8 +162,8 @@ export interface Progreso {
   oro_acumulado: number;
   exitos_conseguidos: number;
   exitos_requeridos: number;
-  oro_necesario: number;  // 
-  dc: number;             // 
+  oro_necesario: number;
+  dc: number;
   dias_trabajados: number;
   estado: 'en_progreso' | 'completado' | 'pausado';
   porcentaje_completado: number;
@@ -162,13 +173,20 @@ export interface Progreso {
   fecha_completado?: string | null;
 }
 
-//  TIPOS AUXILIARES PARA RESPUESTAS DE LA API
+// ============ TIPOS AUXILIARES ============
+
+export interface CosteMagico {
+  dias: number;
+  oro: number;
+}
 
 export interface SubidaGrado {
   mensaje: string;
   nuevo_grado: string;
   competencia: Competencia;
 }
+
+// ============ RESPUESTAS DE LA API ============
 
 export interface RespuestaTirada {
   tirada: Tirada;
@@ -189,4 +207,11 @@ export interface RespuestaIniciarCrafting {
 export interface RespuestaMisProgresos {
   en_progreso: Progreso[];
   completados: Progreso[];
+}
+
+// ============ TIPOS PARA SELECT (React Select) ============
+
+export interface SelectOption {
+  value: number | string;
+  label: string;
 }

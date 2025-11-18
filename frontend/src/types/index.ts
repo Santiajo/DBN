@@ -2,13 +2,14 @@ export type Objeto = {
   id: number;
   Name: string;
   Source: string;
-  Page: string | number; 
+  es_investigable: boolean;
+  Page: string | number;
   Rarity: string;
   Type: string;
   Attunement: string;
   Damage: string;
-  Properties: string | string[]; 
-  Mastery: string | string[];    
+  Properties: string | string[];
+  Mastery: string | string[];
   Weight: string | number;
   Value: string | number;
   Text: string;
@@ -122,4 +123,132 @@ export interface BonusProficiencia {
   id: number;
   nivel: number;
   bonus: number;
+}
+
+// Interfaces para Species y Traits
+export type CreatureType =
+  | 'Humanoid'
+  | 'Elemental'
+  | 'Monstrosity'
+  | 'Fey'
+  | 'Fiend'
+  | 'Celestial'
+  | 'Dragon'
+  | 'Giant'
+  | 'Aberration'
+  | 'Beast'
+  | 'Construct'
+  | 'Ooze'
+  | 'Plant'
+  | 'Undead';
+
+export type CreatureSize =
+  | 'Tiny'
+  | 'Small'
+  | 'Medium'
+  | 'Small or Medium'
+  | 'Medium or Large'
+  | 'Large'
+  | 'Huge'
+  | 'Gargantuan';
+
+export interface DnDTraitOption {
+  id: number;
+  name: string;
+  description: string;
+  min_choices: number;
+  max_choices: number;
+  display_order: number;
+}
+
+export interface DnDTrait extends DnDTraitOption {
+  species: number; 
+  parent_choice: number | null; 
+  options: DnDTraitOption[]; 
+}
+
+export interface DnDSpecies {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  creature_type: CreatureType;
+  size: CreatureSize;
+  walking_speed: number;
+  darkvision: number;
+  traits: DnDTrait[]; 
+}
+
+// Interfaces para clases y features
+export type HitDie = 6 | 8 | 10 | 12;
+
+export type StatName = 
+  | 'fuerza' 
+  | 'destreza' 
+  | 'constitucion' 
+  | 'inteligencia' 
+  | 'sabiduria' 
+  | 'carisma';
+
+export interface ClassFeature {
+  id: number;
+  name: string;
+  level: number;
+  description: string;
+  display_order: number;
+}
+
+export interface ClassResource {
+  id: number;
+  name: string;
+  progression: Record<string, number>; 
+  reset_on: string;
+  has_die: boolean;
+  dice_type?: string;
+}
+
+export interface ClassResource {
+  id: number;
+  name: string;
+  quantity_type: 'Fixed' | 'Stat' | 'Proficiency' | 'Unlimited';
+  quantity_stat?: string; 
+  progression: Record<string, number>; 
+  value_progression: Record<string, string>;
+  reset_on: string;
+}
+
+export interface DnDClass {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  source: string;
+  hit_die: HitDie;
+  primary_ability: StatName;
+  saving_throws: StatName[];
+  skill_choices: Habilidad[];
+  skill_choices_count: number;
+  armor_proficiencies: string;
+  weapon_proficiencies: string;
+  tool_proficiencies: string;
+  starting_equipment: string;
+  features: ClassFeature[];
+  resources: ClassResource[];
+} 
+
+export interface DnDClassPayload {
+  id?: number;
+  name: string;
+  slug?: string;
+  description: string;
+  source: string;
+  hit_die: number;
+  primary_ability: string;
+  saving_throws: string[];
+  skill_choices_ids: number[]; 
+  skill_choices_count: number;
+  armor_proficiencies: string;
+  weapon_proficiencies: string;
+  tool_proficiencies: string;
+  starting_equipment: string;
 }
