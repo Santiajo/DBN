@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import Card from "@/components/card";
+import ClassesTable from "@/components/classes-table"; 
 import Input from "@/components/input";
 import Button from "@/components/button";
 import Pagination from '@/components/pagination';
@@ -48,6 +49,7 @@ export default function ClassesPage() {
             setTotalPages(Math.ceil(data.count / PAGE_SIZE));
             setCurrentPage(page);
 
+            // Mantener la selección si el objeto sigue existiendo en la nueva página
             if (selectedClass) {
                 const stillExists = data.results.find((c: DnDClass) => c.id === selectedClass.id);
                 if (stillExists) setSelectedClass(stillExists);
@@ -88,6 +90,7 @@ export default function ClassesPage() {
             const savedClass = await res.json();
             setIsModalOpen(false);
             setEditingClass(null);
+            // Recargamos y seleccionamos la clase guardada
             fetchClasses(currentPage, searchTerm).then(() => setSelectedClass(savedClass));
         } catch (error) {
             console.error(error);
@@ -114,7 +117,7 @@ export default function ClassesPage() {
 
     return (
         <div className="p-8 space-y-6 font-body text-stone-800">
-            {/* Header */}
+            {/* Header y Búsqueda */}
             <div className="flex justify-end items-center gap-4">
                 <Button variant="primary" onClick={() => { setEditingClass(null); setIsModalOpen(true); }}>
                     <div className="flex items-center gap-2"><FaPlus /> Crear Clase</div>
@@ -125,60 +128,20 @@ export default function ClassesPage() {
                 </div>
             </div>
 
+            {/* Contenido Principal */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                
+                {/* Columna Izquierda: Tabla Específica */}
                 <div className="lg:col-span-2">
-                    
-                    {/* TABLA INCRUSTADA DIRECTAMENTE AQUÍ */}
-                    <div className="overflow-x-auto rounded-xl border border-madera-oscura">
-                        <table className="min-w-full text-left text-sm font-body">
-                            <thead className="bg-cuero text-white font-title uppercase">
-                                <tr>
-                                    <th className="px-4 py-3">Nombre</th>
-                                    <th className="px-4 py-3">Dado de Golpe</th>
-                                    <th className="px-4 py-3">Habilidad Principal</th>
-                                    <th className="px-4 py-3">Fuente</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {classes.map((dndClass, rowIndex) => {
-                                    const isSelected = selectedClass?.id === dndClass.id;
-                                    return (
-                                        <tr
-                                            key={dndClass.id || rowIndex}
-                                            onClick={() => setSelectedClass(dndClass)}
-                                            className={`
-                                                transition border-b border-stone-200 last:border-0 cursor-pointer
-                                                ${isSelected 
-                                                    ? 'bg-bosque text-white' 
-                                                    : 'odd:bg-white even:bg-pergamino hover:bg-bosque/10 text-stone-800'
-                                                }
-                                            `}
-                                        >
-                                            <td className="px-4 py-2 font-semibold">{dndClass.name}</td>
-                                            <td className="px-4 py-2">d{dndClass.hit_die}</td>
-                                            <td className="px-4 py-2 capitalize">{dndClass.primary_ability}</td>
-                                            <td className="px-4 py-2">
-                                                <span className={`inline-block px-2 py-0.5 rounded text-xs border border-stone-300 ${isSelected ? 'bg-white/20' : 'bg-stone-200/50'}`}>
-                                                    {dndClass.source}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                                {classes.length === 0 && (
-                                    <tr>
-                                        <td colSpan={4} className="px-4 py-8 text-center text-stone-500 italic bg-white">
-                                            No se encontraron clases.
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                    
+                    <ClassesTable 
+                        data={classes} 
+                        onRowClick={(c) => setSelectedClass(c)} 
+                        selectedId={selectedClass?.id}
+                    />
                     <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={(p) => fetchClasses(p, searchTerm)} />
                 </div>
 
+                {/* Columna Derecha: Detalles */}
                 <div className="lg:col-span-1">
                     {selectedClass ? (
                         <Card variant="primary" className="h-full flex flex-col">
@@ -202,7 +165,7 @@ export default function ClassesPage() {
                                 <Button variant="dangerous" onClick={() => setIsAlertOpen(true)}><FaTrash /></Button>
                                 <Button variant="secondary" onClick={() => { setEditingClass(selectedClass); setIsModalOpen(true); }}><FaPencilAlt /></Button>
                                 
-                                {/* Botón de Detalle */}
+                                {/* Botón de Navegación al Detalle */}
                                 <Button 
                                     variant="secondary" 
                                     onClick={() => router.push(`/admin/classes/${selectedClass.slug}`)} 
@@ -222,6 +185,7 @@ export default function ClassesPage() {
                 </div>
             </div>
 
+            {/* Modales */}
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingClass ? "Editar Clase" : "Nueva Clase"}>
                 <ClassForm onSave={handleSaveClass} onCancel={() => setIsModalOpen(false)} initialData={editingClass} />
             </Modal>
