@@ -11,7 +11,7 @@ import Pagination from '@/components/pagination';
 import Modal from '@/components/modal';
 import ConfirmAlert from '@/components/confirm-alert';
 import { FaSearch, FaTrash, FaPencilAlt, FaEye, FaPlus } from 'react-icons/fa';
-import { DnDClass } from '@/types';
+import { DnDClass, DnDClassPayload } from '@/types';
 import ClassForm from './class-form';
 
 const API_ENDPOINT = '/api/classes/';
@@ -38,12 +38,12 @@ export default function ClassesPage() {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${API_ENDPOINT}?${params}`, {
                 headers: { 'Authorization': `Bearer ${accessToken}` }
             });
-            
+
             if (!res.ok) {
                 if (res.status === 401) logout();
                 throw new Error('Error fetching classes');
             }
-            
+
             const data = await res.json();
             setClasses(data.results);
             setTotalPages(Math.ceil(data.count / PAGE_SIZE));
@@ -67,12 +67,15 @@ export default function ClassesPage() {
         if (user?.is_staff) fetchClasses(currentPage, searchTerm);
     }, [user, currentPage, fetchClasses, searchTerm]);
 
-    const handleSaveClass = async (classData: any) => {
+    const handleSaveClass = async (classData: DnDClassPayload) => {
         if (!accessToken) return;
+
         const isEditing = !!classData.id;
-        const url = isEditing 
+
+        const url = isEditing
             ? `${process.env.NEXT_PUBLIC_API_URL}${API_ENDPOINT}${classData.slug}/`
             : `${process.env.NEXT_PUBLIC_API_URL}${API_ENDPOINT}`;
+
         const method = isEditing ? 'PUT' : 'POST';
 
         try {
@@ -86,7 +89,7 @@ export default function ClassesPage() {
             });
 
             if (!res.ok) throw new Error('Error saving class');
-            
+
             const savedClass = await res.json();
             setIsModalOpen(false);
             setEditingClass(null);
@@ -136,10 +139,10 @@ export default function ClassesPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 <div className="lg:col-span-2">
-                    <Table 
-                        data={classes} 
-                        headers={tableHeaders} 
-                        onRowClick={(c) => setSelectedClass(c as DnDClass)} 
+                    <Table
+                        data={classes}
+                        headers={tableHeaders}
+                        onRowClick={(c) => setSelectedClass(c as DnDClass)}
                         selectedRowId={selectedClass?.id}
                     />
                     <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={(p) => fetchClasses(p, searchTerm)} />
@@ -152,12 +155,12 @@ export default function ClassesPage() {
                                 <h3 className="font-title text-2xl text-stone-900">{selectedClass.name}</h3>
                                 <div className="flex gap-2 mt-2 text-sm text-stone-700">
                                     <span className="bg-white/50 px-2 py-0.5 rounded border border-madera-oscura/20">d{selectedClass.hit_die}</span>
-                                    <span className="bg-white/50 px-2 py-0.5 rounded border border-madera-oscura/20 uppercase">{selectedClass.primary_ability.substring(0,3)}</span>
+                                    <span className="bg-white/50 px-2 py-0.5 rounded border border-madera-oscura/20 uppercase">{selectedClass.primary_ability.substring(0, 3)}</span>
                                 </div>
                             </div>
                             <div className="font-body text-sm flex-grow mt-4 border-t pt-4 border-madera-oscura/30">
                                 <p className="whitespace-pre-wrap text-stone-800">{selectedClass.description}</p>
-                                
+
                                 <div className="mt-4 space-y-2">
                                     <p><strong>Salvaciones:</strong> <span className="capitalize">{selectedClass.saving_throws.join(', ')}</span></p>
                                     <p><strong>Skills:</strong> Elige {selectedClass.skill_choices_count}</p>
