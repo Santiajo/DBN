@@ -239,7 +239,7 @@ export default function ClassesPage() {
                                 {/* Botón de Navegación al Detalle */}
                                 <Button
                                     variant="secondary"
-                                    onClick={() => router.push(`/dashboard/especies/${selectedClass.slug}`)}
+                                    onClick={() => router.push(`/dashboard/clases/${selectedClass.slug}`)}
                                     title="Ver Tabla de Progresión"
                                 >
                                     <div className="flex items-center gap-2">
