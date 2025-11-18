@@ -706,3 +706,85 @@ class Trait(models.Model):
         if self.parent_choice:
             return f"{self.species.name} -> {self.parent_choice.name} (Opción: {self.name})"
         return f"{self.species.name} -> {self.name}"
+    
+# Modelos para clases de D&D
+STAT_FIELDS = [
+    ('fuerza', 'Fuerza'),
+    ('destreza', 'Destreza'),
+    ('constitucion', 'Constitución'),
+    ('inteligencia', 'Inteligencia'),
+    ('sabiduria', 'Sabiduría'),
+    ('carisma', 'Carisma'),
+]
+
+HIT_DIE_CHOICES = [(6, 'd6'), (8, 'd8'), (10, 'd10'), (12, 'd12')]
+
+RESET_CHOICES = [
+    ('Short Rest', 'Descanso Corto'),
+    ('Long Rest', 'Descanso Largo'),
+    ('Special', 'Especial'),
+]
+
+class DnDClass(models.Model):
+    name = models.CharField(max_length=100, unique=True, help_text="Ej: Artificer")
+    slug = models.SlugField(max_length=100, unique=True, blank=True)
+    description = models.TextField()
+    hit_die = models.IntegerField(choices=HIT_DIE_CHOICES, default=8)
+    primary_ability = models.CharField(
+        max_length=20, 
+        choices=STAT_FIELDS, 
+        default='fuerza',
+        help_text="Estadística principal de la clase (ej. 'inteligencia' para Artificer)."
+    )
+    
+    saving_throws = models.JSONField(
+        default=list, 
+        help_text="Lista de campos de estadística para salvaciones."
+    )
+    
+    skill_choices = models.ManyToManyField(
+        'Habilidad', 
+        related_name='class_options',
+        blank=True,
+        help_text="Qué habilidades puede elegir el jugador."
+    )
+    skill_choices_count = models.PositiveIntegerField(default=2)
+    
+    armor_proficiencies = models.TextField(blank=True, help_text="Ej: Light and Medium armor, Shields")
+    weapon_proficiencies = models.TextField(blank=True, help_text="Ej: Simple weapons, firearms")
+    tool_proficiencies = models.TextField(blank=True, help_text="Ej: Thieves' tools, tinker's tools")
+    starting_equipment = models.TextField(blank=True, help_text="Descripción del equipo inicial.")
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
+
+class ClassFeature(models.Model):
+    dnd_class = models.ForeignKey(DnDClass, related_name='features', on_delete=models.CASCADE)
+    name = models.CharField(max_length=150)
+    level = models.PositiveIntegerField(default=1)
+    description = models.TextField()
+    display_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['level', 'display_order']
+
+    def __str__(self):
+        return f"{self.dnd_class.name} Lvl {self.level}: {self.name}"
+
+
+class ClassResource(models.Model):
+    dnd_class = models.ForeignKey(DnDClass, related_name='resources', on_delete=models.CASCADE)
+    name = models.CharField(max_length=100, help_text="Ej: Wild Shape, Infusions Known")
+    progression = models.JSONField(default=dict, help_text="Diccionario Nivel: Cantidad (Ej: {'1': 2, '2': 3})")
+    reset_on = models.CharField(max_length=50, default="Long Rest", help_text="Ej: Short Rest, Long Rest")
+    has_die = models.BooleanField(default=False, help_text="¿Este recurso usa un dado (ej. dado de golpe, dado de bardo)?")
+    dice_type = models.CharField(max_length=10, blank=True, help_text="Ej: d6, d8 (si aplica)")
+
+    def __str__(self):
+        return f"{self.dnd_class.name} Resource: {self.name}"
