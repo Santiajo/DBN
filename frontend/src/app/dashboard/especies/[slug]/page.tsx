@@ -120,7 +120,7 @@ export default function SpeciesDetailPage() {
 
       {/* Botón Volver (Usando tu componente Button) */}
       <div className="flex items-center mb-4">
-        <Button variant="secondary" onClick={() => router.back()}>
+        <Button variant="primary" onClick={() => router.back()}>
           <div className="flex items-center gap-2">
             <FaArrowLeft /> Volver al listado
           </div>
@@ -155,8 +155,6 @@ export default function SpeciesDetailPage() {
 
         {species.traits.map((trait) => (
           <Card key={trait.id} variant="secondary" className="p-0 overflow-hidden">
-
-            {/* Encabezado del Rasgo (Fondo gris suave) */}
             <div className="p-4 flex justify-between items-start bg-stone-50/50">
               <div className="flex-grow">
                 <div className="flex items-center gap-2 mb-1">
@@ -183,7 +181,7 @@ export default function SpeciesDetailPage() {
                 <button onClick={() => handleOpenEdit(trait)} className="p-2 text-stone-500 hover:bg-stone-200 rounded transition-colors">
                   <FaPencilAlt />
                 </button>
-                <button onClick={() => handleDeleteClick(trait)} className="p-2 text-red-500 hover:bg-red-100 rounded transition-colors">
+                <button onClick={() => handleDeleteClick(trait)} className="p-2 text-carmesi hover:bg-carmesi/10 rounded transition-colors">
                   <FaTrash />
                 </button>
               </div>
