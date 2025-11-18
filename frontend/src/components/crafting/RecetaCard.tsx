@@ -1,61 +1,8 @@
 'use client';
 
 import { FaHammer, FaCoins, FaTools, FaMagic, FaStar } from 'react-icons/fa';
+import { Receta } from '@/types/receta';
 
-interface Receta {
-  id: number;
-  nombre: string;
-  objeto_final: string;
-  nombre_objeto_final: string; // ✅ Añadir este campo que viene del serializer
-  cantidad_final: number;
-  es_magico: boolean;
-  oro_necesario: number;
-  herramienta: string;
-  ingredientes: Array<{
-    objeto_id: number;
-    nombre: string;
-    cantidad_necesaria: number;
-    es_material_raro?: boolean;
-  }>;
-  puede_craftear: boolean;
-  ingredientes_faltantes: Array<{
-    objeto: string;
-    necesaria: number;
-    actual: number;
-    faltante: number;
-  }>;
-  rareza: string | null;
-  material_raro: number | null;
-  nombre_material_raro: string | null;
-  tipo_artesano: string | null;
-  grado_minimo_requerido: string;
-  es_consumible: boolean;
-  dc: number;
-  exitos_requeridos: number;
-  competencia_personaje: {
-    id?: number;
-    grado: string;
-    exitos_acumulados: number;
-    modificador?: number;
-    modificador_competencia?: number;
-    modificador_habilidad?: number;
-    habilidad_maxima?: {
-      nombre: string;
-      valor: number;
-    };
-    info_grado?: {
-      suma_oro: number;
-      gasto_oro: number;
-    };
-    exitos_para_siguiente_grado?: number | null;
-    mensaje?: string;
-  } | null;
-  coste_magico: {
-    dias: number;
-    oro: number;
-  } | null;
-  puede_craftear_rareza: boolean;
-}
 interface Props {
   receta: Receta;
   onClick: (receta: Receta) => void;
@@ -161,7 +108,7 @@ export default function RecetaCard({ receta, onClick, disponible }: Props) {
         )}
       </div>
 
-      {/* Ingredientes */}
+      {/* Ingredientes - ✅ USANDO los campos correctos */}
       <div className="bg-amber-50 p-3 rounded-lg border border-amber-200 mb-3">
         <p className="text-xs font-bold text-amber-900 mb-2">Ingredientes:</p>
         <ul className="space-y-1">
@@ -169,10 +116,7 @@ export default function RecetaCard({ receta, onClick, disponible }: Props) {
             <li key={idx} className="text-xs text-amber-800 flex items-start gap-2">
               <span className="mt-1.5 w-1.5 h-1.5 bg-amber-600 rounded-full flex-shrink-0"></span>
               <span>
-                {ing.cantidad_necesaria}x {ing.nombre}
-                {ing.es_material_raro && (
-                  <span className="ml-1 text-purple-700 font-semibold">(★ Raro)</span>
-                )}
+                {ing.cantidad}x {ing.nombre_ingrediente}
               </span>
             </li>
           ))}
@@ -180,7 +124,7 @@ export default function RecetaCard({ receta, onClick, disponible }: Props) {
       </div>
 
       {/* Ingredientes Faltantes */}
-      {!disponible && receta.ingredientes_faltantes.length > 0 && (
+      {!disponible && receta.ingredientes_faltantes && receta.ingredientes_faltantes.length > 0 && (
         <div className="bg-red-50 p-3 rounded-lg border border-red-200">
           <p className="text-xs font-bold text-red-800 mb-2">Te faltan:</p>
           <ul className="space-y-1">

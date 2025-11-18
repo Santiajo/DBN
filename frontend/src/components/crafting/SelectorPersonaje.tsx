@@ -1,19 +1,7 @@
 'use client';
 
 import Select, { StylesConfig, CSSObjectWithLabel } from 'react-select';
-
-interface Personaje {
-  id: number;
-  nombre_personaje: string;
-  oro: number;
-  tiempo_libre: number;
-  nivel: number;
-}
-
-interface SelectOption {
-  value: number;
-  label: string;
-}
+import { Personaje, SelectOption } from '@/types/receta';
 
 interface Props {
   personajes: Personaje[];
