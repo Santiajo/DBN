@@ -789,3 +789,61 @@ class ClassResource(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.dnd_class.name})"
+
+# Modelos de subclases
+class DnDSubclass(models.Model):
+    dnd_class = models.ForeignKey(DnDClass, related_name='subclasses', on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+    slug = models.SlugField(max_length=100, unique=True, blank=True)
+    description = models.TextField()
+    source = models.CharField(max_length=100, default="PHB")
+    skill_choices = models.ManyToManyField(
+        'Habilidad', 
+        related_name='subclass_options',
+        blank=True,
+        help_text="Habilidades adicionales que otorga la subclase (o opciones)."
+    )
+    skill_choices_count = models.PositiveIntegerField(default=0, help_text="Si es 0, se otorgan todas. Si es > 0, el jugador elige.")
+    bonus_proficiencies = models.TextField(blank=True, help_text="Texto libre para herramientas, idiomas o armas extra.")
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(f"{self.dnd_class.name}-{self.name}")
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.name} ({self.dnd_class.name})"
+
+
+class SubclassFeature(models.Model):
+    dnd_subclass = models.ForeignKey(DnDSubclass, related_name='features', on_delete=models.CASCADE)
+    name = models.CharField(max_length=150)
+    level = models.PositiveIntegerField(default=3, help_text="Nivel de CLASE en que se gana.")
+    description = models.TextField()
+    display_order = models.PositiveIntegerField(default=0)
+    parent_feature = models.ForeignKey(
+        'self', 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True, 
+        related_name='options',
+        help_text="Si este rasgo es una opción (ej. una Maniobra), selecciona el rasgo padre."
+    )
+    choices_count = models.PositiveIntegerField(default=0, help_text="Cuántas opciones elegir (Ej: 3 para Maniobras iniciales).")
+    class Meta:
+        ordering = ['level', 'display_order', 'name']
+    def __str__(self):
+        if self.parent_feature:
+            return f"{self.dnd_subclass.name} Opt: {self.name}"
+        return f"{self.dnd_subclass.name} Lvl {self.level}: {self.name}"
+
+
+class SubclassResource(models.Model):
+    dnd_subclass = models.ForeignKey(DnDSubclass, related_name='resources', on_delete=models.CASCADE)
+    name = models.CharField(max_length=100, help_text="Ej: Superiority Dice")
+    quantity_type = models.CharField(max_length=20, default='Fixed') # Fixed, Stat, Proficiency
+    quantity_stat = models.CharField(max_length=20, blank=True, null=True)
+    progression = models.JSONField(default=dict, blank=True, help_text="{ '3': 4, '7': 5 }")
+    value_progression = models.JSONField(default=dict, blank=True, help_text="{ '3': 'd8', '10': 'd10' }")
+    reset_on = models.CharField(max_length=50, default="Short Rest")
+    def __str__(self):
+        return f"{self.name} ({self.dnd_subclass.name})"

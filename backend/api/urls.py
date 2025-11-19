@@ -32,6 +32,11 @@ router.register(r'classes', views.DnDClassViewSet, basename='dndclass')
 router.register(r'class-features', views.ClassFeatureViewSet, basename='classfeature')
 router.register(r'class-resources', views.ClassResourceViewSet, basename='classresource')
 
+# Routers para subclases y características de subclases
+router.register(r'subclasses', views.DnDSubclassViewSet, basename='dndsubclass')
+router.register(r'subclass-features', views.SubclassFeatureViewSet, basename='subclassfeature')
+router.register(r'subclass-resources', views.SubclassResourceViewSet, basename='subclassresource')
+
 # Router de Crafting
 router.register(r'crafting', views.CraftingViewSet, basename='crafting')
 
