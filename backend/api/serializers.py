@@ -178,6 +178,14 @@ class TrabajoRealizadoSerializer(serializers.ModelSerializer):
     class Meta:
         model = TrabajoRealizado
         fields = '__all__'
+
+class ProgresoTrabajoSerializer(serializers.ModelSerializer):
+    """
+    Serializa el progreso del trabajo para el frontend.
+    """
+    class Meta:
+        model = ProgresoTrabajo
+        fields = '__all__'
         
 class ObjetoTiendaSerializer(serializers.ModelSerializer):
     nombre_objeto = serializers.CharField(source='objeto.Name', read_only=True)
