@@ -252,3 +252,60 @@ export interface DnDClassPayload {
   tool_proficiencies: string;
   starting_equipment: string;
 }
+
+// Types para subclases
+export interface SubclassFeature {
+  id: number;
+  name: string;
+  level: number;
+  description: string;
+  display_order: number;
+  parent_feature?: number | null; 
+  options?: SubclassFeature[];
+  choices_count: number;
+}
+
+export interface SubclassResource {
+  id: number;
+  name: string;
+  quantity_type: 'Fixed' | 'Stat' | 'Proficiency' | 'Unlimited';
+  quantity_stat?: string;
+  progression: Record<string, number>;
+  value_progression: Record<string, string>;
+  reset_on: string;
+}
+
+// Subclase Principal
+export interface DnDSubclass {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  source: string;
+  dnd_class: number;       
+  dnd_class_name?: string; 
+
+  // Proficiencias Extra
+  skill_choices: Habilidad[]; 
+  skill_choices_ids?: number[]; 
+  skill_choices_count: number;
+  bonus_proficiencies: string;
+
+  // Relaciones
+  features: SubclassFeature[];
+  resources: SubclassResource[];
+}
+
+// Payload para Guardar (Create/Edit)
+export interface DnDSubclassPayload {
+  id?: number;
+  name: string;
+  slug?: string;
+  description: string;
+  source: string;
+  dnd_class: number;
+  
+  skill_choices_ids: number[];
+  skill_choices_count: number;
+  bonus_proficiencies: string;
+}
