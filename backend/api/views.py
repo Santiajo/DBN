@@ -82,8 +82,19 @@ class RecetaViewSet(viewsets.ModelViewSet):
     serializer_class = RecetaSerializer
 
 class IngredienteViewSet(viewsets.ModelViewSet):
-    queryset= Ingredientes.objects.all()
+    queryset = Ingredientes.objects.all()
     serializer_class = IngredientesSerializer
+    permission_classes = [IsAuthenticated]  # 
+    
+    def get_queryset(self):
+        """Filtrar ingredientes por receta si se proporciona el parámetro"""
+        queryset = Ingredientes.objects.all()
+        receta_id = self.request.query_params.get('receta', None)
+        
+        if receta_id is not None:
+            queryset = queryset.filter(receta_id=receta_id)
+        
+        return queryset
 
 class InventarioPersonajeViewSet(viewsets.ModelViewSet):
     serializer_class = InventarioSerializer
@@ -228,6 +239,17 @@ class TrabajoRealizadoViewSet(viewsets.ModelViewSet):
 
         except Exception as e:
             raise serializers.ValidationError(f"Error en la transacción: {str(e)}")
+
+class ProgresoTrabajoViewSet(viewsets.ModelViewSet):
+    """
+    Permite a los usuarios ver su propio progreso en los trabajos.
+    """
+    serializer_class = ProgresoTrabajoSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Filtra para devolver solo el progreso del usuario logueado
+        return ProgresoTrabajo.objects.filter(personaje__user=self.request.user)
 
 # ViewSet para el CRUD de Tienda
 class TiendaViewSet(viewsets.ModelViewSet):

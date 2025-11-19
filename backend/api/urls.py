@@ -22,6 +22,7 @@ router.register(r'trabajos-realizados', TrabajoRealizadoViewSet)
 router.register(r'objetos', views.ObjetoViewSet, basename='objeto')
 router.register(r'tiendas', views.TiendaViewSet, basename='tienda')
 router.register(r'pagos-rango', views.PagoRangoViewSet, basename='pagorango')
+router.register(r'progreso-trabajos', ProgresoTrabajoViewSet, basename='progresotrabajo')
 
 # Routers para especies y rasgos de especies
 router.register(r'species', views.SpeciesViewSet, basename='species')

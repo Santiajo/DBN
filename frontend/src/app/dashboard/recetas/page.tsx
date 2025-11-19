@@ -1,19 +1,17 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import Card from "@/components/card";
 import Button from "@/components/button";
 import Modal from '@/components/modal';
 import ConfirmAlert from '@/components/confirm-alert';
 import RecetaForm from '@/components/receta-form';
-import { FaPlus, FaPencilAlt, FaTrash, FaTag, FaCoins, FaMagic, FaLevelUpAlt, FaTools, FaStar, FaFlask } from 'react-icons/fa';
+import { FaPlus, FaPencilAlt, FaTrash, FaTag, FaCoins, FaMagic, FaStar, FaTools, FaFlask } from 'react-icons/fa';
 import { RecetaFormData, Receta } from '@/types/receta';
 
 export default function RecetasPage() {
     const { accessToken, logout } = useAuth();
-    const router = useRouter();
 
     const [recetas, setRecetas] = useState<Receta[]>([]);
     const [loading, setLoading] = useState(true);
@@ -39,7 +37,20 @@ export default function RecetasPage() {
                 throw new Error('Error al cargar las recetas');
             }
             const data = await res.json();
-            setRecetas(data.results || data); 
+            const recetasData = data.results || data;
+            
+            console.log('📦 Recetas cargadas:', recetasData);
+            
+            // ✅ VALIDAR que cada receta tenga ingredientes
+            recetasData.forEach((receta: Receta) => {
+                if (!receta.ingredientes) {
+                    console.warn(`⚠️ Receta "${receta.nombre}" (ID: ${receta.id}) no tiene ingredientes`);
+                } else {
+                    console.log(`✅ Receta "${receta.nombre}" tiene ${receta.ingredientes.length} ingredientes`);
+                }
+            });
+            
+            setRecetas(recetasData); 
             setErrorMessage('');
         } catch (error) {
             console.error(error);
@@ -53,6 +64,42 @@ export default function RecetasPage() {
         fetchRecetas();
     }, [fetchRecetas]);
 
+    // ✅ Función para cargar UNA receta con todos sus detalles
+    const fetchRecetaDetalle = async (recetaId: number): Promise<Receta | null> => {
+        if (!accessToken) return null;
+        
+        try {
+            console.log(`🔍 Cargando detalles de receta ID: ${recetaId}`);
+            const res = await fetch(`${apiUrl}/api/recetas/${recetaId}/`, {
+                headers: { 'Authorization': `Bearer ${accessToken}` },
+            });
+            
+            if (!res.ok) {
+                throw new Error('Error al cargar detalles de la receta');
+            }
+            
+            const recetaDetalle = await res.json();
+            console.log('📋 Detalles completos:', recetaDetalle);
+            
+            // ✅ Validar ingredientes
+            if (!recetaDetalle.ingredientes) {
+                console.error('❌ La receta no tiene campo "ingredientes"');
+                recetaDetalle.ingredientes = [];
+            } else {
+                console.log(`✅ Ingredientes: ${recetaDetalle.ingredientes.length}`);
+                recetaDetalle.ingredientes.forEach((ing: { objeto_id: number; nombre: string; cantidad_necesaria: number }) => {
+                    console.log(`  - ${ing.cantidad_necesaria}x ${ing.nombre} (ID: ${ing.objeto_id})`);
+                });
+            }
+            
+            return recetaDetalle;
+        } catch (error) {
+            console.error('Error cargando detalles:', error);
+            setErrorMessage('Error al cargar los detalles de la receta.');
+            return null;
+        }
+    };
+
     const handleSaveReceta = async (recetaData: RecetaFormData) => {
         if (!accessToken) return;
         
@@ -62,6 +109,8 @@ export default function RecetasPage() {
 
         setErrorMessage('');
         try {
+            console.log('📤 Guardando receta:', recetaData);
+            
             // ✅ 1. Preparar el body con TODOS los campos
             const bodyReceta = {
                 nombre: recetaData.nombre,
@@ -71,7 +120,6 @@ export default function RecetasPage() {
                 oro_necesario: recetaData.oro_necesario,
                 herramienta: recetaData.herramienta || '',
                 grado_minimo_requerido: recetaData.grado_minimo_requerido || 'Novato',
-                // ✅ Campos de objetos mágicos
                 rareza: recetaData.es_magico ? recetaData.rareza : null,
                 material_raro: recetaData.es_magico ? recetaData.material_raro : null,
                 es_consumible: recetaData.es_magico ? recetaData.es_consumible : false,
@@ -92,38 +140,81 @@ export default function RecetasPage() {
             const savedReceta: Receta = await res.json();
             const recetaId = savedReceta.id;
 
-            // 2. Gestión de Ingredientes
+            console.log('✅ Receta guardada:', savedReceta);
+
+            // ✅ 2. GESTIÓN DE INGREDIENTES MEJORADA
             if (isEditing) {
-                const deletePromises = editingReceta?.ingredientes.map(ing => 
-                    fetch(`${apiUrl}/api/ingredientes/${ing.objeto_id}/`, {
-                        method: 'DELETE',
-                        headers: { 'Authorization': `Bearer ${accessToken}` },
-                    })
-                ) || [];
-                await Promise.all(deletePromises);
+                console.log('🗑️ Eliminando ingredientes antiguos...');
+                
+                const resIngredientes = await fetch(`${apiUrl}/api/ingredientes/?receta=${recetaId}`, {
+                    headers: { 'Authorization': `Bearer ${accessToken}` },
+                });
+                
+                if (resIngredientes.ok) {
+                    const ingredientesActuales = await resIngredientes.json();
+                    const ingredientesArray: Array<{ id: number }> = ingredientesActuales.results || ingredientesActuales;
+                    
+                    console.log(`  Encontrados ${ingredientesArray.length} ingredientes a eliminar`);
+                    
+                    const deletePromises = ingredientesArray.map((ing) => 
+                        fetch(`${apiUrl}/api/ingredientes/${ing.id}/`, {
+                            method: 'DELETE',
+                            headers: { 'Authorization': `Bearer ${accessToken}` },
+                        }).then(res => {
+                            if (!res.ok) {
+                                console.error(`Error al eliminar ingrediente ${ing.id}`);
+                            } else {
+                                console.log(`✅ Ingrediente ${ing.id} eliminado`);
+                            }
+                        })
+                    );
+                    
+                    await Promise.all(deletePromises);
+                    console.log('✅ Todos los ingredientes antiguos eliminados');
+                }
             }
 
-            // 3. Crear los nuevos ingredientes
-            const createPromises = recetaData.ingredientes.map(ing => {
+            // ✅ 3. Crear los NUEVOS ingredientes
+            console.log(`➕ Creando ${recetaData.ingredientes.length} nuevos ingredientes...`);
+            
+            const createPromises = recetaData.ingredientes.map((ing, index) => {
                 const bodyIngrediente = {
                     receta: recetaId,
                     objeto: ing.objeto,
-                    cantidad: ing.cantidad
+                    cantidad: Number(ing.cantidad)
                 };
+                
+                console.log(`  Creando ingrediente ${index + 1}:`, bodyIngrediente);
+                
                 return fetch(`${apiUrl}/api/ingredientes/`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'Authorization': `Bearer ${accessToken}` 
+                    },
                     body: JSON.stringify(bodyIngrediente),
+                }).then(async res => {
+                    if (!res.ok) {
+                        const errorData = await res.json();
+                        console.error(`Error al crear ingrediente:`, errorData);
+                        throw new Error(`Error al crear ingrediente: ${JSON.stringify(errorData)}`);
+                    }
+                    const created = await res.json();
+                    console.log(`✅ Ingrediente creado:`, created);
+                    return created;
                 });
             });
 
             await Promise.all(createPromises);
+            console.log('✅ Todos los ingredientes nuevos creados');
 
             setIsModalOpen(false);
             setEditingReceta(null);
+            
             await fetchRecetas();
+            
         } catch (error) {
-            console.error(error);
+            console.error('❌ Error completo:', error);
             setErrorMessage(`Error: ${error instanceof Error ? error.message : 'Error desconocido al guardar.'}`);
         }
     };
@@ -148,9 +239,29 @@ export default function RecetasPage() {
         }
     };
 
-    const handleOpenCreateModal = () => { setEditingReceta(null); setIsModalOpen(true); };
-    const handleOpenEditModal = (receta: Receta) => { setEditingReceta(receta); setIsModalOpen(true); };
-    const handleOpenDeleteAlert = (receta: Receta) => { setRecetaToDelete(receta); setIsAlertOpen(true); };
+    const handleOpenCreateModal = () => { 
+        setEditingReceta(null); 
+        setIsModalOpen(true); 
+    };
+    
+    const handleOpenEditModal = async (receta: Receta) => { 
+        console.log('🔧 Editando receta:', receta);
+        
+        // ✅ Cargar detalles completos de la receta
+        const recetaDetalle = await fetchRecetaDetalle(receta.id);
+        
+        if (recetaDetalle) {
+            setEditingReceta(recetaDetalle);
+            setIsModalOpen(true);
+        } else {
+            setErrorMessage('No se pudieron cargar los detalles de la receta.');
+        }
+    };
+    
+    const handleOpenDeleteAlert = (receta: Receta) => { 
+        setRecetaToDelete(receta); 
+        setIsAlertOpen(true); 
+    };
     
     if (loading) return <div className="p-8 font-title">Cargando recetas...</div>
 
@@ -170,7 +281,7 @@ export default function RecetasPage() {
                 onClose={() => setIsAlertOpen(false)} 
                 onConfirm={handleConfirmDelete} 
                 title="¿ELIMINAR RECETA?" 
-                message={`La receta "${recetaToDelete?.nombre}" que produce "${recetaToDelete?.objeto_final}" será eliminada permanentemente.`} 
+                message={`La receta "${recetaToDelete?.nombre}" que produce "${recetaToDelete?.nombre_objeto_final || recetaToDelete?.objeto_final}" será eliminada permanentemente.`} 
             />
 
             <div className="flex justify-between items-center">
@@ -191,7 +302,6 @@ export default function RecetasPage() {
                     {recetas.map(receta => (
                         <Card key={receta.id} variant="secondary" className="flex flex-col">
                             <div className="flex-grow">
-                                {/* ✅ Header con badge de tipo */}
                                 <div className="flex justify-between items-start mb-2">
                                     <h3 className="font-title text-2xl text-bosque">{receta.nombre}</h3>
                                     <span className={`px-2 py-1 rounded-full text-xs font-bold ${
@@ -204,12 +314,13 @@ export default function RecetasPage() {
                                 </div>
 
                                 <p className="text-md italic text-stone-600 mb-4">
-                                    Produce: <strong className='font-body'>{receta.cantidad_final} x {receta.objeto_final}</strong>
+                                    Produce: <strong className='font-body'>
+                                        {receta.cantidad_final}x {receta.nombre_objeto_final || receta.objeto_final}
+                                    </strong>
                                 </p>
                                 
                                 <div className="space-y-2 text-sm font-body border-t border-madera pt-4">
                                     
-                                    {/*  Mostrar herramienta si existe */}
                                     {receta.herramienta && (
                                         <p className="flex items-center gap-2">
                                             <FaTools className="text-stone-600" /> 
@@ -217,7 +328,6 @@ export default function RecetasPage() {
                                         </p>
                                     )}
 
-                                    {/*  Mostrar grado mínimo */}
                                     {receta.grado_minimo_requerido && receta.grado_minimo_requerido !== 'Novato' && (
                                         <p className="flex items-center gap-2 text-amber-700">
                                             <FaStar className="text-amber-600" /> 
@@ -225,12 +335,13 @@ export default function RecetasPage() {
                                         </p>
                                     )}
 
-                                    <p className="flex items-center gap-2">
-                                        <FaCoins className="text-yellow-500" /> 
-                                        <strong>Oro:</strong> {receta.oro_necesario} gp
-                                    </p>
+                                    {!receta.es_magico && (
+                                        <p className="flex items-center gap-2">
+                                            <FaCoins className="text-yellow-500" /> 
+                                            <strong>Oro necesario:</strong> {receta.oro_necesario} gp
+                                        </p>
+                                    )}
 
-                                    {/*  Info de objetos mágicos */}
                                     {receta.es_magico && (
                                         <div className="bg-purple-50 p-2 rounded mt-2 space-y-1">
                                             {receta.rareza && (
@@ -262,12 +373,19 @@ export default function RecetasPage() {
                                     <h4 className="font-semibold mt-3 flex items-center gap-2">
                                         <FaTag className="text-madera-oscura"/>Ingredientes:
                                     </h4>
-                                    <ul className="list-disc list-inside ml-2">
-                                        {receta.ingredientes.map(ing => (
-                                            <li key={ing.objeto_id} className="text-xs text-stone-700">
-                                                {ing.cantidad_necesaria} x {ing.nombre}
-                                            </li>
-                                        ))}
+                                    <ul className="list-none ml-2 space-y-1">
+                                        {receta.ingredientes && receta.ingredientes.length > 0 ? (
+                                            receta.ingredientes.map((ing, idx) => (
+                                                <li key={ing.id || idx} className="text-xs text-stone-700 flex items-center gap-2">
+                                                    <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold">
+                                                        {ing.cantidad}x
+                                                    </span>
+                                                    <span>{ing.nombre_ingrediente}</span>
+                                                </li>
+                                            ))
+                                        ) : (
+                                            <li className="text-xs text-red-500 italic">Sin ingredientes</li>
+                                        )}
                                     </ul>
                                 </div>
                             </div>

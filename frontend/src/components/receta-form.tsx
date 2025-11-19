@@ -1,4 +1,3 @@
-// components/receta-form.tsx
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -7,21 +6,13 @@ import Button from '@/components/button';
 import Select, { StylesConfig, CSSObjectWithLabel, OptionProps, GroupBase } from 'react-select'; 
 import { FaTrash, FaPlus, FaCoins, FaMagic, FaStar, FaTools } from 'react-icons/fa';
 import { useAuth } from '@/context/AuthContext'; 
-
-// Importa todos los tipos y constantes desde el archivo central
 import { 
     IngredienteForm, 
     RecetaFormData, 
     Receta, 
-    Objeto, 
+    Objeto,
+    SelectOption,
 } from '@/types/receta'; 
-
-
-
-type SelectOption = {
-    value: number | string;
-    label: string;
-};
 
 interface RecetaFormProps {
     onSave: (receta: RecetaFormData) => Promise<void>;
@@ -37,29 +28,18 @@ const defaultFormState: RecetaFormData = {
     oro_necesario: 0,
     grado_minimo_requerido: 'Novato',
     ingredientes: [],
-    // Campos para objetos mágicos
     rareza: null,
     material_raro: null,
     es_consumible: false,
     herramienta: '',
 };
 
-// ✅ Opciones para los nuevos campos
 const RAREZA_CHOICES = [
     { value: 'Common', label: 'Common' },
     { value: 'Uncommon', label: 'Uncommon' },
     { value: 'Rare', label: 'Rare' },
     { value: 'Very Rare', label: 'Very Rare' },
     { value: 'Legendary', label: 'Legendary' },
-];
-
-const TIPO_ARTESANO_CHOICES = [
-    { value: 'Alchemist', label: 'Alchemist' },
-    { value: 'Blacksmith', label: 'Blacksmith' },
-    { value: 'Enchanter', label: 'Enchanter' },
-    { value: 'Leatherworker', label: 'Leatherworker' },
-    { value: 'Tinker', label: 'Tinker' },
-    { value: 'Thaumaturge', label: 'Thaumaturge' },
 ];
 
 const GRADO_MINIMO_CHOICES = [
@@ -110,6 +90,19 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
         }));
     }, [objetos]);
 
+    // ✅ Función helper para obtener nombre de objeto por ID
+    const getObjectNameById = (id: number | string | undefined): string => {
+        if (!id) return '';
+        if (!objetos || objetos.length === 0) return '';
+        
+        const objeto = objetos.find(o => {
+            if (!o || !o.id) return false;
+            return o.id.toString() === id.toString();
+        });
+        
+        return objeto?.Name || '';
+    };
+
     // Cargar objetos
     useEffect(() => {
         const fetchObjetos = async () => {
@@ -132,30 +125,75 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
         fetchObjetos();
     }, [accessToken, apiUrl]);
 
-    // Cargar datos iniciales
+    // ✅ Cargar datos iniciales - CORREGIDO
     useEffect(() => {
+        // Solo ejecutar cuando objetos estén cargados
+        if (loadingObjetos || objetos.length === 0) return;
+        
         if (initialData) {
-            // Transformar datos de la API al formato del formulario
-            const initialIngredientesForm: IngredienteForm[] = initialData.ingredientes.map(ing => ({
-                id: ing.objeto_id, // ✅ Cambiar de ing.id
-                objeto: ing.objeto_id, // ✅ Usar objeto_id
-                cantidad: ing.cantidad_necesaria, // ✅ Cambiar de ing.cantidad
-                nombre_objeto: ing.nombre, // ✅ Cambiar de ing.nombre_ingrediente
-            }));
+            console.log('📝 Cargando datos iniciales:', initialData);
+            console.log('📦 Objetos disponibles:', objetos.length);
+            
+            // ✅ Validación exhaustiva de initialData
+            if (!initialData.ingredientes) {
+                console.warn('⚠️ initialData no tiene ingredientes');
+                setIngredientesForm([]);
+                setFormData({
+                    ...defaultFormState,
+                    nombre: initialData.nombre || '',
+                    objeto_final: initialData.objeto_final || '',
+                    cantidad_final: initialData.cantidad_final || 1,
+                    es_magico: initialData.es_magico || false,
+                    oro_necesario: initialData.oro_necesario || 0,
+                    grado_minimo_requerido: initialData.grado_minimo_requerido || 'Novato',
+                    herramienta: initialData.herramienta || '',
+                });
+                return;
+            }
+            
+            if (initialData.ingredientes.length === 0) {
+                console.log('⚠️ No hay ingredientes para cargar');
+                setIngredientesForm([]);
+            } else {
+                // ✅ IMPORTANTE: Mapear ingredientes con los nombres CORRECTOS del backend
+                const initialIngredientesForm: IngredienteForm[] = initialData.ingredientes
+                    .filter(ing => {
+                        const isValid = ing && ing.objeto != null && ing.objeto !== undefined;
+                        if (!isValid) {
+                            console.error('❌ Ingrediente inválido:', ing);
+                        }
+                        return isValid;
+                    })
+                    .map(ing => {
+                        // ✅ USAR "objeto" en lugar de "objeto_id"
+                        const nombreObjeto = getObjectNameById(ing.objeto);
+                        console.log(`Ingrediente: ${ing.objeto} -> ${nombreObjeto} (${ing.cantidad}x)`);
+                        
+                        return {
+                            id: ing.objeto,
+                            objeto: ing.objeto,           // ✅ Correcto
+                            cantidad: ing.cantidad,       // ✅ Correcto
+                            nombre_objeto: nombreObjeto,
+                        };
+                    });
+
+                console.log('✅ Ingredientes cargados:', initialIngredientesForm);
+                setIngredientesForm(initialIngredientesForm);
+            }
 
             const initialRecetaData: RecetaFormData = {
-                nombre: initialData.nombre,
-                objeto_final: initialData.objeto_final, 
-                cantidad_final: initialData.cantidad_final,
-                es_magico: initialData.es_magico,
-                oro_necesario: initialData.oro_necesario,
-                grado_minimo_requerido: initialData.grado_minimo_requerido,
-                // ✅ Mapeo correcto de ingredientes
-                ingredientes: initialData.ingredientes.map(ing => ({
-                    objeto: ing.objeto_id,
-                    cantidad: ing.cantidad_necesaria,
-                })) as RecetaFormData['ingredientes'],
-                // Campos mágicos
+                nombre: initialData.nombre || '',
+                objeto_final: initialData.objeto_final || '', 
+                cantidad_final: initialData.cantidad_final || 1,
+                es_magico: initialData.es_magico || false,
+                oro_necesario: initialData.oro_necesario || 0,
+                grado_minimo_requerido: initialData.grado_minimo_requerido || 'Novato',
+                ingredientes: initialData.ingredientes
+                    .filter(ing => ing && ing.objeto != null)
+                    .map(ing => ({
+                        objeto: ing.objeto,        // ✅ Correcto
+                        cantidad: ing.cantidad,    // ✅ Correcto
+                    })),
                 rareza: initialData.rareza || null,
                 material_raro: initialData.material_raro || null,
                 es_consumible: initialData.es_consumible || false,
@@ -163,12 +201,11 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
             };
             
             setFormData(initialRecetaData);
-            setIngredientesForm(initialIngredientesForm);
         } else {
             setFormData(defaultFormState);
             setIngredientesForm([]);
         }
-    }, [initialData]);
+    }, [initialData, objetos, loadingObjetos]); // ✅ Dependencias correctas
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const target = e.target as HTMLInputElement; 
@@ -184,18 +221,15 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
         }));
     };
 
-    const getObjectNameById = (id: number | string): string => {
-        const objeto = objetos.find(o => o.id.toString() === id.toString());
-        return objeto ? objeto.Name : `ID: ${id}`;
-    };
-
     const handleAddIngrediente = () => {
-        const defaultObject = objetos.length > 0 ? objetos[0] : { id: '' as string, Name: '' as string};
+        if (objetos.length === 0) return;
+        
+        const defaultObject = objetos[0];
         
         const newIngrediente: IngredienteForm = { 
             objeto: defaultObject.id, 
             cantidad: 1, 
-            nombre_objeto: defaultObject.Name 
+            nombre_objeto: defaultObject.Name // ✅ Nombre desde el inicio
         };
 
         setIngredientesForm(prev => [...prev, newIngrediente]);
@@ -204,7 +238,7 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
             ...prevForm,
             ingredientes: [
                 ...prevForm.ingredientes, 
-                { objeto: defaultObject.id as number | string, cantidad: 1 } as RecetaFormData['ingredientes'][number]
+                { objeto: defaultObject.id, cantidad: 1 }
             ]
         }));
     };
@@ -235,7 +269,6 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
             const formIngredientes = newIngredientes.map(ing => {
                 const cantidadFinal: number = ing.cantidad === '' || ing.cantidad === 0 ? 1 : (ing.cantidad as number);
                 return {
-                    id: ing.id, 
                     objeto: ing.objeto,
                     cantidad: cantidadFinal,
                 };
@@ -243,7 +276,7 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
 
             setFormData(prevForm => ({
                 ...prevForm,
-                ingredientes: formIngredientes.filter(i => i.objeto !== '') as RecetaFormData['ingredientes']
+                ingredientes: formIngredientes.filter(i => i.objeto !== '')
             }));
 
             return newIngredientes;
@@ -255,14 +288,13 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
             const newIngredientes = prev.filter((_, i) => i !== index);
 
             const formIngredientes = newIngredientes.map(ing => ({
-                id: ing.id, 
                 objeto: ing.objeto,
                 cantidad: ing.cantidad === '' || ing.cantidad === 0 ? 1 : (ing.cantidad as number),
             }));
 
             setFormData(prevForm => ({
                 ...prevForm,
-                ingredientes: formIngredientes.filter(i => i.objeto !== '') as RecetaFormData['ingredientes']
+                ingredientes: formIngredientes.filter(i => i.objeto !== '')
             }));
 
             return newIngredientes;
@@ -271,6 +303,7 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
     
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        console.log('📤 Enviando formulario:', formData);
         onSave(formData);
     };
 
@@ -340,7 +373,7 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
             </label>
         </div>
 
-        {/* ✅ Herramienta Requerida - SIEMPRE VISIBLE */}
+        {/* Herramienta Requerida */}
         <div>
             <label htmlFor="herramienta" className="block mb-1 font-semibold flex items-center gap-2">
                 <FaTools className="text-stone-600"/>Herramienta Requerida
@@ -355,7 +388,7 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
             />
         </div>
 
-        {/* ✅ CAMPOS PARA OBJETOS NO MÁGICOS */}
+        {/* CAMPOS PARA OBJETOS NO MÁGICOS */}
         {!formData.es_magico && (
             <>
                 <div>
@@ -395,7 +428,7 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
             </>
         )}
 
-        {/* ✅ CAMPOS PARA OBJETOS MÁGICOS */}
+        {/* CAMPOS PARA OBJETOS MÁGICOS */}
         {formData.es_magico && (
             <div className="bg-purple-50 border-2 border-purple-300 rounded-lg p-4 space-y-4">
                 <h4 className="font-title text-lg text-purple-900 flex items-center gap-2">
@@ -534,22 +567,31 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
             {ingredientesForm.map((ingrediente, index) => (
                 <div key={index} className="flex items-end gap-3 p-3 border border-madera-oscura rounded-lg bg-stone-50">
                     <div className="flex-grow">
-                        <label htmlFor={`ingrediente-objeto-${index}`} className="block mb-1 text-sm font-medium">Ingrediente</label>
+                        <label htmlFor={`ingrediente-objeto-${index}`} className="block mb-1 text-sm font-medium">
+                            Ingrediente
+                        </label>
                         <Select<SelectOption, false, GroupBase<SelectOption>>
                             id={`ingrediente-objeto-${index}`} 
                             name={`ingrediente-objeto-${index}`} 
                             options={objetoOptions}
                             value={objetoOptions.find(option => option.value === ingrediente.objeto)}
                             onChange={(selectedOption) => {
-                                const value = selectedOption ? String(selectedOption.value) : '';
-                                handleIngredienteChange(index, 'objeto', value);
+                                if (selectedOption) {
+                                    handleIngredienteChange(index, 'objeto', selectedOption.value);
+                                }
                             }}
-                            isClearable={true}
+                            isClearable={false}
                             placeholder="Buscar ingrediente..."
                             required
                             className="text-sm text-stone-800"
                             styles={customSelectStyles}
                         />
+                        {/* ✅ MOSTRAR EL NOMBRE DEL INGREDIENTE SELECCIONADO */}
+                        {ingrediente.nombre_objeto && (
+                            <p className="text-xs text-green-700 mt-1 font-semibold">
+                                ✓ {ingrediente.nombre_objeto}
+                            </p>
+                        )}
                     </div>
                     
                     <div className="w-24">
