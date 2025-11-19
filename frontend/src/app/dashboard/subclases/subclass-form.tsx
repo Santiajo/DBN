@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { DnDSubclass, DnDSubclassPayload } from '@/types';
-import { DnDClass, Habilidad } from '@/types';
+import { DnDClass, Habilidad } from '@/types'; // Importamos tipos necesarios
 import Input from '@/components/input';
 import Button from '@/components/button';
 import Dropdown, { OptionType } from '@/components/dropdown';
@@ -83,7 +83,7 @@ export default function SubclassForm({ onSave, onCancel, initialData }: Subclass
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    let processedValue: string | number = type === 'number' ? (parseInt(value, 10) || 0) : value;
+    const processedValue: string | number = type === 'number' ? (parseInt(value, 10) || 0) : value;
     setFormData(prev => ({ ...prev, [name]: processedValue }));
   };
 
