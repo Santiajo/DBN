@@ -33,7 +33,7 @@ export default function SubclassForm({ onSave, onCancel, initialData }: Subclass
     bonus_proficiencies: '',
   });
 
-  // 1. Cargar Clases y Habilidades
+  // Cargar Clases y Habilidades
   useEffect(() => {
     const fetchData = async () => {
       if (!accessToken) return;
@@ -61,7 +61,7 @@ export default function SubclassForm({ onSave, onCancel, initialData }: Subclass
     fetchData();
   }, [accessToken]);
 
-  // 2. Cargar Datos Iniciales si es Edición
+  // Cargar Datos Iniciales si es Edición
   useEffect(() => {
     if (initialData) {
       setFormData({
@@ -83,7 +83,6 @@ export default function SubclassForm({ onSave, onCancel, initialData }: Subclass
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    // CORRECCIÓN: Usamos 'const' en lugar de 'let'
     const processedValue: string | number = type === 'number' ? (parseInt(value, 10) || 0) : value;
     setFormData(prev => ({ ...prev, [name]: processedValue }));
   };
