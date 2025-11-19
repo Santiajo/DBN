@@ -50,7 +50,12 @@ export default function SubclassDetailPage() {
     fetchDetail();
   }, [fetchDetail]);
 
-  const saveData = async (endpoint: string, data: any, id?: number) => {
+  // CORRECCIÓN: Reemplazamos 'any' por la unión de tipos Partial<>
+  const saveData = async (
+    endpoint: string, 
+    data: Partial<SubclassFeature> | Partial<SubclassResource>, 
+    id?: number
+  ) => {
       if(!accessToken) return;
       const url = id 
         ? `${process.env.NEXT_PUBLIC_API_URL}/api/${endpoint}/${id}/`
