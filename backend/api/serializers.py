@@ -582,3 +582,48 @@ class DnDClassSerializer(serializers.ModelSerializer):
     class Meta:
         model = DnDClass
         fields = '__all__'
+
+# Serializers para subclases
+class SubclassResourceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SubclassResource
+        fields = '__all__'
+
+class SubclassFeatureOptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SubclassFeature
+        exclude = ('parent_feature', 'dnd_subclass')
+
+class SubclassFeatureSerializer(serializers.ModelSerializer):
+    options = SubclassFeatureOptionSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = SubclassFeature
+        fields = '__all__'
+
+class DnDSubclassSerializer(serializers.ModelSerializer):
+    resources = SubclassResourceSerializer(many=True, read_only=True)
+    skill_choices = HabilidadSerializer(many=True, read_only=True)
+    skill_choices_ids = serializers.PrimaryKeyRelatedField(
+        many=True, 
+        write_only=True, 
+        queryset=Habilidad.objects.all(),
+        source='skill_choices'
+    )
+    features = serializers.SerializerMethodField(read_only=True)
+    dnd_class_name = serializers.CharField(source='dnd_class.name', read_only=True)
+    class Meta:
+        model = DnDSubclass
+        fields = '__all__'
+        read_only_fields = ('slug',)
+
+    def get_features(self, obj):
+        try:
+            all_features = obj.features.all()
+            parents = [f for f in all_features if f.parent_feature_id is None]
+            parents.sort(key=lambda x: (x.level, x.display_order))
+            return SubclassFeatureSerializer(parents, many=True).data
+        except AttributeError:
+            return []
+
+# Evitando errores
