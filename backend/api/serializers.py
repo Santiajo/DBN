@@ -625,3 +625,5 @@ class DnDSubclassSerializer(serializers.ModelSerializer):
             return SubclassFeatureSerializer(parents, many=True).data
         except AttributeError:
             return []
+
+# Evitando errores
