@@ -5,37 +5,51 @@ import math
 from django.utils.text import slugify
 from django.core.exceptions import ValidationError
 
+# Modelo para personaje final
 class Personaje(models.Model):
-    DND_CLASSES = [
-        ('BARBARIAN', 'Barbarian'),
-        ('BARD', 'Bard'),
-        ('WARLOCK', 'Warlock'),
-        ('CLERIC', 'Cleric'),
-        ('DRUID', 'Druid'),
-        ('RANGER', 'Ranger'),
-        ('FIGHTER', 'Fighter'),
-        ('SORCERER', 'Sorcerer'),
-        ('WIZARD', 'Wizard'),
-        ('MONK', 'Monk'),
-        ('PALADIN', 'Paladin'),
-        ('ROGUE', 'Rogue'),
-    ]
-
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='personajes')
-    
-    
+    # Datos Básicos
     nombre_personaje = models.CharField(max_length=60, default="")
+    nivel = models.IntegerField(default=1)
+    faccion = models.CharField(max_length=50, blank=True)
+    # Economía y Tiempo
     treasure_points = models.IntegerField(default=0)
+    treasure_points_gastados = models.IntegerField(default=0, null=True)
     oro = models.IntegerField(default=0)
     tiempo_libre = models.IntegerField(default=0)
-
-    clase = models.CharField(max_length=30, choices=DND_CLASSES, blank=True)
-    treasure_points_gastados = models.IntegerField(default=0, null=True)
-    nivel = models.IntegerField(default=1, null=True)
-    especie = models.CharField(max_length=50, blank=True)
-    faccion = models.CharField(max_length=50, blank=True)
-    
-    # Estadísticas 
+    # Clase
+    clase = models.ForeignKey(
+        'DnDClass',
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='personajes',
+        help_text="Clase principal del personaje"
+    )
+    # Subclase
+    subclase = models.ForeignKey(
+        'DnDSubclass',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='personajes'
+    )
+    # Especie
+    especie = models.ForeignKey(
+        'Species',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='personajes'
+    )
+    # Dotes
+    dotes = models.ManyToManyField(
+        'DnDFeat',
+        blank=True,
+        related_name='personajes',
+        help_text="Dotes adquiridos (Origen, Nivel 4, etc.)"
+    )
+    # Estadísticas
     fuerza = models.IntegerField(default=10)
     inteligencia = models.IntegerField(default=10)
     sabiduria = models.IntegerField(default=10)
@@ -43,9 +57,61 @@ class Personaje(models.Model):
     constitucion = models.IntegerField(default=10)
     carisma = models.IntegerField(default=10)
 
-    #esto sirve para como se vera en admin los productos
     def __str__(self) :
-        return self.nombre_personaje
+        clase_str = self.clase.name if self.clase else "Sin Clase"
+        return f"{self.nombre_personaje} - {clase_str} (Lvl {self.nivel})"
+
+# Elecciones de un pj
+class PersonajeEleccion(models.Model):
+    personaje = models.ForeignKey(Personaje, on_delete=models.CASCADE, related_name='elecciones')
+    # Rasgo padre
+    origen_trait = models.ForeignKey(
+        'Trait', 
+        on_delete=models.CASCADE, 
+        null=True, blank=True, 
+        help_text="Si la elección viene de una Especie (ej. Giant Ancestry)"
+    )
+    origen_class_feature = models.ForeignKey(
+        'ClassFeature', 
+        on_delete=models.CASCADE, 
+        null=True, blank=True, 
+        help_text="Si viene de una Clase (ej. Fighting Style)"
+    )
+    origen_subclass_feature = models.ForeignKey(
+        'SubclassFeature', 
+        on_delete=models.CASCADE, 
+        null=True, blank=True, 
+        help_text="Si viene de una Subclase (ej. Maniobras)"
+    )
+    origen_feat_feature = models.ForeignKey(
+        'FeatFeature', 
+        on_delete=models.CASCADE, 
+        null=True, blank=True, 
+        help_text="Si viene de un Dote (ej. Giant Bless)"
+    )
+    # Rasgo elegido
+    trait_elegido = models.ForeignKey(
+        'Trait', 
+        on_delete=models.CASCADE, 
+        related_name='elegido_por', 
+        null=True, blank=True
+    )
+    subclass_feature_elegido = models.ForeignKey(
+        'SubclassFeature', 
+        on_delete=models.CASCADE, 
+        related_name='elegido_por', 
+        null=True, blank=True
+    )
+    feat_feature_elegido = models.ForeignKey(
+        'FeatFeature', 
+        on_delete=models.CASCADE, 
+        related_name='elegido_por', 
+        null=True, blank=True
+    )
+    def __str__(self):
+        origen = self.origen_trait or self.origen_feat_feature or self.origen_subclass_feature or "Desconocido"
+        eleccion = self.trait_elegido or self.feat_feature_elegido or self.subclass_feature_elegido or "Nada"
+        return f"{self.personaje}: {origen} -> {eleccion}"
     
 
 #agregar stock
@@ -66,20 +132,19 @@ class Objeto(models.Model):
 
     def __str__(self):
         return self.Name
-    
+
+# Inventario del personaje
 class Inventario(models.Model):
     personaje = models.ForeignKey(Personaje, on_delete=models.CASCADE, related_name='inventario')
     objeto = models.ForeignKey(Objeto, on_delete=models.CASCADE)
     cantidad = models.PositiveIntegerField(default=1)
 
     class Meta:
-        # Esto asegura que un personaje no pueda tener dos filas para el mismo objeto.
-        # En su lugar, se debe actualizar la cantidad en la fila existente.
         unique_together = ('personaje', 'objeto')
 
     def __str__(self):
         return f"{self.cantidad} x {self.objeto.Name} - {self.personaje.nombre_personaje}"
-    
+
 class Receta(models.Model):
     nombre = models.CharField(max_length=100)
     objeto_final = models.ForeignKey("Objeto", on_delete=models.CASCADE, related_name="recetas")
@@ -239,7 +304,6 @@ class Proficiencia(models.Model):
     def __str__(self):
         estado = "Proficiente" if self.es_proficiente else "No proficiente"
         return f"{self.habilidad.nombre.capitalize()} ({self.estadistica.capitalize()}) - {self.personaje.nombre_personaje} [{estado}]"
-
 
 # BONUS DE PROFICIENCIA
 class BonusProficiencia(models.Model):
