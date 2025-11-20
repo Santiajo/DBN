@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { Personaje } from '@/types';
+import { Personaje, PersonajeFormData, DnDSpecies, DnDClass } from '@/types';
 import Card from "@/components/card";
 import Button from "@/components/button";
 import Modal from '@/components/modal';
@@ -12,12 +12,15 @@ import PersonajeForm from './personaje-form';
 import { FaPlus, FaPencilAlt, FaTrash, FaScroll, FaCoins, FaClock, FaStar } from 'react-icons/fa';
 
 export default function PersonajesPage() {
-    // El 'user' de tu contexto de autenticación tiene la información que necesitamos
     const { user, accessToken, logout } = useAuth();
     const router = useRouter();
 
     const [personajes, setPersonajes] = useState<Personaje[]>([]);
     const [loading, setLoading] = useState(true);
+
+    // Traducir IDs a Nombres
+    const [classMap, setClassMap] = useState<Record<number, string>>({});
+    const [speciesMap, setSpeciesMap] = useState<Record<number, string>>({});
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingPersonaje, setEditingPersonaje] = useState<Personaje | null>(null);
@@ -25,6 +28,39 @@ export default function PersonajesPage() {
     const [isAlertOpen, setIsAlertOpen] = useState(false);
     const [personajeToDelete, setPersonajeToDelete] = useState<Personaje | null>(null);
 
+    // Cargar Catálogos para mostrar nombres
+    useEffect(() => {
+        const fetchCatalogs = async () => {
+            if (!accessToken) return;
+            try {
+                const headers = { 'Authorization': `Bearer ${accessToken}` };
+                
+                const [resClasses, resSpecies] = await Promise.all([
+                    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/classes/`, { headers }),
+                    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/species/`, { headers })
+                ]);
+
+                if (resClasses.ok) {
+                    const data = await resClasses.json();
+                    const map: Record<number, string> = {};
+                    (data.results || []).forEach((c: DnDClass) => { map[c.id] = c.name; });
+                    setClassMap(map);
+                }
+
+                if (resSpecies.ok) {
+                    const data = await resSpecies.json();
+                    const map: Record<number, string> = {};
+                    (data.results || []).forEach((s: DnDSpecies) => { map[s.id] = s.name; });
+                    setSpeciesMap(map);
+                }
+            } catch (error) {
+                console.error("Error cargando metadatos", error);
+            }
+        };
+        fetchCatalogs();
+    }, [accessToken]);
+
+    // Cargar Personajes
     const fetchPersonajes = useCallback(async () => {
         if (!accessToken) return;
         setLoading(true);
@@ -50,7 +86,8 @@ export default function PersonajesPage() {
         fetchPersonajes();
     }, [fetchPersonajes]);
 
-    const handleSavePersonaje = async (personajeData: Omit<Personaje, 'id' | 'user'>) => {
+    // Guardar (Crear/Editar)
+    const handleSavePersonaje = async (personajeData: PersonajeFormData) => {
         if (!accessToken || !user) return;
         
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -58,9 +95,9 @@ export default function PersonajesPage() {
         const url = isEditing ? `${apiUrl}/api/personajes/${editingPersonaje.id}/` : `${apiUrl}/api/personajes/`;
         const method = isEditing ? 'PUT' : 'POST';
 
-        // Añadimos el nombre de usuario al cuerpo de la solicitud
         const body = {
             ...personajeData,
+            user: user.user_id,
             nombre_usuario: user.username
         };
 
@@ -68,12 +105,10 @@ export default function PersonajesPage() {
             const res = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
-                // Enviamos el cuerpo modificado
                 body: JSON.stringify(body),
             });
 
             if (!res.ok) {
-                // Errores detallados en la consola del navegador
                 const errorData = await res.json();
                 console.error("Detalles del error del backend:", errorData);
                 throw new Error('Error al guardar el personaje');
@@ -87,6 +122,7 @@ export default function PersonajesPage() {
         }
     };
 
+    // Eliminar Personaje
     const handleConfirmDelete = async () => {
         if (!personajeToDelete || !accessToken) return;
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -109,7 +145,7 @@ export default function PersonajesPage() {
     const handleOpenDeleteAlert = (personaje: Personaje) => { setPersonajeToDelete(personaje); setIsAlertOpen(true); };
     const handleViewInventory = (personajeId: number) => { router.push(`/dashboard/personajes/${personajeId}/inventario`); };
     
-    if (loading) return <div className="p-8 font-title">Cargando tus personajes...</div>
+    if (loading && personajes.length === 0) return <div className="p-8 font-title">Cargando tus personajes...</div>
 
     return (
         <div className="p-8 space-y-6">
@@ -126,23 +162,25 @@ export default function PersonajesPage() {
             {personajes.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {personajes.map(pj => {
-                        const formattedClase = pj.clase 
-                            ? pj.clase.charAt(0) + pj.clase.slice(1).toLowerCase() 
-                            : 'Aventurero';
+                        // Usar mapas para obtener los nombres reales
+                        const className = (pj.clase && classMap[pj.clase]) ? classMap[pj.clase] : 'Sin Clase';
+                        const speciesName = (pj.especie && speciesMap[pj.especie]) ? speciesMap[pj.especie] : 'Desconocida';
 
                         return (
                             <Card key={pj.id} variant="secondary" className="flex flex-col">
                                 <div className="flex-grow">
                                     <h3 className="font-title text-2xl text-bosque">{pj.nombre_personaje}</h3>
-                                    <p className="text-sm italic text-stone-600 mb-4">{pj.especie} {formattedClase} de Nivel {pj.nivel}</p>
+                                    <p className="text-sm italic text-stone-600 mb-4">
+                                        {speciesName} {className}, Nivel {pj.nivel}
+                                    </p>
                                     
-                                    <div className="space-y-2 text-sm font-body border-t border-madera pt-4">
+                                    <div className="space-y-2 text-sm font-body border-t border-madera-oscura/20 pt-4">
                                         <p className="flex items-center gap-2"><FaCoins className="text-yellow-500" /> <strong>Oro:</strong> {pj.oro}</p>
                                         <p className="flex items-center gap-2"><FaStar className="text-sky-500" /> <strong>Checkpoints:</strong> {pj.treasure_points}</p>
                                         <p className="flex items-center gap-2"><FaClock className="text-stone-500" /> <strong>Tiempo Libre:</strong> {pj.tiempo_libre} días</p>
                                     </div>
                                 </div>
-                                <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-madera">
+                                <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-madera-oscura/20">
                                     <Button variant="dangerous" onClick={() => handleOpenDeleteAlert(pj)}><FaTrash /></Button>
                                     <Button variant="secondary" onClick={() => handleOpenEditModal(pj)}><FaPencilAlt /></Button>
                                     <Button variant="secondary" onClick={() => handleViewInventory(pj.id)}><FaScroll className="mr-2"/>Inventario</Button>
