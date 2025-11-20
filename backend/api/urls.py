@@ -7,7 +7,7 @@ from rest_framework_simplejwt.views import (
 from rest_framework.routers import DefaultRouter
 from .views import *
 from . import views
-from rest_framework_nested import routers
+from rest_framework_nested import routers # type: ignore
 
 
 router = DefaultRouter()
