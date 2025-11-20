@@ -95,7 +95,7 @@ export default function FeatDetailPage() {
       </div>
 
       {/* Tarjeta Principal del Dote */}
-      <Card variant="primary">
+      <Card variant="secondary">
         <div className="flex justify-between items-start mb-2">
             <h1 className="text-3xl font-title text-stone-900 uppercase">{feat.name}</h1>
             <span className="bg-white/40 px-3 py-1 rounded-full border border-madera-oscura/30 text-sm font-semibold">
