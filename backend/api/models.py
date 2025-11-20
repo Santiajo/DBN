@@ -840,10 +840,74 @@ class SubclassFeature(models.Model):
 class SubclassResource(models.Model):
     dnd_subclass = models.ForeignKey(DnDSubclass, related_name='resources', on_delete=models.CASCADE)
     name = models.CharField(max_length=100, help_text="Ej: Superiority Dice")
-    quantity_type = models.CharField(max_length=20, default='Fixed') # Fixed, Stat, Proficiency
+    quantity_type = models.CharField(max_length=20, default='Fixed')
     quantity_stat = models.CharField(max_length=20, blank=True, null=True)
     progression = models.JSONField(default=dict, blank=True, help_text="{ '3': 4, '7': 5 }")
     value_progression = models.JSONField(default=dict, blank=True, help_text="{ '3': 'd8', '10': 'd10' }")
     reset_on = models.CharField(max_length=50, default="Short Rest")
     def __str__(self):
         return f"{self.name} ({self.dnd_subclass.name})"
+
+# Modelos para dotes
+FEAT_TYPES = [
+    ('Origin', 'Origin'),
+    ('General', 'General'),
+    ('Epic Boon', 'Epic Boon'),
+    ('Fighting Style', 'Fighting Style'),
+]
+
+class DnDFeat(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(max_length=100, unique=True, blank=True)
+    feat_type = models.CharField(max_length=20, choices=FEAT_TYPES, default='General')
+    description = models.TextField(help_text="Flavor text o descripción general.")
+    source = models.CharField(max_length=100, default="PHB")
+    prerequisite_level = models.PositiveIntegerField(default=0, help_text="Nivel mínimo (ej. 4). 0 si no tiene.")
+    prerequisite_species = models.ForeignKey(
+        'Species', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='exclusive_feats',
+        help_text="Si requiere una especie específica."
+    )
+    prerequisite_feat = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='dependent_feats',
+        help_text="Si requiere tener otro dote previo."
+    )
+    prerequisite_text = models.CharField(
+        max_length=255, 
+        blank=True, 
+        help_text="Texto manual de requisitos (ej. 'Str 13+', 'Spellcasting feature')."
+    )
+    ability_score_increase = models.TextField(
+        blank=True, 
+        help_text="Texto describiendo qué stats suben."
+    )
+    repeatable = models.BooleanField(default=False, help_text="¿Se puede tomar este dote más de una vez?")
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.name} ({self.feat_type})"
+
+
+class FeatFeature(models.Model):
+    dnd_feat = models.ForeignKey(DnDFeat, related_name='features', on_delete=models.CASCADE)
+    name = models.CharField(max_length=150, help_text="Nombre del beneficio (ej. 'Fast Crafting')")
+    description = models.TextField()
+    
+    display_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['display_order']
+
+    def __str__(self):
+        return f"{self.dnd_feat.name}: {self.name}"

@@ -626,4 +626,24 @@ class DnDSubclassSerializer(serializers.ModelSerializer):
         except AttributeError:
             return []
 
-# Evitando errores
+# Serializers para dotes
+class SpeciesReferenceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Species
+        fields = ['id', 'name', 'slug']
+
+class FeatFeatureSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FeatFeature
+        fields = '__all__'
+
+class DnDFeatSerializer(serializers.ModelSerializer):
+    features = FeatFeatureSerializer(many=True, read_only=True)
+    
+    # Mostramos info útil del prerrequisito
+    prerequisite_species_data = SpeciesReferenceSerializer(source='prerequisite_species', read_only=True)
+    prerequisite_feat_name = serializers.ReadOnlyField(source='prerequisite_feat.name')
+
+    class Meta:
+        model = DnDFeat
+        fields = '__all__'
