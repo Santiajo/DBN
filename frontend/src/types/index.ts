@@ -31,25 +31,41 @@ export interface Tienda {
   inventario: ObjetoTienda[];
 }
 
+// Interfaces de personajes
 export interface Personaje {
   id: number;
   user: number;
-  nombre_usuario: string;
   nombre_personaje: string;
+  clase: number | null;
+  subclase: number | null;
+  especie: number | null;
+  dotes: number[]; 
+
+  // Datos de Juego
+  nivel: number;
+  faccion: string;
   treasure_points: number;
+  treasure_points_gastados: number;
   oro: number;
   tiempo_libre: number;
-  clase?: string;
-  treasure_points_gastados?: number;
-  nivel?: number;
-  especie?: string;
-  faccion?: string;
+  
+  // Estadísticas
   fuerza: number;
   inteligencia: number;
   sabiduria: number;
   destreza: number;
   constitucion: number;
   carisma: number;
+}
+
+// Payload para el formulario
+export type PersonajeFormData = Omit<Personaje, 'id' | 'user'>;
+
+export interface InventarioItem {
+  id: number;
+  objeto: number;
+  objeto_nombre: string;
+  cantidad: number;
 }
 
 export interface InventarioItem {
