@@ -845,7 +845,10 @@ class SubclassResourceViewSet(viewsets.ModelViewSet):
 
 # Views para dotes
 class DnDFeatViewSet(viewsets.ModelViewSet):
-    queryset = DnDFeat.objects.all().prefetch_related('features').select_related('prerequisite_species', 'prerequisite_feat')
+    queryset = DnDFeat.objects.all().prefetch_related(
+        'features',            
+        'features__options'    
+    ).select_related('prerequisite_species', 'prerequisite_feat')
     serializer_class = DnDFeatSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     lookup_field = 'slug'

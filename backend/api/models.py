@@ -901,13 +901,21 @@ class DnDFeat(models.Model):
 
 class FeatFeature(models.Model):
     dnd_feat = models.ForeignKey(DnDFeat, related_name='features', on_delete=models.CASCADE)
-    name = models.CharField(max_length=150, help_text="Nombre del beneficio (ej. 'Fast Crafting')")
+    name = models.CharField(max_length=150)
     description = models.TextField()
-    
     display_order = models.PositiveIntegerField(default=0)
-
+    parent_feature = models.ForeignKey(
+        'self', 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True, 
+        related_name='options',
+        help_text="Si este rasgo es una opción (ej. 'Cloud Giant'), selecciona su padre ('Giant Bless')."
+    )
+    choices_count = models.PositiveIntegerField(default=0, help_text="Cuántas opciones elegir (Ej: 1 para Giant Heritage).")
     class Meta:
-        ordering = ['display_order']
-
+        ordering = ['display_order', 'name']
     def __str__(self):
+        if self.parent_feature:
+            return f"{self.dnd_feat.name}: {self.parent_feature.name} -> {self.name}"
         return f"{self.dnd_feat.name}: {self.name}"

@@ -627,23 +627,35 @@ class DnDSubclassSerializer(serializers.ModelSerializer):
             return []
 
 # Serializers para dotes
+class FeatFeatureOptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FeatFeature
+        exclude = ('parent_feature', 'dnd_feat')
+
 class SpeciesReferenceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Species
         fields = ['id', 'name', 'slug']
 
 class FeatFeatureSerializer(serializers.ModelSerializer):
+    options = FeatFeatureOptionSerializer(many=True, read_only=True)
     class Meta:
         model = FeatFeature
         fields = '__all__'
 
 class DnDFeatSerializer(serializers.ModelSerializer):
-    features = FeatFeatureSerializer(many=True, read_only=True)
-    
-    # Mostramos info útil del prerrequisito
+    features = serializers.SerializerMethodField(read_only=True)
     prerequisite_species_data = SpeciesReferenceSerializer(source='prerequisite_species', read_only=True)
     prerequisite_feat_name = serializers.ReadOnlyField(source='prerequisite_feat.name')
-
     class Meta:
         model = DnDFeat
         fields = '__all__'
+    def get_features(self, obj):
+        try:
+            all_features = obj.features.all()
+            # Solo padres
+            parents = [f for f in all_features if f.parent_feature_id is None]
+            parents.sort(key=lambda x: x.display_order)
+            return FeatFeatureSerializer(parents, many=True).data
+        except AttributeError:
+            return []
