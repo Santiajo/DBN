@@ -252,3 +252,123 @@ export interface DnDClassPayload {
   tool_proficiencies: string;
   starting_equipment: string;
 }
+
+// Types para subclases
+export interface SubclassFeature {
+  id: number;
+  name: string;
+  level: number;
+  description: string;
+  display_order: number;
+  parent_feature?: number | null; 
+  options?: SubclassFeature[];
+  choices_count: number;
+}
+
+export interface SubclassResource {
+  id: number;
+  name: string;
+  quantity_type: 'Fixed' | 'Stat' | 'Proficiency' | 'Unlimited';
+  quantity_stat?: string;
+  progression: Record<string, number>;
+  value_progression: Record<string, string>;
+  reset_on: string;
+}
+
+// Subclase Principal
+export interface DnDSubclass {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  source: string;
+  dnd_class: number;       
+  dnd_class_name?: string; 
+
+  // Proficiencias Extra
+  skill_choices: Habilidad[]; 
+  skill_choices_ids?: number[]; 
+  skill_choices_count: number;
+  bonus_proficiencies: string;
+
+  // Relaciones
+  features: SubclassFeature[];
+  resources: SubclassResource[];
+}
+
+// Payload para Guardar (Create/Edit)
+export interface DnDSubclassPayload {
+  id?: number;
+  name: string;
+  slug?: string;
+  description: string;
+  source: string;
+  dnd_class: number;
+  
+  skill_choices_ids: number[];
+  skill_choices_count: number;
+  bonus_proficiencies: string;
+}
+
+// Interface para dotes
+export type FeatType = 
+  | 'Origin' 
+  | 'General' 
+  | 'Epic Boon' 
+  | 'Fighting Style';
+
+// --- Interfaces de Componentes ---
+export interface FeatFeature {
+  id: number;
+  name: string;
+  description: string;
+  display_order: number;
+  parent_feature?: number | null; 
+  options?: FeatFeature[];     
+  choices_count: number; 
+}
+
+export interface DnDFeat {
+  id: number;
+  name: string;
+  slug: string;
+  feat_type: FeatType;
+  description: string;
+  source: string;
+  // Prerrequisitos
+  prerequisite_level: number;
+
+  // Relación con Especie (ID y Datos para mostrar)
+  prerequisite_species: number | null;
+  prerequisite_species_data?: {
+    id: number;
+    name: string;
+    slug: string;
+  };
+  // Relación con otro Dote (ID y Nombre para mostrar)
+  prerequisite_feat: number | null;
+  prerequisite_feat_name?: string;
+  // Texto libre de requisitos
+  prerequisite_text: string;
+  // Beneficios
+  ability_score_increase: string;
+  repeatable: boolean;
+  // Features anidados (Read Only)
+  features: FeatFeature[];
+}
+
+// Payload para Guardar (Escritura)
+export interface DnDFeatPayload {
+  id?: number;
+  name: string;
+  slug?: string; 
+  feat_type: FeatType;
+  description: string;
+  source: string;
+  prerequisite_level: number;
+  prerequisite_species: number | null;
+  prerequisite_feat: number | null;   
+  prerequisite_text: string;
+  ability_score_increase: string;
+  repeatable: boolean;
+}

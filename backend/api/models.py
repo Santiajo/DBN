@@ -789,6 +789,136 @@ class ClassResource(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.dnd_class.name})"
+
+# Modelos de subclases
+class DnDSubclass(models.Model):
+    dnd_class = models.ForeignKey(DnDClass, related_name='subclasses', on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+    slug = models.SlugField(max_length=100, unique=True, blank=True)
+    description = models.TextField()
+    source = models.CharField(max_length=100, default="PHB")
+    skill_choices = models.ManyToManyField(
+        'Habilidad', 
+        related_name='subclass_options',
+        blank=True,
+        help_text="Habilidades adicionales que otorga la subclase (o opciones)."
+    )
+    skill_choices_count = models.PositiveIntegerField(default=0, help_text="Si es 0, se otorgan todas. Si es > 0, el jugador elige.")
+    bonus_proficiencies = models.TextField(blank=True, help_text="Texto libre para herramientas, idiomas o armas extra.")
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(f"{self.dnd_class.name}-{self.name}")
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.name} ({self.dnd_class.name})"
+
+
+class SubclassFeature(models.Model):
+    dnd_subclass = models.ForeignKey(DnDSubclass, related_name='features', on_delete=models.CASCADE)
+    name = models.CharField(max_length=150)
+    level = models.PositiveIntegerField(default=3, help_text="Nivel de CLASE en que se gana.")
+    description = models.TextField()
+    display_order = models.PositiveIntegerField(default=0)
+    parent_feature = models.ForeignKey(
+        'self', 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True, 
+        related_name='options',
+        help_text="Si este rasgo es una opción (ej. una Maniobra), selecciona el rasgo padre."
+    )
+    choices_count = models.PositiveIntegerField(default=0, help_text="Cuántas opciones elegir (Ej: 3 para Maniobras iniciales).")
+    class Meta:
+        ordering = ['level', 'display_order', 'name']
+    def __str__(self):
+        if self.parent_feature:
+            return f"{self.dnd_subclass.name} Opt: {self.name}"
+        return f"{self.dnd_subclass.name} Lvl {self.level}: {self.name}"
+
+
+class SubclassResource(models.Model):
+    dnd_subclass = models.ForeignKey(DnDSubclass, related_name='resources', on_delete=models.CASCADE)
+    name = models.CharField(max_length=100, help_text="Ej: Superiority Dice")
+    quantity_type = models.CharField(max_length=20, default='Fixed')
+    quantity_stat = models.CharField(max_length=20, blank=True, null=True)
+    progression = models.JSONField(default=dict, blank=True, help_text="{ '3': 4, '7': 5 }")
+    value_progression = models.JSONField(default=dict, blank=True, help_text="{ '3': 'd8', '10': 'd10' }")
+    reset_on = models.CharField(max_length=50, default="Short Rest")
+    def __str__(self):
+        return f"{self.name} ({self.dnd_subclass.name})"
+
+# Modelos para dotes
+FEAT_TYPES = [
+    ('Origin', 'Origin'),
+    ('General', 'General'),
+    ('Epic Boon', 'Epic Boon'),
+    ('Fighting Style', 'Fighting Style'),
+]
+
+class DnDFeat(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(max_length=100, unique=True, blank=True)
+    feat_type = models.CharField(max_length=20, choices=FEAT_TYPES, default='General')
+    description = models.TextField(help_text="Flavor text o descripción general.")
+    source = models.CharField(max_length=100, default="PHB")
+    prerequisite_level = models.PositiveIntegerField(default=0, help_text="Nivel mínimo (ej. 4). 0 si no tiene.")
+    prerequisite_species = models.ForeignKey(
+        'Species', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='exclusive_feats',
+        help_text="Si requiere una especie específica."
+    )
+    prerequisite_feat = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='dependent_feats',
+        help_text="Si requiere tener otro dote previo."
+    )
+    prerequisite_text = models.CharField(
+        max_length=255, 
+        blank=True, 
+        help_text="Texto manual de requisitos (ej. 'Str 13+', 'Spellcasting feature')."
+    )
+    ability_score_increase = models.TextField(
+        blank=True, 
+        help_text="Texto describiendo qué stats suben."
+    )
+    repeatable = models.BooleanField(default=False, help_text="¿Se puede tomar este dote más de una vez?")
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.name} ({self.feat_type})"
+
+
+class FeatFeature(models.Model):
+    dnd_feat = models.ForeignKey(DnDFeat, related_name='features', on_delete=models.CASCADE)
+    name = models.CharField(max_length=150)
+    description = models.TextField()
+    display_order = models.PositiveIntegerField(default=0)
+    parent_feature = models.ForeignKey(
+        'self', 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True, 
+        related_name='options',
+        help_text="Si este rasgo es una opción (ej. 'Cloud Giant'), selecciona su padre ('Giant Bless')."
+    )
+    choices_count = models.PositiveIntegerField(default=0, help_text="Cuántas opciones elegir (Ej: 1 para Giant Heritage).")
+    class Meta:
+        ordering = ['display_order', 'name']
+    def __str__(self):
+        if self.parent_feature:
+            return f"{self.dnd_feat.name}: {self.parent_feature.name} -> {self.name}"
+        return f"{self.dnd_feat.name}: {self.name}"
     
 
 # TABLAS PARA LAS PARTYS

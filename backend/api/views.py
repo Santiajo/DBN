@@ -816,6 +816,51 @@ class ClassResourceViewSet(viewsets.ModelViewSet):
     serializer_class = ClassResourceSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
+# Views para subclases
+class DnDSubclassViewSet(viewsets.ModelViewSet):
+    queryset = DnDSubclass.objects.all().prefetch_related(
+        'resources',
+        'skill_choices',
+        'features',           
+        'features__options'  
+    ).select_related('dnd_class')
+    
+    serializer_class = DnDSubclassSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    lookup_field = 'slug'
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name', 'dnd_class__name']
+
+class SubclassFeatureViewSet(viewsets.ModelViewSet):
+    queryset = SubclassFeature.objects.all()
+    serializer_class = SubclassFeatureSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name', 'dnd_subclass__name']
+
+class SubclassResourceViewSet(viewsets.ModelViewSet):
+    queryset = SubclassResource.objects.all()
+    serializer_class = SubclassResourceSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+# Views para dotes
+class DnDFeatViewSet(viewsets.ModelViewSet):
+    queryset = DnDFeat.objects.all().prefetch_related(
+        'features',            
+        'features__options'    
+    ).select_related('prerequisite_species', 'prerequisite_feat')
+    serializer_class = DnDFeatSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    lookup_field = 'slug'
+    
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name', 'feat_type']
+
+class FeatFeatureViewSet(viewsets.ModelViewSet):
+    queryset = FeatFeature.objects.all()
+    serializer_class = FeatFeatureSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
 # PARA PARTYS
 
 class PartyViewSet(viewsets.ModelViewSet):
