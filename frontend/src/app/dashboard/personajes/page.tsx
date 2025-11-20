@@ -3,13 +3,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { Personaje, PersonajeFormData, DnDSpecies, DnDClass } from '@/types';
+import { Personaje, PersonajeFormData, DnDSpecies } from '@/types';
+import { DnDClass } from '@/types';
 import Card from "@/components/card";
 import Button from "@/components/button";
 import Modal from '@/components/modal';
 import ConfirmAlert from '@/components/confirm-alert';
-import PersonajeForm from './personaje-form';
-import { FaPlus, FaPencilAlt, FaTrash, FaScroll, FaCoins, FaClock, FaStar } from 'react-icons/fa';
+import PersonajeForm from './personaje-form'; 
+import { FaPlus, FaPencilAlt, FaTrash, FaEye, FaCoins, FaClock, FaStar } from 'react-icons/fa';
 
 export default function PersonajesPage() {
     const { user, accessToken, logout } = useAuth();
@@ -18,7 +19,6 @@ export default function PersonajesPage() {
     const [personajes, setPersonajes] = useState<Personaje[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // Traducir IDs a Nombres
     const [classMap, setClassMap] = useState<Record<number, string>>({});
     const [speciesMap, setSpeciesMap] = useState<Record<number, string>>({});
 
@@ -28,13 +28,12 @@ export default function PersonajesPage() {
     const [isAlertOpen, setIsAlertOpen] = useState(false);
     const [personajeToDelete, setPersonajeToDelete] = useState<Personaje | null>(null);
 
-    // Cargar Catálogos para mostrar nombres
+    // 1. Cargar Catálogos
     useEffect(() => {
         const fetchCatalogs = async () => {
             if (!accessToken) return;
             try {
                 const headers = { 'Authorization': `Bearer ${accessToken}` };
-                
                 const [resClasses, resSpecies] = await Promise.all([
                     fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/classes/`, { headers }),
                     fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/species/`, { headers })
@@ -60,7 +59,7 @@ export default function PersonajesPage() {
         fetchCatalogs();
     }, [accessToken]);
 
-    // Cargar Personajes
+    // 2. Cargar Personajes
     const fetchPersonajes = useCallback(async () => {
         if (!accessToken) return;
         setLoading(true);
@@ -86,7 +85,7 @@ export default function PersonajesPage() {
         fetchPersonajes();
     }, [fetchPersonajes]);
 
-    // Guardar (Crear/Editar)
+    // Guardar
     const handleSavePersonaje = async (personajeData: PersonajeFormData) => {
         if (!accessToken || !user) return;
         
@@ -97,7 +96,7 @@ export default function PersonajesPage() {
 
         const body = {
             ...personajeData,
-            user: user.user_id,
+            user: user.user_id, 
             nombre_usuario: user.username
         };
 
@@ -122,7 +121,7 @@ export default function PersonajesPage() {
         }
     };
 
-    // Eliminar Personaje
+    // Eliminar
     const handleConfirmDelete = async () => {
         if (!personajeToDelete || !accessToken) return;
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -140,10 +139,15 @@ export default function PersonajesPage() {
         }
     };
 
+    // --- NUEVO HANDLER PARA NAVEGACIÓN ---
+    const handleViewCharacter = (personajeId: number) => {
+        // Navega a la raíz del personaje, donde cargará el layout con navbar y la página de resumen
+        router.push(`/dashboard/personajes/${personajeId}`); 
+    };
+
     const handleOpenCreateModal = () => { setEditingPersonaje(null); setIsModalOpen(true); };
     const handleOpenEditModal = (personaje: Personaje) => { setEditingPersonaje(personaje); setIsModalOpen(true); };
     const handleOpenDeleteAlert = (personaje: Personaje) => { setPersonajeToDelete(personaje); setIsAlertOpen(true); };
-    const handleViewInventory = (personajeId: number) => { router.push(`/dashboard/personajes/${personajeId}/inventario`); };
     
     if (loading && personajes.length === 0) return <div className="p-8 font-title">Cargando tus personajes...</div>
 
@@ -162,14 +166,19 @@ export default function PersonajesPage() {
             {personajes.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {personajes.map(pj => {
-                        // Usar mapas para obtener los nombres reales
                         const className = (pj.clase && classMap[pj.clase]) ? classMap[pj.clase] : 'Sin Clase';
                         const speciesName = (pj.especie && speciesMap[pj.especie]) ? speciesMap[pj.especie] : 'Desconocida';
 
                         return (
-                            <Card key={pj.id} variant="secondary" className="flex flex-col">
+                            <Card key={pj.id} variant="secondary" className="flex flex-col group">
                                 <div className="flex-grow">
-                                    <h3 className="font-title text-2xl text-bosque">{pj.nombre_personaje}</h3>
+                                    {/* Hacemos el título interactivo */}
+                                    <h3 
+                                        className="font-title text-2xl text-bosque cursor-pointer hover:underline decoration-2 underline-offset-2"
+                                        onClick={() => handleViewCharacter(pj.id)}
+                                    >
+                                        {pj.nombre_personaje}
+                                    </h3>
                                     <p className="text-sm italic text-stone-600 mb-4">
                                         {speciesName} {className}, Nivel {pj.nivel}
                                     </p>
@@ -183,7 +192,11 @@ export default function PersonajesPage() {
                                 <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-madera-oscura/20">
                                     <Button variant="dangerous" onClick={() => handleOpenDeleteAlert(pj)}><FaTrash /></Button>
                                     <Button variant="secondary" onClick={() => handleOpenEditModal(pj)}><FaPencilAlt /></Button>
-                                    <Button variant="secondary" onClick={() => handleViewInventory(pj.id)}><FaScroll className="mr-2"/>Inventario</Button>
+                                    
+                                    {/* Botón Principal Actualizado */}
+                                    <Button variant="secondary" onClick={() => handleViewCharacter(pj.id)}>
+                                        <FaEye className="mr-2"/> Ver Ficha
+                                    </Button>
                                 </div>
                             </Card>
                         );
