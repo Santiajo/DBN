@@ -323,6 +323,9 @@ export interface FeatFeature {
   name: string;
   description: string;
   display_order: number;
+  parent_feature?: number | null; 
+  options?: FeatFeature[];     
+  choices_count: number; 
 }
 
 export interface DnDFeat {
