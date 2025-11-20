@@ -38,6 +38,10 @@ router.register(r'subclasses', views.DnDSubclassViewSet, basename='dndsubclass')
 router.register(r'subclass-features', views.SubclassFeatureViewSet, basename='subclassfeature')
 router.register(r'subclass-resources', views.SubclassResourceViewSet, basename='subclassresource')
 
+# Router para dotes y características de dotes
+router.register(r'feats', views.DnDFeatViewSet, basename='dndfeat')
+router.register(r'feat-features', views.FeatFeatureViewSet, basename='featfeature')
+
 # Router de Crafting
 router.register(r'crafting', views.CraftingViewSet, basename='crafting')
 

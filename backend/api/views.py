@@ -842,3 +842,18 @@ class SubclassResourceViewSet(viewsets.ModelViewSet):
     queryset = SubclassResource.objects.all()
     serializer_class = SubclassResourceSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+
+# Views para dotes
+class DnDFeatViewSet(viewsets.ModelViewSet):
+    queryset = DnDFeat.objects.all().prefetch_related('features').select_related('prerequisite_species', 'prerequisite_feat')
+    serializer_class = DnDFeatSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    lookup_field = 'slug'
+    
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name', 'feat_type']
+
+class FeatFeatureViewSet(viewsets.ModelViewSet):
+    queryset = FeatFeature.objects.all()
+    serializer_class = FeatFeatureSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
