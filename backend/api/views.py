@@ -860,3 +860,105 @@ class FeatFeatureViewSet(viewsets.ModelViewSet):
     queryset = FeatFeature.objects.all()
     serializer_class = FeatFeatureSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+
+# PARA PARTYS
+
+class PartyViewSet(viewsets.ModelViewSet):
+    queryset = Party.objects.all()
+    serializer_class = PartySerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(creador=self.request.user)
+
+    @action(detail=True, methods=['post'])
+    def unirse(self, request, pk=None):
+        """
+        POST /api/partys/{id}/unirse/
+        Body: { "personaje_id": 12 }
+        """
+        party = self.get_object()
+        personaje_id = request.data.get('personaje_id')
+
+        # 1. Validar que el personaje existe y pertenece al usuario
+        try:
+            personaje = Personaje.objects.get(id=personaje_id, user=request.user)
+        except Personaje.DoesNotExist:
+            return Response({"error": "Personaje inválido o no te pertenece."}, status=400)
+
+        # 2. Verificar si ya está unido
+        if party.miembros.filter(id=personaje.id).exists():
+             return Response({"message": "Ya eres miembro de esta party."}, status=200)
+
+        # 3. Unir
+        party.miembros.add(personaje)
+        return Response({"success": f"{personaje.nombre_personaje} se ha unido a {party.nombre}"})
+
+
+class InventarioPartyViewSet(viewsets.ModelViewSet):
+    serializer_class = InventarioPartySerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Permite filtrar por party: /api/inventario-party/?party=1
+        party_id = self.request.query_params.get('party')
+        if party_id:
+            return InventarioParty.objects.filter(party_id=party_id)
+        return InventarioParty.objects.all()
+
+    @action(detail=False, methods=['post'])
+    def donar_objeto(self, request):
+        """
+        Mueve un objeto del personaje a la party.
+        POST /api/inventario-party/donar_objeto/
+        Body: { "party_id": 1, "personaje_id": 5, "objeto_id": 10, "cantidad": 1 }
+        """
+        party_id = request.data.get('party_id')
+        personaje_id = request.data.get('personaje_id')
+        objeto_id = request.data.get('objeto_id')
+        cantidad = int(request.data.get('cantidad', 1))
+
+        if cantidad <= 0:
+            return Response({"error": "La cantidad debe ser mayor a 0."}, status=400)
+
+        try:
+            with transaction.atomic():
+                # 1. Validaciones de seguridad
+                personaje = Personaje.objects.get(id=personaje_id, user=request.user)
+                party = Party.objects.get(id=party_id)
+                
+                # (Opcional) Verificar que el personaje esté en la party
+                if not party.miembros.filter(id=personaje.id).exists() and not request.user.is_staff:
+                     return Response({"error": "Debes ser miembro de la party para donar."}, status=403)
+
+                # 2. Obtener el ítem del inventario PERSONAL (y bloquear fila para evitar race conditions)
+                item_personaje = Inventario.objects.select_for_update().get(personaje=personaje, objeto_id=objeto_id)
+                
+                if item_personaje.cantidad < cantidad:
+                    return Response({"error": f"No tienes suficientes items. Tienes {item_personaje.cantidad}."}, status=400)
+
+                # 3. RESTAR del personaje
+                item_personaje.cantidad -= cantidad
+                if item_personaje.cantidad == 0:
+                    item_personaje.delete() # Se quedó sin el objeto
+                else:
+                    item_personaje.save()
+
+                # 4. SUMAR a la Party
+                item_party, created = InventarioParty.objects.get_or_create(
+                    party=party,
+                    objeto_id=objeto_id,
+                    defaults={'cantidad': 0, 'donado_por': personaje}
+                )
+                # Usamos F() para evitar condiciones de carrera al sumar
+                item_party.cantidad = F('cantidad') + cantidad
+                item_party.save()
+
+                return Response({"success": "Objeto transferido correctamente."})
+
+        except Personaje.DoesNotExist:
+            return Response({"error": "Personaje no encontrado."}, status=404)
+        except Inventario.DoesNotExist:
+            return Response({"error": "No tienes este objeto en tu inventario."}, status=404)
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)

@@ -659,3 +659,43 @@ class DnDFeatSerializer(serializers.ModelSerializer):
             return FeatFeatureSerializer(parents, many=True).data
         except AttributeError:
             return []
+
+
+# PARA PARTYS
+
+class InventarioPartySerializer(serializers.ModelSerializer):
+    # Traemos datos del Objeto para mostrarlos en el frontend sin hacer otra petición
+    objeto_nombre = serializers.CharField(source='objeto.Name', read_only=True)
+    objeto_rarity = serializers.CharField(source='objeto.Rarity', read_only=True)
+    objeto_value = serializers.CharField(source='objeto.Value', read_only=True)
+    objeto_text = serializers.CharField(source='objeto.Text', read_only=True) # Descripción
+    
+    # Nombre del personaje que lo donó
+    donado_por_nombre = serializers.CharField(source='donado_por.nombre_personaje', read_only=True)
+
+    class Meta:
+        model = InventarioParty
+        fields = [
+            'id', 'party', 'objeto', 'cantidad', 
+            'objeto_nombre', 'objeto_rarity', 'objeto_value', 'objeto_text',
+            'donado_por', 'donado_por_nombre'
+        ]
+
+
+class PartySerializer(serializers.ModelSerializer):
+    creador_nombre = serializers.CharField(source='creador.username', read_only=True)
+    
+    # Información reducida de los miembros para mostrarlos en la lista
+    miembros_info = serializers.SerializerMethodField()
+    
+    # Opcional: ver el inventario directamente al pedir la party
+    # inventario = InventarioPartySerializer(source='inventario_party', many=True, read_only=True)
+
+    class Meta:
+        model = Party
+        fields = ['id', 'nombre', 'descripcion', 'creador', 'creador_nombre', 'miembros', 'miembros_info', 'fecha_creacion']
+        read_only_fields = ['creador', 'miembros'] # Miembros se gestiona vía acción 'unirse'
+
+    def get_miembros_info(self, obj):
+        # Devuelve un array con ID, nombre y clase de los miembros
+        return obj.miembros.values('id', 'nombre_personaje', 'clase', 'nivel')

@@ -919,3 +919,38 @@ class FeatFeature(models.Model):
         if self.parent_feature:
             return f"{self.dnd_feat.name}: {self.parent_feature.name} -> {self.name}"
         return f"{self.dnd_feat.name}: {self.name}"
+    
+
+# TABLAS PARA LAS PARTYS
+
+class Party(models.Model):
+    nombre = models.CharField(max_length=100, unique=True)
+    descripcion = models.TextField(blank=True, null=True)
+    # El creador (User) para gestionar permisos
+    creador = models.ForeignKey(User, on_delete=models.CASCADE, related_name="partys_creadas")
+    
+    # Los personajes que son miembros (ManyToMany)
+    miembros = models.ManyToManyField(Personaje, related_name="partys", blank=True)
+    
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.nombre} (Líder: {self.creador.username})"
+
+
+class InventarioParty(models.Model):
+    """
+    Botín compartido. Es idéntico a 'Inventario' pero vinculado a 'Party'.
+    """
+    party = models.ForeignKey(Party, on_delete=models.CASCADE, related_name='inventario_party')
+    objeto = models.ForeignKey(Objeto, on_delete=models.CASCADE)
+    cantidad = models.PositiveIntegerField(default=1)
+    
+    # saber quién puso el objeto ahí
+    donado_por = models.ForeignKey(Personaje, on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        unique_together = ('party', 'objeto')
+
+    def __str__(self):
+        return f"{self.cantidad} x {self.objeto.Name} - {self.party.nombre}"
