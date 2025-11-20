@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { Personaje, PersonajeFormData } from '@/types';
+import { Personaje, PersonajeFormData, DnDSpecies, DnDClass } from '@/types';
 import Card from "@/components/card";
 import Button from "@/components/button";
 import Modal from '@/components/modal';
@@ -43,14 +43,14 @@ export default function PersonajesPage() {
                 if (resClasses.ok) {
                     const data = await resClasses.json();
                     const map: Record<number, string> = {};
-                    (data.results || []).forEach((c: any) => { map[c.id] = c.name; });
+                    (data.results || []).forEach((c: DnDClass) => { map[c.id] = c.name; });
                     setClassMap(map);
                 }
 
                 if (resSpecies.ok) {
                     const data = await resSpecies.json();
                     const map: Record<number, string> = {};
-                    (data.results || []).forEach((s: any) => { map[s.id] = s.name; });
+                    (data.results || []).forEach((s: DnDSpecies) => { map[s.id] = s.name; });
                     setSpeciesMap(map);
                 }
             } catch (error) {
