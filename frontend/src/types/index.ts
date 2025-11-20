@@ -309,3 +309,63 @@ export interface DnDSubclassPayload {
   skill_choices_count: number;
   bonus_proficiencies: string;
 }
+
+// Interface para dotes
+export type FeatType = 
+  | 'Origin' 
+  | 'General' 
+  | 'Epic Boon' 
+  | 'Fighting Style';
+
+// --- Interfaces de Componentes ---
+export interface FeatFeature {
+  id: number;
+  name: string;
+  description: string;
+  display_order: number;
+}
+
+export interface DnDFeat {
+  id: number;
+  name: string;
+  slug: string;
+  feat_type: FeatType;
+  description: string;
+  source: string;
+  // Prerrequisitos
+  prerequisite_level: number;
+
+  // Relación con Especie (ID y Datos para mostrar)
+  prerequisite_species: number | null;
+  prerequisite_species_data?: {
+    id: number;
+    name: string;
+    slug: string;
+  };
+  // Relación con otro Dote (ID y Nombre para mostrar)
+  prerequisite_feat: number | null;
+  prerequisite_feat_name?: string;
+  // Texto libre de requisitos
+  prerequisite_text: string;
+  // Beneficios
+  ability_score_increase: string;
+  repeatable: boolean;
+  // Features anidados (Read Only)
+  features: FeatFeature[];
+}
+
+// Payload para Guardar (Escritura)
+export interface DnDFeatPayload {
+  id?: number;
+  name: string;
+  slug?: string; 
+  feat_type: FeatType;
+  description: string;
+  source: string;
+  prerequisite_level: number;
+  prerequisite_species: number | null;
+  prerequisite_feat: number | null;   
+  prerequisite_text: string;
+  ability_score_increase: string;
+  repeatable: boolean;
+}
