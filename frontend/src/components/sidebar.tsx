@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 // íconos de react-icons
 import {
-  FaHome, FaUserShield, FaRing, FaBed, FaCoins, FaAngleLeft, FaAngleRight, FaBriefcase, FaBrain
+  FaHome, FaUserShield, FaRing, FaBed, FaCoins, FaAngleLeft, FaAngleRight, FaBriefcase, FaBrain, FaUsers
 } from 'react-icons/fa';
 
 type SidebarProps = {
@@ -27,6 +27,7 @@ const navLinks = [
   { href: '/dashboard/clases', icon: <FaCoins />, label: 'Clases' },
   { href: '/dashboard/subclases', icon: <FaCoins />, label: 'Subclases' },
   { href: '/dashboard/dotes', icon: <FaCoins />, label: 'Dotes' },
+  { href: '/dashboard/partys', icon: <FaUsers />, label: 'Partys' },
 ];
 
 export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
