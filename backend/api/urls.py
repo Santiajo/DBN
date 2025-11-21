@@ -59,6 +59,10 @@ personajes_router.register(r'inventario', views.InventarioPersonajeViewSet, base
 trabajos_router = routers.NestedSimpleRouter(router, r'trabajos', lookup='trabajo')
 trabajos_router.register(r'pagos', views.PagoRangoViewSet, basename='trabajo-pagos')
 
+# Router para NPCs y relaciones
+router.register(r'npcs', views.NPCViewSet, basename='npc')
+router.register(r'relaciones-npc', views.RelacionNPCViewSet, basename='relacionnpc')
+
 urlpatterns = [
     # Rutas para los tokens JWT
     path('token/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'),

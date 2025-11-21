@@ -699,3 +699,18 @@ class PartySerializer(serializers.ModelSerializer):
     def get_miembros_info(self, obj):
         # Devuelve un array con ID, nombre y clase de los miembros
         return obj.miembros.values('id', 'nombre_personaje', 'clase', 'nivel')
+
+# Serializers para NPCs
+class RelacionNPCSerializer(serializers.ModelSerializer):
+    npc_nombre = serializers.ReadOnlyField(source='npc.name')
+    npc_titulo = serializers.ReadOnlyField(source='npc.title')
+    personaje_nombre = serializers.ReadOnlyField(source='personaje.nombre_personaje')
+    class Meta:
+        model = RelacionNPC
+        fields = '__all__'
+
+class NPCSerializer(serializers.ModelSerializer):
+    species_name = serializers.ReadOnlyField(source='species.name')
+    class Meta:
+        model = NPC
+        fields = '__all__'

@@ -1019,3 +1019,61 @@ class InventarioParty(models.Model):
 
     def __str__(self):
         return f"{self.cantidad} x {self.objeto.Name} - {self.party.nombre}"
+
+# Modelos para NPCS
+class NPC(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(max_length=100, unique=True, blank=True)
+    
+    # Datos Básicos 
+    title = models.CharField(max_length=100, blank=True, help_text="Ej: General, Líder de expedición")
+    occupation = models.CharField(max_length=100, blank=True, help_text="Ej: Aristocrática, Soldado")
+    location = models.CharField(max_length=200, blank=True, help_text="Ej: Cuartel de New Helmsport")
+    
+    # Especie
+    species = models.ForeignKey(
+        'Species', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='npcs'
+    )
+
+    # Detalles Narrativos
+    appearance = models.TextField(blank=True, help_text="Descripción física")
+    personality = models.TextField(blank=True, help_text="Personalidad y comportamiento")
+    reputation = models.TextField(blank=True, help_text="Historia y cómo es conocido")
+    
+    # Economía
+    gold = models.IntegerField(default=0, help_text="Acumulación de oro por turno")
+    sells = models.TextField(blank=True, help_text="Qué vende este NPC")
+    buys = models.TextField(blank=True, help_text="Qué compra este NPC")
+    
+    # Beneficios y Consecuencias
+    benefit = models.TextField(blank=True, help_text="Beneficio estándar (ej. venta de objetos)")
+    secret_benefit = models.TextField(blank=True, help_text="Beneficios por rango alto de amistad")
+    detriment = models.TextField(blank=True, help_text="Consecuencias por llevarse mal")
+
+    # Imagen (Opcional, recomendado para NPCs)
+    image_url = models.URLField(blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.name} ({self.title})"
+
+
+class RelacionNPC(models.Model):
+    personaje = models.ForeignKey(Personaje, on_delete=models.CASCADE, related_name='relaciones_npc')
+    npc = models.ForeignKey(NPC, on_delete=models.CASCADE, related_name='relaciones_personajes')
+    valor_amistad = models.IntegerField(default=0, help_text="Rango numérico de afinidad.")
+
+    class Meta:
+        unique_together = ('personaje', 'npc')
+        ordering = ['npc__name']
+
+    def __str__(self):
+        return f"{self.personaje.nombre_personaje} <-> {self.npc.name}: {self.valor_amistad}"

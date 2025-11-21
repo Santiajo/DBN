@@ -965,3 +965,22 @@ class InventarioPartyViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({"error": str(e)}, status=500)
 
+# Views para NPCs
+class NPCViewSet(HybridLookupMixin, viewsets.ModelViewSet):
+    queryset = NPC.objects.all().select_related('species')
+    serializer_class = NPCSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    lookup_field = 'slug'
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name', 'title', 'location']
+
+class RelacionNPCViewSet(viewsets.ModelViewSet):
+    queryset = RelacionNPC.objects.all().select_related('npc', 'personaje')
+    serializer_class = RelacionNPCSerializer
+    permission_classes = [IsAuthenticated]
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff:
+            return RelacionNPC.objects.all()
+        return RelacionNPC.objects.filter(personaje__user=user)
+
