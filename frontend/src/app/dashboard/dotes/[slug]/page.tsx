@@ -93,9 +93,9 @@ export default function FeatDetailPage() {
     <div className="p-8 max-w-5xl mx-auto space-y-6 font-body text-stone-800">
       {/* Header y Tarjeta Principal (Igual que antes) */}
       <div className="flex justify-between items-start">
-        <Button variant="secondary" onClick={() => router.back()}><div className="flex items-center gap-2"><FaArrowLeft /> Volver</div></Button>
+        <Button variant="primary" onClick={() => router.back()}><div className="flex items-center gap-2"><FaArrowLeft /> Volver</div></Button>
       </div>
-      <Card variant="primary">
+      <Card variant="secondary">
         <div className="flex justify-between items-start mb-2">
             <h1 className="text-3xl font-title text-stone-900 uppercase">{feat.name}</h1>
             <span className="bg-white/40 px-3 py-1 rounded-full border border-madera-oscura/30 text-sm font-semibold">{feat.feat_type}</span>
@@ -140,7 +140,7 @@ export default function FeatDetailPage() {
                         {/* Botón Añadir Opción (Solo si es padre) */}
                         <button 
                             onClick={() => handleOpenCreate(feature.id)}
-                            className="p-2 text-madera-oscura hover:bg-madera-oscura/10 rounded tooltip transition-colors"
+                            className="p-2 items-center gap-1 text-madera-oscura hover:bg-madera-oscura/10 rounded tooltip transition-colors"
                             title="Añadir Opción"
                         >
                             <FaIndent /> <FaPlus className="inline w-2.5 h-2.5 ml-1"/>
