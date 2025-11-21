@@ -29,7 +29,7 @@ export default function CharacterNavbar({ personajeId }: CharacterNavbarProps) {
   ];
 
   return (
-    <nav className="flex flex-col md:flex-row justify-between items-end px-4 pt-4 bg-pergamino border-x-2 border-t-2 border-madera-oscura rounded-t-xl">
+    <nav className="flex flex-col md:flex-row justify-between items-end px-4 pt-4 bg-pergamino border-x border-t border-madera-oscura rounded-t-xl">
       
       {/* Botón "Salir" estilizado como enlace de texto clásico */}
       <Link 
@@ -54,10 +54,10 @@ export default function CharacterNavbar({ personajeId }: CharacterNavbarProps) {
               <Link
                 href={fullPath}
                 className={`
-                  group flex items-center gap-2 px-5 py-2 rounded-t-lg border-x-2 border-t-2 font-title text-sm tracking-wide transition-all
+                  group flex items-center gap-2 px-5 py-2 rounded-t-lg border-x border-t font-title text-sm tracking-wide transition-all
                   ${isActive 
                     ? 'bg-white border-madera-oscura text-madera-oscura relative z-10 border-b-white pb-3 -mb-1' // Activo: Blanco, se fusiona abajo, tapa el borde inferior
-                    : 'bg-madera-oscura/5 border-transparent text-stone-600 hover:bg-madera-oscura/10 hover:text-madera-oscura border-b-2 border-b-madera-oscura' // Inactivo: Hundido
+                    : 'bg-madera-oscura/5 border-transparent text-stone-600 hover:bg-madera-oscura/10 hover:text-madera-oscura border-b border-b-madera-oscura' // Inactivo: Hundido
                   }
                 `}
               >
