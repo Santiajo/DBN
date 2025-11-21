@@ -12,6 +12,7 @@ import ConfirmAlert from '@/components/confirm-alert';
 import PersonajeForm from './personaje-form'; 
 import { FaPlus, FaPencilAlt, FaTrash, FaEye, FaCoins, FaClock, FaStar } from 'react-icons/fa';
 
+// Interfaces para respuestas paginadas
 interface PaginatedResponse<T> {
     count: number;
     next: string | null;
@@ -35,7 +36,6 @@ export default function PersonajesPage() {
     const [isAlertOpen, setIsAlertOpen] = useState(false);
     const [personajeToDelete, setPersonajeToDelete] = useState<Personaje | null>(null);
 
-    // 1. Cargar Catálogos
     useEffect(() => {
         const fetchCatalogs = async () => {
             if (!accessToken) return;
@@ -47,29 +47,23 @@ export default function PersonajesPage() {
                 ]);
 
                 if (resClasses.ok) {
-                    const data = await resClasses.json();
-                    // Manejo seguro de paginación vs array
-                    const results = Array.isArray(data) ? data : data.results || [];
+                    const data = (await resClasses.json()) as PaginatedResponse<DnDClass>;
                     const map: Record<number, string> = {};
-                    results.forEach((c: DnDClass) => { map[c.id] = c.name; });
+                    (data.results || []).forEach((c) => { map[c.id] = c.name; });
                     setClassMap(map);
                 }
 
                 if (resSpecies.ok) {
-                    const data = await resSpecies.json();
-                    const results = Array.isArray(data) ? data : data.results || [];
+                    const data = (await resSpecies.json()) as PaginatedResponse<DnDSpecies>;
                     const map: Record<number, string> = {};
-                    results.forEach((s: DnDSpecies) => { map[s.id] = s.name; });
+                    (data.results || []).forEach((s) => { map[s.id] = s.name; });
                     setSpeciesMap(map);
                 }
-            } catch (error) {
-                console.error("Error cargando metadatos", error);
-            }
+            } catch (error) { console.error("Error cargando metadatos", error); }
         };
         fetchCatalogs();
     }, [accessToken]);
 
-    // 2. Cargar Personajes
     const fetchPersonajes = useCallback(async () => {
         if (!accessToken) return;
         setLoading(true);
@@ -85,18 +79,13 @@ export default function PersonajesPage() {
             const data = await res.json();
             const results = Array.isArray(data) ? data : (data as PaginatedResponse<Personaje>).results;
             setPersonajes(results || []);
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setLoading(false);
-        }
+        } catch (error) { console.error(error); } 
+        finally { setLoading(false); }
     }, [accessToken, logout]);
 
-    useEffect(() => {
-        fetchPersonajes();
-    }, [fetchPersonajes]);
+    useEffect(() => { fetchPersonajes(); }, [fetchPersonajes]);
 
-    // Helper para Sincronizar Proficiencias
+    // --- SINCRONIZACIÓN DE HABILIDADES ---
     const syncProficiencies = async (personajeId: number, selectedSkills: number[]) => {
         if (!accessToken) return;
         const headers = { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' };
@@ -104,15 +93,12 @@ export default function PersonajesPage() {
 
         try {
             const res = await fetch(`${apiUrl}/api/proficiencias/?personaje=${personajeId}`, { headers });
-            
-            // --- CORRECCIÓN PRINCIPAL AQUÍ ---
             const responseData = res.ok ? await res.json() : [];
             
-            // Verificamos si es un array directo o un objeto paginado con .results
+            // CORRECCIÓN: Manejo seguro de paginación
             const currentProfs: Proficiencia[] = Array.isArray(responseData) 
                 ? responseData 
                 : (responseData.results || []); 
-            // --------------------------------
 
             const currentSkillIds = currentProfs.map(p => p.habilidad);
             
@@ -139,12 +125,9 @@ export default function PersonajesPage() {
 
             await Promise.all(promises);
 
-        } catch (error) {
-            console.error("Error sincronizando habilidades:", error);
-        }
+        } catch (error) { console.error("Error sincronizando habilidades:", error); }
     };
 
-    // Guardar (Crear/Editar)
     const handleSavePersonaje = async (personajeData: PersonajeFormData) => {
         if (!accessToken || !user) return;
         
@@ -176,16 +159,15 @@ export default function PersonajesPage() {
             
             const savedPersonaje = (await res.json()) as Personaje;
 
-            if (proficiencies) {
+            // Importante: Verificar que proficiencies esté definido (array vacío cuenta como definido)
+            if (proficiencies !== undefined) {
                 await syncProficiencies(savedPersonaje.id, proficiencies);
             }
             
             setIsModalOpen(false);
             setEditingPersonaje(null);
             await fetchPersonajes();
-        } catch (error) {
-            console.error(error);
-        }
+        } catch (error) { console.error(error); }
     };
 
     const handleConfirmDelete = async () => {
@@ -197,12 +179,8 @@ export default function PersonajesPage() {
                 headers: { 'Authorization': `Bearer ${accessToken}` },
             });
             await fetchPersonajes();
-        } catch (error) {
-            console.error('Error al eliminar el personaje:', error);
-        } finally {
-            setIsAlertOpen(false);
-            setPersonajeToDelete(null);
-        }
+        } catch (error) { console.error('Error al eliminar el personaje:', error); } 
+        finally { setIsAlertOpen(false); setPersonajeToDelete(null); }
     };
 
     const handleViewCharacter = (personajeId: number) => {
@@ -236,29 +214,21 @@ export default function PersonajesPage() {
                         return (
                             <Card key={pj.id} variant="secondary" className="flex flex-col group">
                                 <div className="flex-grow">
-                                    <h3 
-                                        className="font-title text-2xl text-bosque cursor-pointer hover:underline decoration-2 underline-offset-2"
-                                        onClick={() => handleViewCharacter(pj.id)}
-                                    >
+                                    <h3 className="font-title text-2xl text-bosque cursor-pointer hover:underline decoration-2 underline-offset-2" onClick={() => handleViewCharacter(pj.id)}>
                                         {pj.nombre_personaje}
                                     </h3>
                                     <p className="text-sm italic text-stone-600 mb-4">
                                         {speciesName} {className}, Nivel {pj.nivel}
                                     </p>
-                                    
                                     <div className="space-y-2 text-sm font-body border-t border-madera-oscura/20 pt-4">
                                         <p className="flex items-center gap-2"><FaCoins className="text-yellow-500" /> <strong>Oro:</strong> {pj.oro}</p>
                                         <p className="flex items-center gap-2"><FaStar className="text-sky-500" /> <strong>Checkpoints:</strong> {pj.treasure_points}</p>
-                                        <p className="flex items-center gap-2"><FaClock className="text-stone-500" /> <strong>Tiempo Libre:</strong> {pj.tiempo_libre} días</p>
                                     </div>
                                 </div>
                                 <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-madera-oscura/20">
                                     <Button variant="dangerous" onClick={() => handleOpenDeleteAlert(pj)}><FaTrash /></Button>
                                     <Button variant="secondary" onClick={() => handleOpenEditModal(pj)}><FaPencilAlt /></Button>
-                                    
-                                    <Button variant="secondary" onClick={() => handleViewCharacter(pj.id)}>
-                                        <FaEye className="mr-2"/> Ver Ficha
-                                    </Button>
+                                    <Button variant="secondary" onClick={() => handleViewCharacter(pj.id)}><FaEye className="mr-2"/> Ver Ficha</Button>
                                 </div>
                             </Card>
                         );

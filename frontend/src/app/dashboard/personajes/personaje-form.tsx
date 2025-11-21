@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { Personaje, PersonajeFormData, DnDSpecies, Habilidad, Proficiencia } from '@/types';
-import { DnDClass, DnDSubclass, DnDFeat } from '@/types';
+import { DnDClass } from '@/types';
+import { DnDSubclass } from '@/types';
+import { DnDFeat } from '@/types';
+
 import Input from '@/components/input';
 import Button from '@/components/button';
 import Dropdown, { OptionType } from '@/components/dropdown';
@@ -15,6 +18,12 @@ interface PersonajeFormProps {
   initialData?: Personaje | null;
 }
 
+// Interfaz auxiliar para manejar la respuesta de la API de Django Rest Framework
+interface PaginatedResponse<T> {
+    count: number;
+    results: T[];
+}
+
 const defaultFormState: PersonajeFormData = {
   nombre_personaje: '',
   clase: null,
@@ -22,7 +31,7 @@ const defaultFormState: PersonajeFormData = {
   nivel: 1,
   especie: null,
   dotes: [],
-  proficiencies: [], // Inicializamos vacío
+  proficiencies: [],
   faccion: '',
   oro: 50,
   treasure_points: 0,
@@ -35,17 +44,16 @@ const defaultFormState: PersonajeFormData = {
 export default function PersonajeForm({ onSave, onCancel, initialData }: PersonajeFormProps) {
   const { accessToken } = useAuth();
   
-  // Catálogos
   const [classesList, setClassesList] = useState<DnDClass[]>([]);
   const [subclassesList, setSubclassesList] = useState<DnDSubclass[]>([]);
   const [speciesList, setSpeciesList] = useState<DnDSpecies[]>([]);
   const [featsList, setFeatsList] = useState<DnDFeat[]>([]);
-  const [skillsList, setSkillsList] = useState<Habilidad[]>([]); // Nuevo catálogo
+  const [skillsList, setSkillsList] = useState<Habilidad[]>([]);
 
   const [formData, setFormData] = useState<PersonajeFormData>(defaultFormState);
   const [filteredSubclasses, setFilteredSubclasses] = useState<DnDSubclass[]>([]);
 
-  // 1. Cargar Todos los Catálogos
+  // 1. Cargar Catálogos
   useEffect(() => {
     const fetchCatalogs = async () => {
       if (!accessToken) return;
@@ -57,27 +65,42 @@ export default function PersonajeForm({ onSave, onCancel, initialData }: Persona
             fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/subclasses/`, { headers }),
             fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/species/`, { headers }),
             fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/feats/`, { headers }),
-            fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/habilidades/`, { headers }) // Nuevo fetch
+            fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/habilidades/`, { headers })
         ]);
 
-        if (resClasses.ok) setClassesList((await resClasses.json()).results || []);
-        if (resSubclasses.ok) setSubclassesList((await resSubclasses.json()).results || []);
-        if (resSpecies.ok) setSpeciesList((await resSpecies.json()).results || []);
-        if (resFeats.ok) setFeatsList((await resFeats.json()).results || []);
-        if (resSkills.ok) setSkillsList((await resSkills.json()).results || []);
+        // CORRECCIÓN: Usamos 'as PaginatedResponse<T>' en lugar de 'as any'
+        if (resClasses.ok) {
+            const data = await resClasses.json() as PaginatedResponse<DnDClass>;
+            setClassesList(data.results || []);
+        }
+        if (resSubclasses.ok) {
+            const data = await resSubclasses.json() as PaginatedResponse<DnDSubclass>;
+            setSubclassesList(data.results || []);
+        }
+        if (resSpecies.ok) {
+            const data = await resSpecies.json() as PaginatedResponse<DnDSpecies>;
+            setSpeciesList(data.results || []);
+        }
+        if (resFeats.ok) {
+            const data = await resFeats.json() as PaginatedResponse<DnDFeat>;
+            setFeatsList(data.results || []);
+        }
+        if (resSkills.ok) {
+            const data = await resSkills.json() as PaginatedResponse<Habilidad>;
+            setSkillsList(data.results || []);
+        }
 
       } catch (error) { console.error("Error cargando catálogos:", error); }
     };
     fetchCatalogs();
   }, [accessToken]);
 
-  // 2. Cargar Datos Iniciales y Proficiencias Existentes
+  // 2. Cargar Datos Iniciales
   useEffect(() => {
     const loadInitialData = async () => {
       if (initialData) {
         const { id, user, ...rest } = initialData;
         
-        // Si estamos editando, necesitamos buscar las proficiencias que ya tiene el personaje
         let existingSkills: number[] = [];
         if (accessToken) {
             try {
@@ -85,11 +108,15 @@ export default function PersonajeForm({ onSave, onCancel, initialData }: Persona
                     headers: { 'Authorization': `Bearer ${accessToken}` }
                 });
                 if (res.ok) {
-                    const profs: Proficiencia[] = await res.json();
-                    // Filtramos solo las que son true (si tu lógica soporta false)
-                    existingSkills = profs.filter(p => p.es_proficiente).map(p => p.habilidad);
+                    const data = await res.json();
+                    // Manejo seguro de paginación o array directo
+                    const profs: Proficiencia[] = Array.isArray(data) ? data : (data as PaginatedResponse<Proficiencia>).results;
+                    
+                    existingSkills = profs
+                        .filter(p => p.es_proficiente)
+                        .map(p => p.habilidad);
                 }
-            } catch (err) { console.error(err); }
+            } catch (err) { console.error("Error cargando proficiencias:", err); }
         }
 
         setFormData({ ...rest, proficiencies: existingSkills });
@@ -128,7 +155,6 @@ export default function PersonajeForm({ onSave, onCancel, initialData }: Persona
       }
   };
 
-  // Toggle Dotes
   const toggleFeat = (featId: number) => {
       setFormData(prev => {
           const current = prev.dotes || [];
@@ -139,7 +165,6 @@ export default function PersonajeForm({ onSave, onCancel, initialData }: Persona
       });
   };
 
-  // Nuevo: Toggle Skills (Habilidades)
   const toggleSkill = (skillId: number) => {
       setFormData(prev => {
           const current = prev.proficiencies || [];
