@@ -13,6 +13,7 @@ class Personaje(models.Model):
     nivel = models.IntegerField(default=1)
     faccion = models.CharField(max_length=50, blank=True)
     # Economía y Tiempo
+    checkpoints = models.IntegerField(default=0)
     treasure_points = models.IntegerField(default=0)
     treasure_points_gastados = models.IntegerField(default=0, null=True)
     oro = models.IntegerField(default=0)
