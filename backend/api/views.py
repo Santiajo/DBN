@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
@@ -95,6 +95,24 @@ class IngredienteViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(receta_id=receta_id)
         
         return queryset
+
+# Mixin para lookup híbrido por PK o slug
+class HybridLookupMixin:
+    def get_object(self):
+        queryset = self.filter_queryset(self.get_queryset())
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        lookup_value = self.kwargs[lookup_url_kwarg]
+
+        # Si el valor es un número entero, buscamos por PK
+        if lookup_value.isdigit():
+            filter_kwargs = {'pk': lookup_value}
+        else:
+            # Si no, buscamos por el campo slug definido en lookup_field
+            filter_kwargs = {self.lookup_field: lookup_value}
+
+        obj = get_object_or_404(queryset, **filter_kwargs)
+        self.check_object_permissions(self.request, obj)
+        return obj
 
 class InventarioPersonajeViewSet(viewsets.ModelViewSet):
     serializer_class = InventarioSerializer
@@ -774,31 +792,23 @@ class CraftingViewSet(viewsets.ViewSet):
         return Response(serializer.data)
     
 # Views para especies
-class SpeciesViewSet(viewsets.ModelViewSet):
-    queryset = Species.objects.all().prefetch_related(
-        'traits',          
-        'traits__options'  
-    )
-    
+class SpeciesViewSet(HybridLookupMixin, viewsets.ModelViewSet):
+    queryset = Species.objects.all().prefetch_related('traits', 'traits__options')
     serializer_class = SpeciesSerializer
-    permission_classes = [IsAuthenticated, IsAdminUser]
-    
-    # Filtros de búsqueda
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ['name'] 
-    
+    permission_classes = [IsAuthenticatedOrReadOnly]
     lookup_field = 'slug'
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ['name']
 
 class TraitViewSet(viewsets.ModelViewSet):
     queryset = Trait.objects.all().select_related('species', 'parent_choice')
     serializer_class = TraitSerializer
     permission_classes = [IsAuthenticated, IsAdminUser]
-    
     filter_backends = (filters.SearchFilter,)
     search_fields = ['name', 'species__name']
 
 # Views para clases
-class DnDClassViewSet(viewsets.ModelViewSet):
+class DnDClassViewSet(HybridLookupMixin, viewsets.ModelViewSet):
     queryset = DnDClass.objects.all().prefetch_related('features', 'resources', 'skill_choices')
     serializer_class = DnDClassSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
@@ -817,14 +827,10 @@ class ClassResourceViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
 # Views para subclases
-class DnDSubclassViewSet(viewsets.ModelViewSet):
+class DnDSubclassViewSet(HybridLookupMixin, viewsets.ModelViewSet):
     queryset = DnDSubclass.objects.all().prefetch_related(
-        'resources',
-        'skill_choices',
-        'features',           
-        'features__options'  
+        'resources', 'skill_choices', 'features', 'features__options'
     ).select_related('dnd_class')
-    
     serializer_class = DnDSubclassSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     lookup_field = 'slug'
@@ -844,15 +850,11 @@ class SubclassResourceViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
 # Views para dotes
-class DnDFeatViewSet(viewsets.ModelViewSet):
-    queryset = DnDFeat.objects.all().prefetch_related(
-        'features',            
-        'features__options'    
-    ).select_related('prerequisite_species', 'prerequisite_feat')
+class DnDFeatViewSet(HybridLookupMixin, viewsets.ModelViewSet):
+    queryset = DnDFeat.objects.all().prefetch_related('features', 'features__options').select_related('prerequisite_species', 'prerequisite_feat')
     serializer_class = DnDFeatSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     lookup_field = 'slug'
-    
     filter_backends = [filters.SearchFilter]
     search_fields = ['name', 'feat_type']
 
@@ -962,3 +964,4 @@ class InventarioPartyViewSet(viewsets.ModelViewSet):
             return Response({"error": "No tienes este objeto en tu inventario."}, status=404)
         except Exception as e:
             return Response({"error": str(e)}, status=500)
+
