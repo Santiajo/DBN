@@ -12,8 +12,6 @@ import ConfirmAlert from '@/components/confirm-alert';
 import PersonajeForm from './personaje-form'; 
 import { FaPlus, FaPencilAlt, FaTrash, FaEye, FaCoins, FaClock, FaStar } from 'react-icons/fa';
 
-// Definimos una interfaz auxiliar para la respuesta paginada de la API
-// Esto ayuda a que TypeScript sepa qué estructura tiene 'data'
 interface PaginatedResponse<T> {
     count: number;
     next: string | null;
@@ -49,18 +47,19 @@ export default function PersonajesPage() {
                 ]);
 
                 if (resClasses.ok) {
-                    // Casteamos la respuesta a nuestra interfaz paginada
-                    const data = (await resClasses.json()) as PaginatedResponse<DnDClass>;
+                    const data = await resClasses.json();
+                    // Manejo seguro de paginación vs array
+                    const results = Array.isArray(data) ? data : data.results || [];
                     const map: Record<number, string> = {};
-                    // Ahora 'c' es de tipo DnDClass automáticamente
-                    data.results.forEach((c) => { map[c.id] = c.name; });
+                    results.forEach((c: DnDClass) => { map[c.id] = c.name; });
                     setClassMap(map);
                 }
 
                 if (resSpecies.ok) {
-                    const data = (await resSpecies.json()) as PaginatedResponse<DnDSpecies>;
+                    const data = await resSpecies.json();
+                    const results = Array.isArray(data) ? data : data.results || [];
                     const map: Record<number, string> = {};
-                    data.results.forEach((s) => { map[s.id] = s.name; });
+                    results.forEach((s: DnDSpecies) => { map[s.id] = s.name; });
                     setSpeciesMap(map);
                 }
             } catch (error) {
@@ -83,12 +82,9 @@ export default function PersonajesPage() {
                 if (res.status === 401) logout();
                 throw new Error('Error al cargar los personajes');
             }
-            // Casteamos el resultado. Puede ser array directo o paginado.
-            // Asumimos paginado por consistencia con el resto, o ajustamos segun API.
             const data = await res.json();
-            // Verificación segura de tipo
             const results = Array.isArray(data) ? data : (data as PaginatedResponse<Personaje>).results;
-            setPersonajes(results);
+            setPersonajes(results || []);
         } catch (error) {
             console.error(error);
         } finally {
@@ -108,15 +104,21 @@ export default function PersonajesPage() {
 
         try {
             const res = await fetch(`${apiUrl}/api/proficiencias/?personaje=${personajeId}`, { headers });
-            const currentProfs = (res.ok ? await res.json() : []) as Proficiencia[];
+            
+            // --- CORRECCIÓN PRINCIPAL AQUÍ ---
+            const responseData = res.ok ? await res.json() : [];
+            
+            // Verificamos si es un array directo o un objeto paginado con .results
+            const currentProfs: Proficiencia[] = Array.isArray(responseData) 
+                ? responseData 
+                : (responseData.results || []); 
+            // --------------------------------
 
             const currentSkillIds = currentProfs.map(p => p.habilidad);
             
             const toCreate = selectedSkills.filter(id => !currentSkillIds.includes(id));
             const toDelete = currentProfs.filter(p => !selectedSkills.includes(p.habilidad));
 
-            // CORRECCIÓN: Tipamos el array de promesas como Promise<Response>
-            // ya que 'fetch' devuelve una Response.
             const promises: Promise<Response>[] = [];
 
             toDelete.forEach(p => {
@@ -172,7 +174,6 @@ export default function PersonajesPage() {
                 throw new Error('Error al guardar el personaje');
             }
             
-            // Casteamos la respuesta al tipo Personaje
             const savedPersonaje = (await res.json()) as Personaje;
 
             if (proficiencies) {
@@ -187,7 +188,6 @@ export default function PersonajesPage() {
         }
     };
 
-    // Eliminar
     const handleConfirmDelete = async () => {
         if (!personajeToDelete || !accessToken) return;
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
