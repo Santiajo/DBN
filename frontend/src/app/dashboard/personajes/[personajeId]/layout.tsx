@@ -17,7 +17,7 @@ export default async function PersonajeLayout({ children, params }: LayoutProps)
 
       {/* 2. Contenido (Hoja de papel) */}
       {/* Borde sólido de madera, fondo blanco, esquinas inferiores redondeadas */}
-      <div className="bg-white min-h-[600px] rounded-b-xl border-2 border-madera-oscura p-8 relative">
+      <div className="bg-white min-h-[600px] rounded-b-xl border border-madera-oscura p-8 relative">
         {children}
       </div>
     </div>

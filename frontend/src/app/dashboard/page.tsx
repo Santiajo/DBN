@@ -171,44 +171,42 @@ export default function PlayersTablePage() {
             </div>
         </div>
 
-        {/* TABLA ESTILIZADA */}
-        {/* CORRECCIÓN: Quitamos shadow-lg y usamos border-madera-oscura sólido y rounded-xl */}
         <div className="flex-1 overflow-auto border border-madera-oscura rounded-xl bg-white">
             <table className="min-w-full border-collapse text-sm">
-                {/* Cabecera Sticky - Quitamos shadow-md para que sea plana */}
+                {/* CABECERA UNIFICADA: Color Cuero Sólido y Texto Blanco */}
                 <thead className="bg-cuero text-white font-title uppercase sticky top-0 z-10">
                     {/* Fila Superior: Categorías */}
                     <tr className="text-xs tracking-wide border-b border-white/20">
-                        <th colSpan={2} className="px-2 py-1 border-r border-white/20 bg-cuero">Identificación</th>
-                        <th colSpan={1} className="px-2 py-1 border-r border-white/20 bg-stone-800">Rank</th>
-                        <th colSpan={3} className="px-2 py-1 border-r border-white/20 bg-carmesi/80">Admin Zone</th>
-                        <th colSpan={2} className="px-2 py-1 border-r border-white/20 bg-cuero">Detalle</th>
-                        <th colSpan={2} className="px-2 py-1 border-r border-white/20 bg-bosque/80">Economía</th>
-                        <th colSpan={2} className="px-2 py-1 bg-sky-700/80">Social</th>
+                        <th colSpan={2} className="px-2 py-1 border-r border-white/20">Identificación</th>
+                        <th colSpan={1} className="px-2 py-1 border-r border-white/20">Rank</th>
+                        <th colSpan={3} className="px-2 py-1 border-r border-white/20">Progresión (Admin)</th>
+                        <th colSpan={2} className="px-2 py-1 border-r border-white/20">Detalle</th>
+                        <th colSpan={2} className="px-2 py-1 border-r border-white/20">Economía</th>
+                        <th colSpan={2} className="px-2 py-1">Social</th>
                     </tr>
                     {/* Fila Inferior: Columnas */}
-                    <tr className="text-[11px] tracking-wider">
+                    <tr className="text-[11px] tracking-wider bg-cuero/90"> {/* Un tono ligeramente distinto para diferenciar */}
                         <th className="px-3 py-2 text-left w-32">Jugador</th>
                         <th className="px-3 py-2 text-left w-40 border-r border-white/10">Personaje</th>
                         
-                        <th className="px-2 py-2 text-center w-12 border-r border-white/10 bg-stone-800">Tier</th>
+                        <th className="px-2 py-2 text-center w-12 border-r border-white/10">Tier</th>
                         
                         {/* Admin */}
-                        <th className="px-2 py-2 text-center w-20 bg-carmesi/80">CP</th>
-                        <th className="px-2 py-2 text-center w-20 bg-carmesi/80">TP Total</th>
-                        <th className="px-2 py-2 text-center w-20 bg-carmesi/80 border-r border-white/10">TP Gast.</th>
+                        <th className="px-2 py-2 text-center w-20">CP</th>
+                        <th className="px-2 py-2 text-center w-20">TP Total</th>
+                        <th className="px-2 py-2 text-center w-20 border-r border-white/10">TP Gast.</th>
                         
                         {/* Info */}
                         <th className="px-3 py-2 text-left w-48">Clase (Lvl)</th>
                         <th className="px-3 py-2 text-left w-32 border-r border-white/10">Especie</th>
                         
                         {/* User */}
-                        <th className="px-2 py-2 text-center w-24 bg-bosque/80">Oro (GP)</th>
-                        <th className="px-2 py-2 text-center w-20 bg-bosque/80 border-r border-white/10">Días</th>
+                        <th className="px-2 py-2 text-center w-24">Oro (GP)</th>
+                        <th className="px-2 py-2 text-center w-20 border-r border-white/10">Días</th>
                         
                         {/* Social */}
-                        <th className="px-3 py-2 text-left w-32 bg-sky-700/80">Facción</th>
-                        <th className="px-2 py-2 text-center w-16 bg-sky-700/80">Ren.</th>
+                        <th className="px-3 py-2 text-left w-32">Facción</th>
+                        <th className="px-2 py-2 text-center w-16">Ren.</th>
                     </tr>
                 </thead>
 
@@ -229,7 +227,6 @@ export default function PlayersTablePage() {
                         return (
                             <tr 
                                 key={pj.id} 
-                                // ESTILO DE FILA: Alternado (Blanco/Pergamino) y Hover (Bosque)
                                 className="group transition-colors duration-150 odd:bg-white even:bg-pergamino/60 hover:bg-bosque hover:text-white text-stone-800"
                             >
                                 {/* Identificación */}
@@ -241,7 +238,7 @@ export default function PlayersTablePage() {
                                     {tier}
                                 </td>
 
-                                {/* ADMIN INPUTS (Fondo rojizo suave que cambia en hover) */}
+                                {/* ADMIN INPUTS */}
                                 <td className="p-0 border-r border-madera-oscura/5 group-hover:border-white/20">
                                     <input 
                                         type="number"
@@ -249,7 +246,7 @@ export default function PlayersTablePage() {
                                         value={String(val('checkpoints'))}
                                         onChange={(e) => handleCellChange(pj.id, 'checkpoints', parseInt(e.target.value))}
                                         onBlur={() => saveChanges(pj.id)}
-                                        className="w-full h-full px-2 py-2 text-center bg-transparent outline-none font-bold text-inherit focus:bg-white/20 cursor-pointer focus:cursor-text"
+                                        className="w-full h-full px-2 py-2 text-center bg-transparent outline-none font-bold text-inherit focus:bg-white/20 cursor-pointer focus:cursor-text disabled:opacity-70"
                                     />
                                 </td>
                                 <td className="p-0 border-r border-madera-oscura/5 group-hover:border-white/20">
@@ -294,7 +291,7 @@ export default function PlayersTablePage() {
                                         value={String(val('oro'))}
                                         onChange={(e) => handleCellChange(pj.id, 'oro', parseInt(e.target.value))}
                                         onBlur={() => saveChanges(pj.id)}
-                                        className="w-full h-full px-2 py-2 text-center bg-transparent outline-none font-semibold text-inherit focus:bg-white/20 cursor-pointer focus:cursor-text"
+                                        className="w-full h-full px-2 py-2 text-center bg-transparent outline-none font-semibold text-inherit focus:bg-white/20 cursor-pointer focus:cursor-text disabled:opacity-70"
                                     />
                                 </td>
                                 <td className="p-0 border-r border-madera-oscura/5 group-hover:border-white/20">
@@ -304,7 +301,7 @@ export default function PlayersTablePage() {
                                         value={String(val('tiempo_libre'))}
                                         onChange={(e) => handleCellChange(pj.id, 'tiempo_libre', parseInt(e.target.value))}
                                         onBlur={() => saveChanges(pj.id)}
-                                        className="w-full h-full px-2 py-2 text-center bg-transparent outline-none text-inherit focus:bg-white/20 cursor-pointer focus:cursor-text"
+                                        className="w-full h-full px-2 py-2 text-center bg-transparent outline-none text-inherit focus:bg-white/20 cursor-pointer focus:cursor-text disabled:opacity-70"
                                     />
                                 </td>
 
@@ -316,7 +313,7 @@ export default function PlayersTablePage() {
                                         value={String(val('faccion'))}
                                         onChange={(e) => handleCellChange(pj.id, 'faccion', e.target.value)}
                                         onBlur={() => saveChanges(pj.id)}
-                                        className="w-full h-full px-3 py-2 text-left bg-transparent outline-none text-xs text-inherit focus:bg-white/20 cursor-pointer focus:cursor-text placeholder:text-stone-300 group-hover:placeholder:text-white/40"
+                                        className="w-full h-full px-3 py-2 text-left bg-transparent outline-none text-xs text-inherit focus:bg-white/20 cursor-pointer focus:cursor-text placeholder:text-stone-300 group-hover:placeholder:text-white/40 disabled:opacity-70"
                                         placeholder="-"
                                     />
                                 </td>
