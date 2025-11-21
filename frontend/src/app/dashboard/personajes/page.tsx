@@ -223,6 +223,7 @@ export default function PersonajesPage() {
                                     <div className="space-y-2 text-sm font-body border-t border-madera-oscura/20 pt-4">
                                         <p className="flex items-center gap-2"><FaCoins className="text-yellow-500" /> <strong>Oro:</strong> {pj.oro}</p>
                                         <p className="flex items-center gap-2"><FaStar className="text-sky-500" /> <strong>Checkpoints:</strong> {pj.treasure_points}</p>
+                                        <p className="flex items-center gap-2"><FaClock className="text-stone-500" /> <strong>Tiempo libre:</strong> {pj.tiempo_libre}</p>
                                     </div>
                                 </div>
                                 <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-madera-oscura/20">
