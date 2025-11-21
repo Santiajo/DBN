@@ -8,7 +8,7 @@ import Button from '@/components/button';
 import Input from '@/components/input';
 import Modal from '@/components/modal';
 import { FaUsers, FaPlus, FaSearch } from 'react-icons/fa';
-import PartyModal from './party-modal';
+import PartyModal from './grupos-modal';
 
 // --- Función Helper ---
 const buildApiUrl = (endpoint: string) => {
@@ -17,11 +17,11 @@ const buildApiUrl = (endpoint: string) => {
   return `${baseUrl}/api/${normalizedEndpoint}`;
 };
 
-export default function PartysPage() {
+export default function gruposPage() {
   const { user, accessToken } = useAuth();
 
   // Estados
-  const [partys, setPartys] = useState<Party[]>([]);
+  const [grupos, setgrupos] = useState<Party[]>([]);
   const [userPersonajes, setUserPersonajes] = useState<Personaje[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -40,12 +40,12 @@ export default function PartysPage() {
     if (!accessToken) return;
     setIsLoading(true);
     try {
-      // 1. Cargar Partys
-      const resPartys = await fetch(buildApiUrl(`partys/?search=${searchTerm}`), {
+      // 1. Cargar grupos
+      const resgrupos = await fetch(buildApiUrl(`grupos/?search=${searchTerm}`), {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
-      const dataPartys = await resPartys.json();
-      setPartys(dataPartys.results || dataPartys || []);
+      const datagrupos = await resgrupos.json();
+      setgrupos(datagrupos.results || datagrupos || []);
 
       // 2. Cargar Personajes del Usuario (Para saber si puede unirse)
       const resPj = await fetch(buildApiUrl('personajes/'), {
@@ -66,7 +66,7 @@ export default function PartysPage() {
   const handleCreateParty = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-        const res = await fetch(buildApiUrl('partys/'), {
+        const res = await fetch(buildApiUrl('grupos/'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -95,10 +95,10 @@ export default function PartysPage() {
         {/* HEADER */}
         <div className="flex justify-between items-center">
             <h1 className="font-title text-3xl text-madera-oscura flex items-center gap-2">
-                <FaUsers /> Gremios y Partys
+                <FaUsers /> Gremios y grupos
             </h1>
             <Button variant="primary" onClick={() => setIsCreateOpen(true)}>
-                <FaPlus className="mr-2" /> Nueva Party
+                <FaPlus className="mr-2" /> Nuevo Grupo
             </Button>
         </div>
 
@@ -112,10 +112,10 @@ export default function PartysPage() {
             <Button variant="secondary" onClick={() => fetchData()}><FaSearch /></Button>
         </div>
 
-        {/* LISTA DE PARTYS */}
+        {/* LISTA DE grupos */}
         {isLoading ? <p>Cargando aventuras...</p> : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {partys.map(party => (
+                {grupos.map(party => (
                     <Card key={party.id} variant="primary" className="flex flex-col justify-between h-full hover:shadow-lg transition-shadow">
                         <div>
                             <h3 className="font-title text-xl text-madera-oscura mb-1">{party.nombre}</h3>
