@@ -128,7 +128,6 @@ export default function InventarioPersonajePage({ params }: { params: { personaj
 
             <div className="flex justify-between items-start">
                 <div>
-                    <Button variant="secondary" onClick={() => router.back()} className="mb-4"><FaArrowLeft className="mr-2" />Volver a Personajes</Button>
                     <h1 className="text-3xl font-title text-stone-800">Inventario de: <span className="text-bosque">{personaje?.nombre_personaje}</span></h1>
                     <p className="text-stone-600">Revisa y gestiona los objetos de tu personaje.</p>
                 </div>
