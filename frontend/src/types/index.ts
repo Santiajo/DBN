@@ -420,3 +420,46 @@ export interface Party {
   miembros: number[]; // Array de IDs
   miembros_info: PartyMember[]; // Array con info detallada
 }
+
+// Types para NPCS
+export interface NPC {
+  id: number;
+  name: string;
+  slug: string;
+  
+  // Datos Básicos
+  title: string;
+  occupation: string;
+  location: string;
+  species: number | null; 
+  species_name?: string;  
+
+  // Narrativa
+  appearance: string;
+  personality: string;
+  reputation: string;
+
+  // Economía
+  gold: number;
+  sells: string;
+  buys: string;
+
+  // Mecánicas
+  benefit: string;
+  secret_benefit: string;
+  detriment: string;
+  
+  image_url?: string;
+}
+
+// Payload para guardar (sin ID ni campos de lectura)
+export type NPCPayload = Omit<NPC, 'id' | 'slug' | 'species_name'>;
+
+// Interfaz para Relación
+export interface RelacionNPC {
+  id: number;
+  personaje: number;
+  npc: number;
+  valor_amistad: number;
+  notas_jugador: string;
+}

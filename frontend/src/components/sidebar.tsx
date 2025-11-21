@@ -19,6 +19,7 @@ import {
   FaHatWizard,    // Clases
   FaMedal,        // Subclases
   FaStar,         // Dotes
+  FaUserTie,      // NPCs
   FaAngleLeft, 
   FaAngleRight, 
   FaChevronDown, 
@@ -52,7 +53,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
     }
   };
 
-  // --- CONFIGURACIÓN DE ENLACES ---
+  // ENLACES
   const mainLinks = [
     { href: '/dashboard', icon: <FaDungeon />, label: 'Inicio' },
     { href: '/dashboard/personajes', icon: <FaUserShield />, label: 'Personajes' },
@@ -66,12 +67,11 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
     { href: '/dashboard/subclases', icon: <FaMedal />, label: 'Subclases' },
     { href: '/dashboard/dotes', icon: <FaStar />, label: 'Dotes' },
     { href: '/dashboard/trabajos', icon: <FaHammer />, label: 'Trabajos' },
-    { href: '/dashboard/tiendas', icon: <FaBalanceScale />, label: 'Gestión tiendas' },
+    { href: '/dashboard/tiendas', icon: <FaBalanceScale />, label: 'Tiendas' },
+    { href: '/dashboard/npcs', icon: <FaUserTie />, label: 'NPCs' },
   ];
 
-  // Helper para renderizar links con TU ESTILO ORIGINAL
   const renderLink = (link: { href: string; icon: React.ReactNode; label: string }, isSubItem = false) => {
-    // Un sub-item debe considerarse activo si la URL coincide exactamente
     const isActive = pathname === link.href;
     
     return (
