@@ -23,7 +23,7 @@ router.register(r'objetos', views.ObjetoViewSet, basename='objeto')
 router.register(r'tiendas', views.TiendaViewSet, basename='tienda')
 router.register(r'pagos-rango', views.PagoRangoViewSet, basename='pagorango')
 router.register(r'progreso-trabajos', ProgresoTrabajoViewSet, basename='progresotrabajo')
-router.register(r'partys', PartyViewSet)
+router.register(r'grupos', PartyViewSet)
 router.register(r'inventario-party', InventarioPartyViewSet, basename='inventarioparty')
 
 # Routers para especies y rasgos de especies

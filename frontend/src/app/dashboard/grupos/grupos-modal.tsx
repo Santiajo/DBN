@@ -72,7 +72,7 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
   const handleJoin = async () => {
     if (!selectedCharIdToJoin) return;
     try {
-      const res = await fetch(buildApiUrl(`partys/${party.id}/unirse/`), {
+      const res = await fetch(buildApiUrl(`grupos/${party.id}/unirse/`), {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
