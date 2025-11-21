@@ -18,6 +18,12 @@ interface PersonajeFormProps {
   initialData?: Personaje | null;
 }
 
+// Interfaz auxiliar para manejar la respuesta de la API de Django Rest Framework
+interface PaginatedResponse<T> {
+    count: number;
+    results: T[];
+}
+
 const defaultFormState: PersonajeFormData = {
   nombre_personaje: '',
   clase: null,
@@ -62,11 +68,27 @@ export default function PersonajeForm({ onSave, onCancel, initialData }: Persona
             fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/habilidades/`, { headers })
         ]);
 
-        if (resClasses.ok) setClassesList(((await resClasses.json()) as any).results || []);
-        if (resSubclasses.ok) setSubclassesList(((await resSubclasses.json()) as any).results || []);
-        if (resSpecies.ok) setSpeciesList(((await resSpecies.json()) as any).results || []);
-        if (resFeats.ok) setFeatsList(((await resFeats.json()) as any).results || []);
-        if (resSkills.ok) setSkillsList(((await resSkills.json()) as any).results || []);
+        // CORRECCIÓN: Usamos 'as PaginatedResponse<T>' en lugar de 'as any'
+        if (resClasses.ok) {
+            const data = await resClasses.json() as PaginatedResponse<DnDClass>;
+            setClassesList(data.results || []);
+        }
+        if (resSubclasses.ok) {
+            const data = await resSubclasses.json() as PaginatedResponse<DnDSubclass>;
+            setSubclassesList(data.results || []);
+        }
+        if (resSpecies.ok) {
+            const data = await resSpecies.json() as PaginatedResponse<DnDSpecies>;
+            setSpeciesList(data.results || []);
+        }
+        if (resFeats.ok) {
+            const data = await resFeats.json() as PaginatedResponse<DnDFeat>;
+            setFeatsList(data.results || []);
+        }
+        if (resSkills.ok) {
+            const data = await resSkills.json() as PaginatedResponse<Habilidad>;
+            setSkillsList(data.results || []);
+        }
 
       } catch (error) { console.error("Error cargando catálogos:", error); }
     };
@@ -87,15 +109,12 @@ export default function PersonajeForm({ onSave, onCancel, initialData }: Persona
                 });
                 if (res.ok) {
                     const data = await res.json();
+                    // Manejo seguro de paginación o array directo
+                    const profs: Proficiencia[] = Array.isArray(data) ? data : (data as PaginatedResponse<Proficiencia>).results;
                     
-                    // --- CORRECCIÓN DEL ERROR DE FILTRO ---
-                    // Verificamos si data es un array o un objeto paginado con .results
-                    const profs: Proficiencia[] = Array.isArray(data) ? data : (data.results || []);
-                    
-                    // Ahora sí podemos filtrar con seguridad
                     existingSkills = profs
-                        .filter((p: Proficiencia) => p.es_proficiente)
-                        .map((p: Proficiencia) => p.habilidad);
+                        .filter(p => p.es_proficiente)
+                        .map(p => p.habilidad);
                 }
             } catch (err) { console.error("Error cargando proficiencias:", err); }
         }
@@ -117,6 +136,8 @@ export default function PersonajeForm({ onSave, onCancel, initialData }: Persona
       setFilteredSubclasses([]);
     }
   }, [formData.clase, subclassesList]);
+
+  // --- Handlers ---
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -192,7 +213,7 @@ export default function PersonajeForm({ onSave, onCancel, initialData }: Persona
         <div><label className="block mb-1 font-semibold">Facción</label><Input name="faccion" value={formData.faccion} onChange={handleChange} /></div>
       </div>
 
-      {/* Habilidades */}
+      {/* Sección Habilidades (Skills) */}
       <div className="p-4 bg-stone-100 rounded-lg border border-stone-200">
           <h4 className="font-title text-lg mb-2 text-stone-700 border-b border-stone-300 pb-1">Habilidades (Skills)</h4>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-40 overflow-y-auto p-2 border rounded bg-white">
@@ -208,7 +229,7 @@ export default function PersonajeForm({ onSave, onCancel, initialData }: Persona
           </div>
       </div>
 
-      {/* Dotes */}
+      {/* Sección Dotes */}
       <div className="p-4 bg-stone-100 rounded-lg border border-stone-200">
           <h4 className="font-title text-lg mb-2 text-stone-700 border-b border-stone-300 pb-1">Dotes (Feats)</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 border rounded bg-white">
