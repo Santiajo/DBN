@@ -36,20 +36,20 @@ export interface Personaje {
   id: number;
   user: number;
   nombre_personaje: string;
+  
   clase: number | null;
   subclase: number | null;
   especie: number | null;
-  dotes: number[]; 
+  dotes: number[];
 
-  // Datos de Juego
   nivel: number;
+  checkpoints: number; 
   faccion: string;
   treasure_points: number;
   treasure_points_gastados: number;
   oro: number;
   tiempo_libre: number;
   
-  // Estadísticas
   fuerza: number;
   inteligencia: number;
   sabiduria: number;
