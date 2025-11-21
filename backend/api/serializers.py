@@ -52,10 +52,10 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         return token
 
 class PersonajeSerializer(serializers.ModelSerializer):
+    nombre_usuario = serializers.ReadOnlyField(source='user.username')
     class Meta:
         model = Personaje
         fields = '__all__'
-        read_only_fields = ['user']
 
 class ObjetoSerializer(serializers.ModelSerializer):
     class Meta:

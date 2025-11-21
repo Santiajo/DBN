@@ -31,12 +31,11 @@ export interface Tienda {
   inventario: ObjetoTienda[];
 }
 
-// Interfaces de personajes
 export interface Personaje {
   id: number;
   user: number;
   nombre_personaje: string;
-  
+  nombre_usuario?: string; 
   clase: number | null;
   subclase: number | null;
   especie: number | null;
