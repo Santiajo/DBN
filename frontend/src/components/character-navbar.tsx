@@ -19,60 +19,57 @@ export default function CharacterNavbar({ personajeId }: CharacterNavbarProps) {
   const pathname = usePathname();
   const baseUrl = `/dashboard/personajes/${personajeId}`;
 
-  // Definimos las pestañas de navegación
+  // Definimos las pestañas
   const tabs = [
-    { name: 'General', path: '', icon: <FaUser /> }, // La raíz es el resumen
+    { name: 'General', path: '', icon: <FaUser /> }, 
     { name: 'Inventario', path: '/inventario', icon: <FaBoxOpen /> },
-    { name: 'Rasgos', path: '/rasgos', icon: <FaBolt /> }, // Futura implementación
-    { name: 'Hechizos', path: '/hechizos', icon: <FaScroll /> }, // Futura implementación
-    { name: 'Diario', path: '/diario', icon: <FaBook /> }, // Futura implementación
+    { name: 'Rasgos', path: '/rasgos', icon: <FaBolt /> },
+    { name: 'Hechizos', path: '/hechizos', icon: <FaScroll /> },
+    { name: 'Diario', path: '/diario', icon: <FaBook /> },
   ];
 
   return (
-    <nav className="bg-madera-oscura rounded-t-xl shadow-lg border-b-4 border-cuero overflow-hidden">
-      <div className="flex flex-col md:flex-row justify-between items-center px-4">
-        
-        {/* Botón para salir al listado general */}
-        <Link 
-          href="/dashboard/personajes" 
-          className="flex items-center gap-2 text-pergamino/70 hover:text-white py-3 text-xs uppercase tracking-wider transition-colors"
-        >
-          <FaArrowLeft /> Mis Personajes
-        </Link>
+    <nav className="flex flex-col md:flex-row justify-between items-end px-4 pt-4 bg-pergamino border-x-2 border-t-2 border-madera-oscura rounded-t-xl">
+      
+      {/* Botón "Salir" estilizado como enlace de texto clásico */}
+      <Link 
+        href="/dashboard/personajes" 
+        className="flex items-center gap-2 text-madera-oscura/70 hover:text-carmesi mb-3 md:mb-2 px-2 transition-colors font-title text-sm font-bold uppercase tracking-widest group"
+      >
+        <FaArrowLeft className="group-hover:-translate-x-1 transition-transform" /> 
+        <span>Mis Personajes</span>
+      </Link>
 
-        {/* Lista de Pestañas */}
-        <ul className="flex flex-wrap justify-center gap-1 w-full md:w-auto">
-          {tabs.map((tab) => {
-            const fullPath = `${baseUrl}${tab.path}`;
-            
-            // Lógica para determinar si está activo
-            // El caso base ('') debe ser exacto, los otros pueden ser parciales si hay sub-rutas
-            const isActive = tab.path === '' 
+      {/* Pestañas Estilo "Folder" Físico */}
+      <ul className="flex flex-wrap justify-center gap-1 w-full md:w-auto -mb-[2px]"> 
+        {tabs.map((tab) => {
+          const fullPath = `${baseUrl}${tab.path}`;
+          // Coincidencia exacta para la raíz, parcial para el resto
+          const isActive = tab.path === '' 
               ? pathname === baseUrl
               : pathname.startsWith(fullPath);
 
-            return (
-              <li key={tab.name}>
-                <Link
-                  href={fullPath}
-                  className={`
-                    flex items-center gap-2 px-4 py-3 font-title transition-all duration-200
-                    ${isActive 
-                      ? 'bg-pergamino text-madera-oscura font-bold clip-path-tab' // Activo: Parece una hoja de papel
-                      : 'text-pergamino hover:bg-white/10 hover:text-white' // Inactivo
-                    }
-                  `}
-                >
-                  <span className={isActive ? 'text-bosque' : 'opacity-70'}>
-                    {tab.icon}
-                  </span>
-                  <span>{tab.name}</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
+          return (
+            <li key={tab.name}>
+              <Link
+                href={fullPath}
+                className={`
+                  group flex items-center gap-2 px-5 py-2 rounded-t-lg border-x-2 border-t-2 font-title text-sm tracking-wide transition-all
+                  ${isActive 
+                    ? 'bg-white border-madera-oscura text-madera-oscura relative z-10 border-b-white pb-3 -mb-1' // Activo: Blanco, se fusiona abajo, tapa el borde inferior
+                    : 'bg-madera-oscura/5 border-transparent text-stone-600 hover:bg-madera-oscura/10 hover:text-madera-oscura border-b-2 border-b-madera-oscura' // Inactivo: Hundido
+                  }
+                `}
+              >
+                <span className={`text-base ${isActive ? 'text-bosque' : 'opacity-50 group-hover:opacity-100'}`}>
+                  {tab.icon}
+                </span>
+                <span className={isActive ? 'font-bold' : ''}>{tab.name}</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
     </nav>
   );
 }
