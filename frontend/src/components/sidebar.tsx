@@ -56,9 +56,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
   const mainLinks = [
     { href: '/dashboard', icon: <FaDungeon />, label: 'Inicio' },
     { href: '/dashboard/personajes', icon: <FaUserShield />, label: 'Personajes' },
-    { href: '/dashboard/habilidades', icon: <FaScroll />, label: 'Habilidades' },
     { href: '/dashboard/compras', icon: <FaStore />, label: 'Tiendas' },
-    { href: '/dashboard/tiempo-libre', icon: <FaCampground />, label: 'Tiempo libre' },
   ];
 
   const managementLinks = [
