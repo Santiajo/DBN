@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { Personaje, PersonajeFormData, DnDSpecies, Habilidad, Proficiencia } from '@/types';
-import { DnDClass, DnDSubclass, DnDFeat } from '@/types';
+import { DnDClass } from '@/types';
+import { DnDSubclass } from '@/types';
+import { DnDFeat } from '@/types';
+
 import Input from '@/components/input';
 import Button from '@/components/button';
 import Dropdown, { OptionType } from '@/components/dropdown';
@@ -22,7 +25,7 @@ const defaultFormState: PersonajeFormData = {
   nivel: 1,
   especie: null,
   dotes: [],
-  proficiencies: [], // Inicializamos vacío
+  proficiencies: [],
   faccion: '',
   oro: 50,
   treasure_points: 0,
@@ -35,17 +38,16 @@ const defaultFormState: PersonajeFormData = {
 export default function PersonajeForm({ onSave, onCancel, initialData }: PersonajeFormProps) {
   const { accessToken } = useAuth();
   
-  // Catálogos
   const [classesList, setClassesList] = useState<DnDClass[]>([]);
   const [subclassesList, setSubclassesList] = useState<DnDSubclass[]>([]);
   const [speciesList, setSpeciesList] = useState<DnDSpecies[]>([]);
   const [featsList, setFeatsList] = useState<DnDFeat[]>([]);
-  const [skillsList, setSkillsList] = useState<Habilidad[]>([]); // Nuevo catálogo
+  const [skillsList, setSkillsList] = useState<Habilidad[]>([]);
 
   const [formData, setFormData] = useState<PersonajeFormData>(defaultFormState);
   const [filteredSubclasses, setFilteredSubclasses] = useState<DnDSubclass[]>([]);
 
-  // 1. Cargar Todos los Catálogos
+  // 1. Cargar Catálogos
   useEffect(() => {
     const fetchCatalogs = async () => {
       if (!accessToken) return;
@@ -57,27 +59,26 @@ export default function PersonajeForm({ onSave, onCancel, initialData }: Persona
             fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/subclasses/`, { headers }),
             fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/species/`, { headers }),
             fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/feats/`, { headers }),
-            fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/habilidades/`, { headers }) // Nuevo fetch
+            fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/habilidades/`, { headers })
         ]);
 
-        if (resClasses.ok) setClassesList((await resClasses.json()).results || []);
-        if (resSubclasses.ok) setSubclassesList((await resSubclasses.json()).results || []);
-        if (resSpecies.ok) setSpeciesList((await resSpecies.json()).results || []);
-        if (resFeats.ok) setFeatsList((await resFeats.json()).results || []);
-        if (resSkills.ok) setSkillsList((await resSkills.json()).results || []);
+        if (resClasses.ok) setClassesList(((await resClasses.json()) as any).results || []);
+        if (resSubclasses.ok) setSubclassesList(((await resSubclasses.json()) as any).results || []);
+        if (resSpecies.ok) setSpeciesList(((await resSpecies.json()) as any).results || []);
+        if (resFeats.ok) setFeatsList(((await resFeats.json()) as any).results || []);
+        if (resSkills.ok) setSkillsList(((await resSkills.json()) as any).results || []);
 
       } catch (error) { console.error("Error cargando catálogos:", error); }
     };
     fetchCatalogs();
   }, [accessToken]);
 
-  // 2. Cargar Datos Iniciales y Proficiencias Existentes
+  // 2. Cargar Datos Iniciales
   useEffect(() => {
     const loadInitialData = async () => {
       if (initialData) {
         const { id, user, ...rest } = initialData;
         
-        // Si estamos editando, necesitamos buscar las proficiencias que ya tiene el personaje
         let existingSkills: number[] = [];
         if (accessToken) {
             try {
@@ -85,11 +86,18 @@ export default function PersonajeForm({ onSave, onCancel, initialData }: Persona
                     headers: { 'Authorization': `Bearer ${accessToken}` }
                 });
                 if (res.ok) {
-                    const profs: Proficiencia[] = await res.json();
-                    // Filtramos solo las que son true (si tu lógica soporta false)
-                    existingSkills = profs.filter(p => p.es_proficiente).map(p => p.habilidad);
+                    const data = await res.json();
+                    
+                    // --- CORRECCIÓN DEL ERROR DE FILTRO ---
+                    // Verificamos si data es un array o un objeto paginado con .results
+                    const profs: Proficiencia[] = Array.isArray(data) ? data : (data.results || []);
+                    
+                    // Ahora sí podemos filtrar con seguridad
+                    existingSkills = profs
+                        .filter((p: Proficiencia) => p.es_proficiente)
+                        .map((p: Proficiencia) => p.habilidad);
                 }
-            } catch (err) { console.error(err); }
+            } catch (err) { console.error("Error cargando proficiencias:", err); }
         }
 
         setFormData({ ...rest, proficiencies: existingSkills });
@@ -110,8 +118,6 @@ export default function PersonajeForm({ onSave, onCancel, initialData }: Persona
     }
   }, [formData.clase, subclassesList]);
 
-  // --- Handlers ---
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     let val: string | number | null = value;
@@ -128,7 +134,6 @@ export default function PersonajeForm({ onSave, onCancel, initialData }: Persona
       }
   };
 
-  // Toggle Dotes
   const toggleFeat = (featId: number) => {
       setFormData(prev => {
           const current = prev.dotes || [];
@@ -139,7 +144,6 @@ export default function PersonajeForm({ onSave, onCancel, initialData }: Persona
       });
   };
 
-  // Nuevo: Toggle Skills (Habilidades)
   const toggleSkill = (skillId: number) => {
       setFormData(prev => {
           const current = prev.proficiencies || [];
@@ -188,7 +192,7 @@ export default function PersonajeForm({ onSave, onCancel, initialData }: Persona
         <div><label className="block mb-1 font-semibold">Facción</label><Input name="faccion" value={formData.faccion} onChange={handleChange} /></div>
       </div>
 
-      {/* Sección Habilidades (Skills) */}
+      {/* Habilidades */}
       <div className="p-4 bg-stone-100 rounded-lg border border-stone-200">
           <h4 className="font-title text-lg mb-2 text-stone-700 border-b border-stone-300 pb-1">Habilidades (Skills)</h4>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-40 overflow-y-auto p-2 border rounded bg-white">
@@ -204,7 +208,7 @@ export default function PersonajeForm({ onSave, onCancel, initialData }: Persona
           </div>
       </div>
 
-      {/* Sección Dotes */}
+      {/* Dotes */}
       <div className="p-4 bg-stone-100 rounded-lg border border-stone-200">
           <h4 className="font-title text-lg mb-2 text-stone-700 border-b border-stone-300 pb-1">Dotes (Feats)</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 border rounded bg-white">
