@@ -388,3 +388,36 @@ export interface DnDFeatPayload {
   ability_score_increase: string;
   repeatable: boolean;
 }
+
+// PARA PARTYS
+
+export interface InventarioParty {
+  id: number;
+  party: number;
+  objeto: number;
+  cantidad: number;
+  // Campos de lectura (del serializer)
+  objeto_nombre: string;
+  objeto_rarity: string;
+  objeto_value: string;
+  objeto_text: string;
+  donado_por_nombre: string | null;
+}
+
+export interface PartyMember {
+  id: number;
+  nombre_personaje: string;
+  clase: string;
+  nivel: number;
+}
+
+export interface Party {
+  id: number;
+  nombre: string;
+  descripcion: string;
+  creador: number;
+  creador_nombre: string;
+  fecha_creacion: string;
+  miembros: number[]; // Array de IDs
+  miembros_info: PartyMember[]; // Array con info detallada
+}
