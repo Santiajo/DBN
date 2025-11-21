@@ -59,7 +59,9 @@ export interface Personaje {
 }
 
 // Payload para el formulario
-export type PersonajeFormData = Omit<Personaje, 'id' | 'user'>;
+export type PersonajeFormData = Omit<Personaje, 'id' | 'user'> & {
+  proficiencies?: number[]; 
+};
 
 export interface InventarioItem {
   id: number;
@@ -128,10 +130,8 @@ export interface ApiResponse<T> {
 
 export interface Proficiencia {
   id: number;
-  personaje: number; // ID del Personaje
-  personaje_nombre: string;
-  habilidad: number; // ID de la Habilidad
-  habilidad_nombre: string;
+  personaje: number;
+  habilidad: number;
   es_proficiente: boolean;
 }
 

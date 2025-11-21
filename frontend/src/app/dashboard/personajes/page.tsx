@@ -3,14 +3,23 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { Personaje, PersonajeFormData, DnDSpecies } from '@/types';
-import { DnDClass } from '@/types';
+import { Personaje, PersonajeFormData, DnDSpecies, Proficiencia } from '@/types';
+import { DnDClass } from '@/types'; 
 import Card from "@/components/card";
 import Button from "@/components/button";
 import Modal from '@/components/modal';
 import ConfirmAlert from '@/components/confirm-alert';
 import PersonajeForm from './personaje-form'; 
 import { FaPlus, FaPencilAlt, FaTrash, FaEye, FaCoins, FaClock, FaStar } from 'react-icons/fa';
+
+// Definimos una interfaz auxiliar para la respuesta paginada de la API
+// Esto ayuda a que TypeScript sepa qué estructura tiene 'data'
+interface PaginatedResponse<T> {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: T[];
+}
 
 export default function PersonajesPage() {
     const { user, accessToken, logout } = useAuth();
@@ -40,16 +49,18 @@ export default function PersonajesPage() {
                 ]);
 
                 if (resClasses.ok) {
-                    const data = await resClasses.json();
+                    // Casteamos la respuesta a nuestra interfaz paginada
+                    const data = (await resClasses.json()) as PaginatedResponse<DnDClass>;
                     const map: Record<number, string> = {};
-                    (data.results || []).forEach((c: DnDClass) => { map[c.id] = c.name; });
+                    // Ahora 'c' es de tipo DnDClass automáticamente
+                    data.results.forEach((c) => { map[c.id] = c.name; });
                     setClassMap(map);
                 }
 
                 if (resSpecies.ok) {
-                    const data = await resSpecies.json();
+                    const data = (await resSpecies.json()) as PaginatedResponse<DnDSpecies>;
                     const map: Record<number, string> = {};
-                    (data.results || []).forEach((s: DnDSpecies) => { map[s.id] = s.name; });
+                    data.results.forEach((s) => { map[s.id] = s.name; });
                     setSpeciesMap(map);
                 }
             } catch (error) {
@@ -72,8 +83,12 @@ export default function PersonajesPage() {
                 if (res.status === 401) logout();
                 throw new Error('Error al cargar los personajes');
             }
+            // Casteamos el resultado. Puede ser array directo o paginado.
+            // Asumimos paginado por consistencia con el resto, o ajustamos segun API.
             const data = await res.json();
-            setPersonajes(data.results || data);
+            // Verificación segura de tipo
+            const results = Array.isArray(data) ? data : (data as PaginatedResponse<Personaje>).results;
+            setPersonajes(results);
         } catch (error) {
             console.error(error);
         } finally {
@@ -85,7 +100,49 @@ export default function PersonajesPage() {
         fetchPersonajes();
     }, [fetchPersonajes]);
 
-    // Guardar
+    // Helper para Sincronizar Proficiencias
+    const syncProficiencies = async (personajeId: number, selectedSkills: number[]) => {
+        if (!accessToken) return;
+        const headers = { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' };
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+        try {
+            const res = await fetch(`${apiUrl}/api/proficiencias/?personaje=${personajeId}`, { headers });
+            const currentProfs = (res.ok ? await res.json() : []) as Proficiencia[];
+
+            const currentSkillIds = currentProfs.map(p => p.habilidad);
+            
+            const toCreate = selectedSkills.filter(id => !currentSkillIds.includes(id));
+            const toDelete = currentProfs.filter(p => !selectedSkills.includes(p.habilidad));
+
+            // CORRECCIÓN: Tipamos el array de promesas como Promise<Response>
+            // ya que 'fetch' devuelve una Response.
+            const promises: Promise<Response>[] = [];
+
+            toDelete.forEach(p => {
+                promises.push(fetch(`${apiUrl}/api/proficiencias/${p.id}/`, { method: 'DELETE', headers }));
+            });
+
+            toCreate.forEach(skillId => {
+                promises.push(fetch(`${apiUrl}/api/proficiencias/`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                        personaje: personajeId,
+                        habilidad: skillId,
+                        es_proficiente: true
+                    })
+                }));
+            });
+
+            await Promise.all(promises);
+
+        } catch (error) {
+            console.error("Error sincronizando habilidades:", error);
+        }
+    };
+
+    // Guardar (Crear/Editar)
     const handleSavePersonaje = async (personajeData: PersonajeFormData) => {
         if (!accessToken || !user) return;
         
@@ -94,8 +151,10 @@ export default function PersonajesPage() {
         const url = isEditing ? `${apiUrl}/api/personajes/${editingPersonaje.id}/` : `${apiUrl}/api/personajes/`;
         const method = isEditing ? 'PUT' : 'POST';
 
+        const { proficiencies, ...dataToSend } = personajeData;
+
         const body = {
-            ...personajeData,
+            ...dataToSend,
             user: user.user_id, 
             nombre_usuario: user.username
         };
@@ -111,6 +170,13 @@ export default function PersonajesPage() {
                 const errorData = await res.json();
                 console.error("Detalles del error del backend:", errorData);
                 throw new Error('Error al guardar el personaje');
+            }
+            
+            // Casteamos la respuesta al tipo Personaje
+            const savedPersonaje = (await res.json()) as Personaje;
+
+            if (proficiencies) {
+                await syncProficiencies(savedPersonaje.id, proficiencies);
             }
             
             setIsModalOpen(false);
@@ -139,9 +205,7 @@ export default function PersonajesPage() {
         }
     };
 
-    // --- NUEVO HANDLER PARA NAVEGACIÓN ---
     const handleViewCharacter = (personajeId: number) => {
-        // Navega a la raíz del personaje, donde cargará el layout con navbar y la página de resumen
         router.push(`/dashboard/personajes/${personajeId}`); 
     };
 
@@ -172,7 +236,6 @@ export default function PersonajesPage() {
                         return (
                             <Card key={pj.id} variant="secondary" className="flex flex-col group">
                                 <div className="flex-grow">
-                                    {/* Hacemos el título interactivo */}
                                     <h3 
                                         className="font-title text-2xl text-bosque cursor-pointer hover:underline decoration-2 underline-offset-2"
                                         onClick={() => handleViewCharacter(pj.id)}
@@ -193,7 +256,6 @@ export default function PersonajesPage() {
                                     <Button variant="dangerous" onClick={() => handleOpenDeleteAlert(pj)}><FaTrash /></Button>
                                     <Button variant="secondary" onClick={() => handleOpenEditModal(pj)}><FaPencilAlt /></Button>
                                     
-                                    {/* Botón Principal Actualizado */}
                                     <Button variant="secondary" onClick={() => handleViewCharacter(pj.id)}>
                                         <FaEye className="mr-2"/> Ver Ficha
                                     </Button>
