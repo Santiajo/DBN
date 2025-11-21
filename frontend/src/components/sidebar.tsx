@@ -30,23 +30,6 @@ type SidebarProps = {
   setIsCollapsed: (isCollapsed: boolean) => void;
 };
 
-// Datos de los enlaces para no repetirlos
-const navLinks = [
-  { href: '/dashboard', icon: <FaHome />, label: 'Inicio' },
-  { href: '/dashboard/personajes', icon: <FaUserShield />, label: 'Personajes' },
-  { href: '/dashboard/habilidades', icon: <FaBrain />, label: 'Habilidades' },
-  { href: '/dashboard/objetos', icon: <FaRing />, label: 'Objetos' },
-  { href: '/dashboard/tiempo-libre', icon: <FaBed />, label: 'Tiempo libre' },
-  { href: '/dashboard/trabajos', icon: <FaBriefcase />, label: 'Trabajos' },
-  { href: '/dashboard/tiendas', icon: <FaCoins />, label: 'Gestión tiendas' },
-  { href: '/dashboard/compras', icon: <FaCoins />, label: 'Tiendas' },
-  { href: '/dashboard/especies', icon: <FaCoins />, label: 'Especies' },
-  { href: '/dashboard/clases', icon: <FaCoins />, label: 'Clases' },
-  { href: '/dashboard/subclases', icon: <FaCoins />, label: 'Subclases' },
-  { href: '/dashboard/dotes', icon: <FaCoins />, label: 'Dotes' },
-  { href: '/dashboard/partys', icon: <FaUsers />, label: 'Partys' },
-];
-
 export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
   const pathname = usePathname();
   
