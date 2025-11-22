@@ -219,7 +219,7 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
             )}
             {isMember && (
                 <p className="text-center text-sm text-green-700 font-bold bg-green-100 p-2 rounded">
-                    ✅ Eres miembro de esta party con {myMemberCharacter?.nombre_personaje}
+                    Eres miembro de esta party con {myMemberCharacter?.nombre_personaje}
                 </p>
             )}
         </div>
@@ -233,7 +233,7 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
             {isMember && !isDonating && (
                 <div className="flex justify-end">
                     <Button variant="secondary" onClick={() => setIsDonating(true)}>
-                        📦 Donar Objeto
+                        Donar Objeto
                     </Button>
                 </div>
             )}

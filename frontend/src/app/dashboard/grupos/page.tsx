@@ -34,6 +34,9 @@ export default function GruposPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newPartyName, setNewPartyName] = useState('');
   const [newPartyDesc, setNewPartyDesc] = useState('');
+  
+  // NUEVO: Estado para guardar el personaje elegido para ser líder
+  const [selectedLeaderId, setSelectedLeaderId] = useState<string>('');
 
   // --- FETCH DATA ---
   const fetchData = useCallback(async () => {
@@ -47,12 +50,18 @@ export default function GruposPage() {
       const datagrupos = await resgrupos.json();
       setgrupos(datagrupos.results || datagrupos || []);
 
-      // 2. Cargar Personajes del Usuario (Para saber si puede unirse)
+      // 2. Cargar Personajes del Usuario
       const resPj = await fetch(buildApiUrl('personajes/'), {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
       const dataPj = await resPj.json();
-      setUserPersonajes(dataPj.results || dataPj || []);
+      const personajesCargados = dataPj.results || dataPj || [];
+      setUserPersonajes(personajesCargados);
+
+      // NUEVO: Pre-seleccionar el primer personaje si existe para facilitar la UI
+      if (personajesCargados.length > 0) {
+        setSelectedLeaderId(personajesCargados[0].id);
+      }
 
     } catch (e) { console.error(e); }
     finally { setIsLoading(false); }
@@ -65,7 +74,15 @@ export default function GruposPage() {
   // --- HANDLERS ---
   const handleCreateParty = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validación: Necesitas un personaje para fundar un grupo
+    if (!selectedLeaderId) {
+        alert("Debes tener un personaje para fundar un grupo.");
+        return;
+    }
+
     try {
+        // PASO 1: Crear el Grupo
         const res = await fetch(buildApiUrl('grupos/'), {
             method: 'POST',
             headers: {
@@ -74,11 +91,32 @@ export default function GruposPage() {
             },
             body: JSON.stringify({ nombre: newPartyName, descripcion: newPartyDesc })
         });
+
         if (res.ok) {
-            setIsCreateOpen(false);
-            setNewPartyName('');
-            setNewPartyDesc('');
-            fetchData(); // Recargar lista
+            const newGroupData = await res.json(); // Obtenemos el grupo creado (con su ID)
+
+            // PASO 2: Unirse automáticamente con el personaje seleccionado
+            // Asumiendo que el endpoint es /grupos/{id}/unirse/
+            const joinRes = await fetch(buildApiUrl(`grupos/${newGroupData.id}/unirse/`), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`
+                },
+                body: JSON.stringify({ personaje_id: selectedLeaderId })
+            });
+
+            if (joinRes.ok) {
+                setIsCreateOpen(false);
+                setNewPartyName('');
+                setNewPartyDesc('');
+                fetchData(); // Recargar lista para ver el nuevo grupo con el miembro añadido
+            } else {
+                alert("Grupo creado, pero hubo un error al unirte automáticamente.");
+                setIsCreateOpen(false);
+                fetchData();
+            }
+
         } else {
             alert("Error al crear la party (quizás el nombre ya existe)");
         }
@@ -138,7 +176,7 @@ export default function GruposPage() {
             </div>
         )}
 
-        {/* MODAL DE DETALLE */}
+        {/* MODAL DE DETALLE (Sin cambios) */}
         {selectedParty && (
             <Modal 
                 isOpen={isDetailOpen} 
@@ -151,20 +189,41 @@ export default function GruposPage() {
                     accessToken={accessToken!}
                     onClose={() => setIsDetailOpen(false)}
                     onUpdate={() => {
-                        fetchData(); // Actualizar lista principal
-                        // Opcional: Refrescar el selectedParty con una nueva llamada
+                        fetchData(); 
                     }}
                 />
             </Modal>
         )}
 
-        {/* MODAL CREAR */}
+        {/* MODAL CREAR (MODIFICADO) */}
         <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Fundar nueva Party">
             <form onSubmit={handleCreateParty} className="space-y-4">
                 <div>
                     <label className="font-bold block mb-1">Nombre del Grupo</label>
                     <Input required value={newPartyName} onChange={(e) => setNewPartyName(e.target.value)} placeholder="Ej: Los Mata-Dragones" />
                 </div>
+                
+                {/* NUEVO: Selector de personaje líder */}
+                <div>
+                    <label className="font-bold block mb-1">Fundador (Tu personaje)</label>
+                    {userPersonajes.length > 0 ? (
+                        <select 
+                            className="w-full p-2 rounded border border-stone-400 bg-white"
+                            value={selectedLeaderId}
+                            onChange={(e) => setSelectedLeaderId(e.target.value)}
+                            required
+                        >
+                            {userPersonajes.map(pj => (
+                                <option key={pj.id} value={pj.id}>
+                                    {pj.nombre_personaje} (Nivel {pj.nivel} {pj.clase})
+                                </option>
+                            ))}
+                        </select>
+                    ) : (
+                        <p className="text-red-500 text-sm">Necesitas crear un personaje antes de fundar un grupo.</p>
+                    )}
+                </div>
+
                 <div>
                     <label className="font-bold block mb-1">Descripción</label>
                     <textarea 
@@ -177,7 +236,7 @@ export default function GruposPage() {
                 </div>
                 <div className="flex justify-end gap-2">
                     <Button type="button" variant="secondary" onClick={() => setIsCreateOpen(false)}>Cancelar</Button>
-                    <Button type="submit" variant="primary">Fundar</Button>
+                    <Button type="submit" variant="primary" disabled={userPersonajes.length === 0}>Fundar</Button>
                 </div>
             </form>
         </Modal>
