@@ -57,12 +57,8 @@ export default function TreasureStorePage() {
             .then(res => res.json())
             .then(data => {
                 const items = (data.results || data) as Objeto[];
-                
-                // FILTRADO ROBUSTO:
-                // 1. Que esté marcado para la tienda (in_tp_store)
-                // 2. Que tenga una rareza válida en nuestra tabla de precios
                 const validItems = items.filter(i => {
-                    if (!i.in_tp_store) return false; // Solo mostrar items habilitados
+                    if (!i.in_tp_store) return false; 
                     
                     const normalized = normalizeRarity(i.Rarity);
                     return TP_RULES[normalized] !== undefined;
@@ -244,7 +240,7 @@ export default function TreasureStorePage() {
             {filteredObjects.length === 0 && (
                 <div className="text-center py-12 text-stone-500 italic">
                     No se encontraron objetos disponibles en la tienda. <br/>
-                    <span className="text-xs">(Asegúrate de activar el interruptor "Tienda" en la gestión de Objetos)</span>
+                    <span className="text-xs">(Asegúrate de activar el interruptor Tienda en la gestión de Objetos)</span>
                 </div>
             )}
         </div>
