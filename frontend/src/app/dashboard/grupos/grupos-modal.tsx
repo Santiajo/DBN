@@ -7,6 +7,7 @@ import Dropdown from '@/components/dropdown';
 import Table from '@/components/table';
 import Input from '@/components/input';
 import Card from '@/components/card';
+import ConfirmAlert from '@/components/confirm-alert';
 
 // --- Función Helper (cópiala o impórtala) ---
 const buildApiUrl = (endpoint: string) => {
@@ -28,6 +29,15 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
   const [activeTab, setActiveTab] = useState<'info' | 'inventario'>('info');
   const [inventarioParty, setInventarioParty] = useState<InventarioParty[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  const [alertConfig, setAlertConfig] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => {}
+    });
+
+  const closeAlert = () => setAlertConfig(prev => ({ ...prev, isOpen: false }));
 
   // --- ESTADOS PARA UNIRSE ---
   const [selectedCharIdToJoin, setSelectedCharIdToJoin] = useState<string>('');
@@ -82,17 +92,31 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
         body: JSON.stringify({ personaje_id: Number(selectedCharIdToJoin) })
       });
       if (res.ok) {
-        alert("¡Te has unido al grupo!");
-        onUpdate(); // Refresca la info de la party principal
-        onClose();
-      } else {
-        const err = await res.json();
-        alert(err.error || "Error al unirse");
-      }
-    } catch (e) { console.error(e); }
+                // ÉXITO: Configurar alerta. 
+                // Al confirmar (darle OK), cerramos el modal principal.
+                setAlertConfig({
+                    isOpen: true,
+                    title: '¡BIENVENIDO AL GREMIO!',
+                    message: 'Te has unido al grupo exitosamente.',
+                    onConfirm: () => {
+                        closeAlert();
+                        onUpdate(); // Refrescar lista
+                        onClose();  // Cerrar modal de la party
+                    }
+                });
+            } else {
+                // ERROR
+                const err = await res.json();
+                setAlertConfig({
+                    isOpen: true,
+                    title: 'ERROR AL UNIRSE',
+                    message: err.error || "No se pudo completar la acción.",
+                    onConfirm: closeAlert // Solo cerrar la alerta
+                });
+                }
+        } catch (e) { console.error(e); }
   };
 
-  // --- LÓGICA: PREPARAR DONACIÓN (Cargar inventario del personaje) ---
   useEffect(() => {
     if (donateCharId) {
       console.log("Personaje seleccionado para donar:", donateCharId); // <--- DEBUG
@@ -135,15 +159,29 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
       });
 
       if (res.ok) {
-        alert("Objeto donado exitosamente.");
-        setIsDonating(false);
-        fetchInventory(); // Refrescar inventario de la party
-        // Opcional: Refrescar inventario del personaje
-      } else {
-        const err = await res.json();
-        alert(err.error || "Error al donar");
-      }
-    } catch (e) { console.error(e); }
+                // ÉXITO
+                setAlertConfig({
+                    isOpen: true,
+                    title: 'DONACIÓN REALIZADA',
+                    message: 'El objeto se ha transferido al alijo de la party correctamente.',
+                    onConfirm: () => {
+                        closeAlert();
+                        setIsDonating(false);
+                        fetchInventory();
+                        // Aquí podrías refrescar el inventario del personaje también si quisieras
+                    }
+                });
+            } else {
+                // ERROR
+                const err = await res.json();
+                setAlertConfig({
+                    isOpen: true,
+                    title: 'NO SE PUDO DONAR',
+                    message: err.error || "Ocurrió un error inesperado.",
+                    onConfirm: closeAlert
+                });
+            }
+        } catch (e) { console.error(e); }
   };
 
 
@@ -335,6 +373,14 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
       <div className="flex justify-end pt-4 border-t border-madera-oscura">
         <Button variant="secondary" onClick={onClose}>Cerrar</Button>
       </div>
+    <ConfirmAlert
+                isOpen={alertConfig.isOpen}
+                onClose={closeAlert}
+                onConfirm={alertConfig.onConfirm}
+                title={alertConfig.title}
+                message={alertConfig.message}
+            />  
     </div>
+    
   );
 }
