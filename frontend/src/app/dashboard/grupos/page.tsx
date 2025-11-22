@@ -215,7 +215,7 @@ export default function GruposPage() {
                         >
                             {userPersonajes.map(pj => (
                                 <option key={pj.id} value={pj.id}>
-                                    {pj.nombre_personaje} (Nivel {pj.nivel} {pj.clase})
+                                    {pj.nombre_personaje} (Nivel {pj.nivel} )
                                 </option>
                             ))}
                         </select>

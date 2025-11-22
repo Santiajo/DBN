@@ -63,6 +63,8 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
     { href: '/dashboard/compras', icon: <FaStore />, label: 'Tiendas' },
     { href: '/dashboard/tiendatp', icon: <FaCoins />, label: 'Treasure Points' },
     { href: '/dashboard/juerga', icon: <FaGlassCheers />, label: 'Juerga' },
+    { href: '/dashboard/trabajar', icon: <FaHammer />, label: 'Tablón de Trabajo' },
+    { href: '/dashboard/grupos', icon: <FaUsers />, label: 'Grupos' },
   ];
 
   const managementLinks = [
@@ -74,7 +76,6 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
     { href: '/dashboard/trabajos', icon: <FaHammer />, label: 'Trabajos' },
     { href: '/dashboard/tiendas', icon: <FaBalanceScale />, label: 'Tiendas' },
     { href: '/dashboard/npcs', icon: <FaUserTie />, label: 'NPCs' },
-    { href: '/dashboard/grupos', icon: <FaUsers />, label: 'Grupos' },
   ];
 
   const renderLink = (link: { href: string; icon: React.ReactNode; label: string }, isSubItem = false) => {
