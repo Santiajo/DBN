@@ -123,6 +123,7 @@ export default function RecetasPage() {
                 rareza: recetaData.es_magico ? recetaData.rareza : null,
                 material_raro: recetaData.es_magico ? recetaData.material_raro : null,
                 es_consumible: recetaData.es_magico ? recetaData.es_consumible : false,
+                requiere_investigacion: recetaData.requiere_investigacion,
             };
 
             const res = await fetch(url, {

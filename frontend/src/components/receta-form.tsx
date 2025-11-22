@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import Input from '@/components/input'; 
 import Button from '@/components/button';
 import Select, { StylesConfig, CSSObjectWithLabel, OptionProps, GroupBase } from 'react-select'; 
-import { FaTrash, FaPlus, FaCoins, FaMagic, FaStar, FaTools } from 'react-icons/fa';
+import { FaTrash, FaPlus, FaCoins, FaMagic, FaStar, FaTools, FaSearch } from 'react-icons/fa';
 import { useAuth } from '@/context/AuthContext'; 
 import { 
     IngredienteForm, 
@@ -32,6 +32,7 @@ const defaultFormState: RecetaFormData = {
     material_raro: null,
     es_consumible: false,
     herramienta: '',
+    requiere_investigacion: false,
 };
 
 const RAREZA_CHOICES = [
@@ -152,10 +153,10 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
             }
             
             if (initialData.ingredientes.length === 0) {
-                console.log('⚠️ No hay ingredientes para cargar');
+                console.log(' No hay ingredientes para cargar');
                 setIngredientesForm([]);
             } else {
-                // ✅ IMPORTANTE: Mapear ingredientes con los nombres CORRECTOS del backend
+                //  IMPORTANTE: Mapear ingredientes con los nombres CORRECTOS del backend
                 const initialIngredientesForm: IngredienteForm[] = initialData.ingredientes
                     .filter(ing => {
                         const isValid = ing && ing.objeto != null && ing.objeto !== undefined;
@@ -165,19 +166,19 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
                         return isValid;
                     })
                     .map(ing => {
-                        // ✅ USAR "objeto" en lugar de "objeto_id"
+                        //  USAR "objeto" en lugar de "objeto_id"
                         const nombreObjeto = getObjectNameById(ing.objeto);
                         console.log(`Ingrediente: ${ing.objeto} -> ${nombreObjeto} (${ing.cantidad}x)`);
                         
                         return {
                             id: ing.objeto,
-                            objeto: ing.objeto,           // ✅ Correcto
-                            cantidad: ing.cantidad,       // ✅ Correcto
+                            objeto: ing.objeto,           //  Correcto
+                            cantidad: ing.cantidad,       //  Correcto
                             nombre_objeto: nombreObjeto,
                         };
                     });
 
-                console.log('✅ Ingredientes cargados:', initialIngredientesForm);
+                console.log(' Ingredientes cargados:', initialIngredientesForm);
                 setIngredientesForm(initialIngredientesForm);
             }
 
@@ -191,13 +192,14 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
                 ingredientes: initialData.ingredientes
                     .filter(ing => ing && ing.objeto != null)
                     .map(ing => ({
-                        objeto: ing.objeto,        // ✅ Correcto
-                        cantidad: ing.cantidad,    // ✅ Correcto
+                        objeto: ing.objeto,        //  Correcto
+                        cantidad: ing.cantidad,    //  Correcto
                     })),
                 rareza: initialData.rareza || null,
                 material_raro: initialData.material_raro || null,
                 es_consumible: initialData.es_consumible || false,
                 herramienta: initialData.herramienta || '',
+                requiere_investigacion: initialData.requiere_investigacion || false,
             };
             
             setFormData(initialRecetaData);
@@ -205,7 +207,7 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
             setFormData(defaultFormState);
             setIngredientesForm([]);
         }
-    }, [initialData, objetos, loadingObjetos]); // ✅ Dependencias correctas
+    }, [initialData, objetos, loadingObjetos]); //  Dependencias correctas
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const target = e.target as HTMLInputElement; 
@@ -229,7 +231,7 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
         const newIngrediente: IngredienteForm = { 
             objeto: defaultObject.id, 
             cantidad: 1, 
-            nombre_objeto: defaultObject.Name // ✅ Nombre desde el inicio
+            nombre_objeto: defaultObject.Name //  Nombre desde el inicio
         };
 
         setIngredientesForm(prev => [...prev, newIngrediente]);
@@ -303,12 +305,12 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
     
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        console.log('📤 Enviando formulario:', formData);
+        console.log(' Enviando formulario:', formData);
         onSave(formData);
     };
 
-    if (loadingObjetos) return <div className="p-4 text-center font-body">Cargando objetos disponibles... ⏳</div>;
-    if (objetos.length === 0) return <div className="p-4 text-center font-body text-red-600">No hay objetos disponibles. No se pueden crear recetas. 😥</div>;
+    if (loadingObjetos) return <div className="p-4 text-center font-body">Cargando objetos disponibles... </div>;
+    if (objetos.length === 0) return <div className="p-4 text-center font-body text-red-600">No hay objetos disponibles. No se pueden crear recetas. </div>;
 
     return (
     <form onSubmit={handleSubmit} className="space-y-6 font-body text-stone-800 max-h-[70vh] overflow-y-auto pr-4 scrollbar-custom">
@@ -372,6 +374,29 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
                 <FaMagic className="text-purple-600"/>¿Es Mágico?
             </label>
         </div>
+
+        {/* Checkbox requiere_investigacion */}
+        <div className="flex items-center space-x-2 bg-blue-50 p-3 rounded-lg border border-blue-200">
+            <Input 
+                id="requiere_investigacion" 
+                name="requiere_investigacion" 
+                type="checkbox" 
+                checked={formData.requiere_investigacion} 
+                onChange={handleChange} 
+                className="w-auto h-5" 
+            />
+            <label htmlFor="requiere_investigacion" className="font-semibold flex items-center gap-2">
+                <FaSearch className="text-blue-600"/>¿Requiere Investigación?
+            </label>
+        </div>
+
+        {formData.requiere_investigacion && (
+            <div className="bg-blue-50 border border-blue-300 rounded-lg p-3">
+                <p className="text-xs text-blue-800">
+                    ℹ️ Esta receta estará bloqueada hasta que el jugador investigue uno de los objetos investigables (ingredientes o objeto final con <strong>es_investigable=True</strong>).
+                </p>
+            </div>
+        )}
 
         {/* Herramienta Requerida */}
         <div>
@@ -586,7 +611,7 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
                             className="text-sm text-stone-800"
                             styles={customSelectStyles}
                         />
-                        {/* ✅ MOSTRAR EL NOMBRE DEL INGREDIENTE SELECCIONADO */}
+                        {/*  MOSTRAR EL NOMBRE DEL INGREDIENTE SELECCIONADO */}
                         {ingrediente.nombre_objeto && (
                             <p className="text-xs text-green-700 mt-1 font-semibold">
                                 ✓ {ingrediente.nombre_objeto}

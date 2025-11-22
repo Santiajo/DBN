@@ -97,7 +97,8 @@ class RecetaSerializer(serializers.ModelSerializer):
             'grado_minimo_requerido',
             'es_consumible',
             'dc',
-            'exitos_requeridos'
+            'exitos_requeridos',
+            'requiere_investigacion'
         ]
     
     def get_dc(self, obj):
@@ -265,10 +266,9 @@ class CompetenciaHerramientaSerializer(serializers.ModelSerializer):
         return requisitos.get(obj.grado)
 
 
-# serializers.py - RecetaDisponibleSerializer COMPLETO
 
 class RecetaDisponibleSerializer(serializers.ModelSerializer):
-    """Serializer extendido que muestra toda la info necesaria para craftear"""
+    """Serializer extendido que muestra toda la info necesaria para craftear E investigar"""
     ingredientes = serializers.SerializerMethodField()
     nombre_objeto_final = serializers.CharField(source='objeto_final.Name', read_only=True)
     puede_craftear = serializers.SerializerMethodField()
@@ -280,6 +280,12 @@ class RecetaDisponibleSerializer(serializers.ModelSerializer):
     coste_magico = serializers.SerializerMethodField()
     puede_craftear_rareza = serializers.SerializerMethodField()
     
+    #  CAMPOS PARA INVESTIGACIÓN
+    requiere_investigacion = serializers.BooleanField()
+    esta_desbloqueada = serializers.SerializerMethodField()
+    objetos_investigables = serializers.SerializerMethodField()
+    puede_investigar = serializers.SerializerMethodField()
+    
     class Meta:
         model = Receta
         fields = [
@@ -288,7 +294,9 @@ class RecetaDisponibleSerializer(serializers.ModelSerializer):
             'ingredientes', 'puede_craftear', 'ingredientes_faltantes',
             'rareza', 'material_raro', 'nombre_material_raro', 
             'grado_minimo_requerido', 'es_consumible', 'dc', 'exitos_requeridos',
-            'competencia_personaje', 'coste_magico', 'puede_craftear_rareza'
+            'competencia_personaje', 'coste_magico', 'puede_craftear_rareza',
+            # Campos de investigación
+            'requiere_investigacion', 'esta_desbloqueada', 'objetos_investigables', 'puede_investigar'
         ]
     
     def get_ingredientes(self, obj):
@@ -341,7 +349,6 @@ class RecetaDisponibleSerializer(serializers.ModelSerializer):
             from .models import puede_craftear_rareza
             return puede_craftear_rareza(competencia.grado, obj.rareza)
         except CompetenciaHerramienta.DoesNotExist:
-            # Si no tiene la competencia, solo puede hacer Common como Novato
             return obj.rareza == 'Common' and obj.obtener_grado_minimo_efectivo() == 'Novato'
 
     def get_puede_craftear(self, obj):
@@ -349,13 +356,15 @@ class RecetaDisponibleSerializer(serializers.ModelSerializer):
         if not personaje:
             return False
         
-        # ✅ Verificar rareza si es mágico (sin llamada recursiva)
+        # Si requiere investigación y NO está desbloqueada, no puede craftear
+        if obj.requiere_investigacion and not self.get_esta_desbloqueada(obj):
+            return False
+        
+        # Verificar rareza si es mágico
         if obj.es_magico:
-            # Usar el método correcto para verificar rareza
             if not self.get_puede_craftear_rareza(obj):
                 return False
             
-            # Verificar que tenga recursos para el coste mágico
             coste = obj.obtener_coste_magico()
             if personaje.tiempo_libre < coste['dias'] or personaje.oro < coste['oro']:
                 return False
@@ -396,8 +405,6 @@ class RecetaDisponibleSerializer(serializers.ModelSerializer):
             )
             grados_orden = ['Novato', 'Aprendiz', 'Experto', 'Maestro Artesano', 'Gran Maestro']
             grado_actual_idx = grados_orden.index(competencia.grado)
-            
-            # Usar el método que calcula el grado correcto según tipo
             grado_requerido = obj.obtener_grado_minimo_efectivo()
             grado_requerido_idx = grados_orden.index(grado_requerido)
             
@@ -428,7 +435,6 @@ class RecetaDisponibleSerializer(serializers.ModelSerializer):
                 'exitos_acumulados': 0,
                 'mensaje': 'Primera vez usando esta herramienta'
             }
-    
     
     def get_ingredientes_faltantes(self, obj):
         personaje = self.context.get('personaje')
@@ -469,6 +475,73 @@ class RecetaDisponibleSerializer(serializers.ModelSerializer):
                 })
         
         return faltantes
+    
+    
+    def get_esta_desbloqueada(self, obj):
+        """Verifica si el personaje ya desbloqueó esta receta"""
+        personaje = self.context.get('personaje')
+        if not personaje:
+            return True
+        
+        # Si no requiere investigación, está "desbloqueada" por defecto
+        if not obj.requiere_investigacion:
+            return True
+        
+        return RecetaDesbloqueada.objects.filter(
+            personaje=personaje,
+            receta=obj
+        ).exists()
+    
+    def get_objetos_investigables(self, obj):
+        """Lista de objetos investigables en esta receta"""
+        objetos = []
+        
+        # Objeto final
+        if obj.objeto_final and obj.objeto_final.es_investigable:
+            objetos.append({
+                'id': obj.objeto_final.id,
+                'nombre': obj.objeto_final.Name,
+                'rareza': obj.objeto_final.Rarity or 'Common',
+                'es_objeto_final': True
+            })
+        
+        # Ingredientes
+        for ing in obj.ingredientes.all():
+            if ing.objeto.es_investigable:
+                objetos.append({
+                    'id': ing.objeto.id,
+                    'nombre': ing.objeto.Name,
+                    'rareza': ing.objeto.Rarity or 'Common',
+                    'es_objeto_final': False
+                })
+        
+        return objetos
+    
+    def get_puede_investigar(self, obj):
+        """Verifica si el personaje tiene algún objeto investigable de esta receta"""
+        personaje = self.context.get('personaje')
+        if not personaje:
+            return False
+        
+        # Si no requiere investigación, no aplica
+        if not obj.requiere_investigacion:
+            return False
+        
+        # Si ya está desbloqueada, no puede investigar de nuevo
+        if self.get_esta_desbloqueada(obj):
+            return False
+        
+        # Verificar si tiene algún objeto investigable en inventario
+        objetos_investigables = self.get_objetos_investigables(obj)
+        
+        for obj_inv in objetos_investigables:
+            if Inventario.objects.filter(
+                personaje=personaje,
+                objeto_id=obj_inv['id']
+            ).exists():
+                return True
+        
+        return False
 
 
 class HistorialTiradaSerializer(serializers.ModelSerializer):
@@ -484,6 +557,8 @@ class ProgresoRecetaSerializer(serializers.ModelSerializer):
     receta_nombre = serializers.CharField(source='receta.nombre', read_only=True)
     objeto_final = serializers.CharField(source='receta.objeto_final.Name', read_only=True)
     es_magico = serializers.BooleanField(source='receta.es_magico', read_only=True)
+    
+    #  AÑADIR ESTOS CAMPOS
 
     oro_necesario = serializers.IntegerField(source='receta.oro_necesario', read_only=True)
     dc = serializers.IntegerField(source='receta.obtener_dc', read_only=True)
@@ -709,3 +784,63 @@ class NPCSerializer(serializers.ModelSerializer):
     class Meta:
         model = NPC
         fields = '__all__'
+
+class RecetaDesbloqueadaSerializer(serializers.ModelSerializer):
+    receta_nombre = serializers.CharField(source='receta.nombre', read_only=True)
+    
+    class Meta:
+        model = RecetaDesbloqueada
+        fields = ['id', 'personaje', 'receta', 'receta_nombre', 'fecha_desbloqueo']
+
+
+class HistorialTiradaInvestigacionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HistorialTiradaInvestigacion
+        fields = [
+            'id', 'resultado_dado', 'modificador', 'resultado_total',
+            'dc', 'exito', 'oro_gastado', 'fecha'
+        ]
+
+
+class ProgresoInvestigacionSerializer(serializers.ModelSerializer):
+    receta_nombre = serializers.CharField(source='receta.nombre', read_only=True)
+    objeto_investigado_nombre = serializers.CharField(source='objeto_investigado.Name', read_only=True)
+    porcentaje_completado = serializers.SerializerMethodField()
+    tiradas = serializers.SerializerMethodField()
+    
+    # Info de la habilidad o competencia usada
+    habilidad_nombre = serializers.CharField(source='habilidad_utilizada.nombre', read_only=True, allow_null=True)
+    competencia_nombre = serializers.CharField(source='competencia_utilizada.nombre_herramienta', read_only=True, allow_null=True)
+    
+    class Meta:
+        model = ProgresoInvestigacion
+        fields = [
+            'id', 'receta_nombre', 'objeto_investigado_nombre',
+            'fuente_informacion', 'habilidad_nombre', 'competencia_nombre',
+            'exitos_conseguidos', 'exitos_requeridos', 'dc',
+            'dias_trabajados', 'oro_gastado_total', 'estado',
+            'porcentaje_completado', 'tiradas', 'fecha_inicio'
+        ]
+    
+    def get_porcentaje_completado(self, obj):
+        if obj.exitos_requeridos == 0:
+            return 100
+        return min(100, (obj.exitos_conseguidos / obj.exitos_requeridos) * 100)
+    
+    def get_tiradas(self, obj):
+        # Últimas 10 tiradas
+        tiradas = obj.tiradas.all().order_by('-fecha')[:10]
+        return HistorialTiradaInvestigacionSerializer(tiradas, many=True).data
+    
+class IniciarInvestigacionSerializer(serializers.Serializer):
+    receta_id = serializers.IntegerField()
+    personaje_id = serializers.IntegerField()
+    objeto_investigado_id = serializers.IntegerField()
+    fuente_informacion = serializers.ChoiceField(choices=['libros', 'entrevistas', 'experimentos', 'campo'])
+    habilidad_id = serializers.IntegerField(required=False, allow_null=True)
+    competencia_herramienta_id = serializers.IntegerField(required=False, allow_null=True)
+
+
+class TiradaInvestigacionSerializer(serializers.Serializer):
+    progreso_id = serializers.IntegerField()
+
