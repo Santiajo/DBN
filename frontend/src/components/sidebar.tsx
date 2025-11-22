@@ -22,6 +22,7 @@ import {
   FaUserTie,      // NPCs
   FaUsers,        // Grupos 
   FaCoins,        // Monedas 
+  FaGlassCheers,        // Monedas 
   FaAngleLeft, 
   FaAngleRight, 
   FaChevronDown, 
@@ -61,6 +62,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
     { href: '/dashboard/personajes', icon: <FaUserShield />, label: 'Personajes' },
     { href: '/dashboard/compras', icon: <FaStore />, label: 'Tiendas' },
     { href: '/dashboard/tiendatp', icon: <FaCoins />, label: 'Treasure Points' },
+    { href: '/dashboard/juerga', icon: <FaGlassCheers />, label: 'Juerga' },
   ];
 
   const managementLinks = [

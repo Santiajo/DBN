@@ -66,6 +66,9 @@ router.register(r'relaciones-npc', views.RelacionNPCViewSet, basename='relacionn
 # Router para tiendas de Treasure Points
 router.register(r'store', views.StoreViewSet, basename='store')
 
+# Router para irse de juerga
+router.register(r'downtime', views.DowntimeViewSet, basename='downtime')
+
 urlpatterns = [
     # Rutas para los tokens JWT
     path('token/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
