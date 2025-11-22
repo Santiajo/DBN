@@ -8,12 +8,22 @@ import Button from "@/components/button";
 import Dropdown, { OptionType } from '@/components/dropdown';
 import { FaCoins, FaShoppingCart, FaLock, FaSearch } from 'react-icons/fa';
 
-// Reglas de Negocio (Frontend para visualización)
-const TP_RULES = {
+// Reglas de Negocio
+const TP_RULES: Record<string, { cost: number, tier: number, color: string, border: string }> = {
     'Uncommon': { cost: 2, tier: 1, color: 'text-green-600', border: 'border-green-600' },
     'Rare': { cost: 6, tier: 2, color: 'text-blue-600', border: 'border-blue-600' },
     'Very Rare': { cost: 12, tier: 3, color: 'text-purple-600', border: 'border-purple-600' },
     'Legendary': { cost: 20, tier: 4, color: 'text-orange-600', border: 'border-orange-600' },
+};
+
+// Helper para normalizar la rareza (ej: "rare" -> "Rare")
+const normalizeRarity = (rarity: string | undefined | null): string => {
+    if (!rarity) return '';
+    // Convertir a Title Case (ej: "very rare" -> "Very Rare")
+    return rarity.split(' ')
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(' ')
+        .trim();
 };
 
 const getTier = (level: number) => {
@@ -26,53 +36,59 @@ const getTier = (level: number) => {
 export default function TreasureStorePage() {
     const { accessToken } = useAuth();
     
-    // Estados de Datos
     const [personajes, setPersonajes] = useState<Personaje[]>([]);
     const [objetos, setObjetos] = useState<Objeto[]>([]);
     
-    // Estados de UI
     const [selectedPjId, setSelectedPjId] = useState<string>('');
     const [selectedRarity, setSelectedRarity] = useState<string>('All');
     const [searchTerm, setSearchTerm] = useState('');
     const [buyingId, setBuyingId] = useState<number | null>(null);
 
-    // Cargar Datos Iniciales
+    // Cargar Datos
     useEffect(() => {
         if (!accessToken) return;
         const headers = { 'Authorization': `Bearer ${accessToken}` };
 
-        // Cargar Personajes
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/personajes/`, { headers })
             .then(res => res.json())
             .then(data => setPersonajes(data.results || data));
 
-        // Cargar Objetos (Filtrando los que tienen rareza válida)
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/objetos/`, { headers })
             .then(res => res.json())
             .then(data => {
-                const items = data.results || data;
-                // Filtramos solo objetos mágicos con rareza definida en las reglas
-                const validItems = items.filter((i: Objeto) => i.Rarity && TP_RULES[i.Rarity as keyof typeof TP_RULES]);
+                const items = (data.results || data) as Objeto[];
+                
+                // FILTRADO ROBUSTO:
+                // 1. Que esté marcado para la tienda (in_tp_store)
+                // 2. Que tenga una rareza válida en nuestra tabla de precios
+                const validItems = items.filter(i => {
+                    if (!i.in_tp_store) return false; // Solo mostrar items habilitados
+                    
+                    const normalized = normalizeRarity(i.Rarity);
+                    return TP_RULES[normalized] !== undefined;
+                });
+                
                 setObjetos(validItems);
             });
     }, [accessToken]);
 
-    // Personaje Seleccionado
     const selectedPj = personajes.find(p => String(p.id) === selectedPjId);
     const currentTier = selectedPj ? getTier(selectedPj.nivel) : 0;
 
-    // Filtrar Objetos
     const filteredObjects = objetos.filter(obj => {
+        const normRarity = normalizeRarity(obj.Rarity);
         const matchesSearch = obj.Name.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesRarity = selectedRarity === 'All' || obj.Rarity === selectedRarity;
+        const matchesRarity = selectedRarity === 'All' || normRarity === selectedRarity;
         return matchesSearch && matchesRarity;
     });
 
-    // Handler de Compra
     const handleBuy = async (objeto: Objeto) => {
         if (!selectedPj || !accessToken) return;
         
-        if (!confirm(`¿Confirmas comprar "${objeto.Name}" por ${TP_RULES[objeto.Rarity as keyof typeof TP_RULES].cost} TP?`)) return;
+        const normRarity = normalizeRarity(objeto.Rarity);
+        const rule = TP_RULES[normRarity];
+        
+        if (!confirm(`¿Confirmas comprar "${objeto.Name}" por ${rule.cost} TP?`)) return;
 
         setBuyingId(objeto.id);
         try {
@@ -88,7 +104,6 @@ export default function TreasureStorePage() {
             const data = await res.json();
             if (res.ok) {
                 alert(`¡Compra exitosa! Te quedan ${data.new_tp} TP.`);
-                // Actualizar TP del personaje localmente
                 setPersonajes(prev => prev.map(p => 
                     p.id === selectedPj.id ? { ...p, treasure_points: data.new_tp } : p
                 ));
@@ -115,7 +130,6 @@ export default function TreasureStorePage() {
     return (
         <div className="p-8 space-y-8 font-body text-stone-800">
             
-            {/* Cabecera y Selector de Personaje */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h1 className="text-3xl font-title text-madera-oscura flex items-center gap-3">
@@ -135,7 +149,6 @@ export default function TreasureStorePage() {
                 </div>
             </div>
 
-            {/* Panel de Estado del Personaje */}
             {selectedPj && (
                 <div className="bg-pergamino border border-madera-oscura rounded-xl p-4 flex justify-between items-center shadow-sm">
                     <div className="flex gap-6">
@@ -155,7 +168,6 @@ export default function TreasureStorePage() {
                 </div>
             )}
 
-            {/* Filtros */}
             <div className="flex gap-4 bg-white p-4 rounded-lg border border-stone-200 shadow-sm">
                 <div className="flex-1 flex items-center gap-2">
                     <FaSearch className="text-stone-400"/>
@@ -172,13 +184,13 @@ export default function TreasureStorePage() {
                 </div>
             </div>
 
-            {/* Grid de Objetos */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {filteredObjects.map(item => {
-                    const rules = TP_RULES[item.Rarity as keyof typeof TP_RULES];
-                    if (!rules) return null; // Ocultar rarezas no soportadas
+                    const normRarity = normalizeRarity(item.Rarity);
+                    const rules = TP_RULES[normRarity];
+                    
+                    if (!rules) return null;
 
-                    // Validaciones de compra
                     const canAfford = selectedPj ? selectedPj.treasure_points >= rules.cost : false;
                     const hasTier = currentTier >= rules.tier;
                     const isBuyable = selectedPj && canAfford && hasTier;
@@ -186,11 +198,10 @@ export default function TreasureStorePage() {
                     return (
                         <Card key={item.id} variant="secondary" className={`flex flex-col relative overflow-hidden group hover:border-madera-oscura transition-colors ${!hasTier && selectedPj ? 'opacity-60 grayscale' : ''}`}>
                             
-                            {/* Badge de Costo */}
                             <div className={`absolute top-0 right-0 px-3 py-1 rounded-bl-xl font-bold text-white text-xs shadow-sm ${
-                                item.Rarity === 'Legendary' ? 'bg-orange-600' :
-                                item.Rarity === 'Very Rare' ? 'bg-purple-600' :
-                                item.Rarity === 'Rare' ? 'bg-blue-600' : 'bg-green-600'
+                                normRarity === 'Legendary' ? 'bg-orange-600' :
+                                normRarity === 'Very Rare' ? 'bg-purple-600' :
+                                normRarity === 'Rare' ? 'bg-blue-600' : 'bg-green-600'
                             }`}>
                                 {rules.cost} TP
                             </div>
@@ -199,7 +210,6 @@ export default function TreasureStorePage() {
                                 <h3 className="font-bold text-lg text-stone-800 pr-10 leading-tight mb-1">{item.Name}</h3>
                                 <p className="text-xs text-stone-500 italic mb-2">{item.Type} • {item.Attunement ? 'Requires Attunement' : 'No Attunement'}</p>
                                 
-                                {/* Requisito de Tier */}
                                 <div className="text-xs mt-2 flex items-center gap-1">
                                     {hasTier ? (
                                         <span className="text-bosque font-bold">✓ Tier {rules.tier}+</span>
@@ -211,7 +221,6 @@ export default function TreasureStorePage() {
                                 </div>
                             </div>
 
-                            {/* Botón de Compra */}
                             <div className="p-4 pt-0 mt-auto">
                                 <Button 
                                     variant={isBuyable ? 'primary' : 'secondary'} 
@@ -234,7 +243,8 @@ export default function TreasureStorePage() {
             
             {filteredObjects.length === 0 && (
                 <div className="text-center py-12 text-stone-500 italic">
-                    No se encontraron objetos mágicos con los filtros actuales.
+                    No se encontraron objetos disponibles en la tienda. <br/>
+                    <span className="text-xs">(Asegúrate de activar el interruptor "Tienda" en la gestión de Objetos)</span>
                 </div>
             )}
         </div>
