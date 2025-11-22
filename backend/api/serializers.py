@@ -266,9 +266,6 @@ class CompetenciaHerramientaSerializer(serializers.ModelSerializer):
         return requisitos.get(obj.grado)
 
 
-# serializers.py - RecetaDisponibleSerializer COMPLETO
-
-# serializers.py - RecetaDisponibleSerializer COMPLETO Y CORREGIDO
 
 class RecetaDisponibleSerializer(serializers.ModelSerializer):
     """Serializer extendido que muestra toda la info necesaria para craftear E investigar"""
@@ -283,7 +280,7 @@ class RecetaDisponibleSerializer(serializers.ModelSerializer):
     coste_magico = serializers.SerializerMethodField()
     puede_craftear_rareza = serializers.SerializerMethodField()
     
-    # ✅ CAMPOS PARA INVESTIGACIÓN
+    #  CAMPOS PARA INVESTIGACIÓN
     requiere_investigacion = serializers.BooleanField()
     esta_desbloqueada = serializers.SerializerMethodField()
     objetos_investigables = serializers.SerializerMethodField()
@@ -359,7 +356,7 @@ class RecetaDisponibleSerializer(serializers.ModelSerializer):
         if not personaje:
             return False
         
-        # ✅ Si requiere investigación y NO está desbloqueada, no puede craftear
+        # Si requiere investigación y NO está desbloqueada, no puede craftear
         if obj.requiere_investigacion and not self.get_esta_desbloqueada(obj):
             return False
         
@@ -479,7 +476,6 @@ class RecetaDisponibleSerializer(serializers.ModelSerializer):
         
         return faltantes
     
-    # ========== ✅ MÉTODOS PARA INVESTIGACIÓN ==========
     
     def get_esta_desbloqueada(self, obj):
         """Verifica si el personaje ya desbloqueó esta receta"""
@@ -562,7 +558,7 @@ class ProgresoRecetaSerializer(serializers.ModelSerializer):
     objeto_final = serializers.CharField(source='receta.objeto_final.Name', read_only=True)
     es_magico = serializers.BooleanField(source='receta.es_magico', read_only=True)
     
-    # ✅ AÑADIR ESTOS CAMPOS
+    #  AÑADIR ESTOS CAMPOS
     oro_necesario = serializers.IntegerField(source='receta.oro_necesario', read_only=True)
     dc = serializers.IntegerField(source='receta.obtener_dc', read_only=True)
     
