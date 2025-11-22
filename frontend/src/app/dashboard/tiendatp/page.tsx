@@ -6,6 +6,8 @@ import { Personaje, Objeto } from '@/types';
 import Card from "@/components/card";
 import Button from "@/components/button";
 import Dropdown, { OptionType } from '@/components/dropdown';
+import Modal from '@/components/modal'; // Importamos Modal
+import ConfirmAlert from '@/components/confirm-alert'; // Importamos ConfirmAlert
 import { FaCoins, FaShoppingCart, FaLock, FaSearch } from 'react-icons/fa';
 
 // Reglas de Negocio
@@ -16,10 +18,8 @@ const TP_RULES: Record<string, { cost: number, tier: number, color: string, bord
     'Legendary': { cost: 20, tier: 4, color: 'text-orange-600', border: 'border-orange-600' },
 };
 
-// Helper para normalizar la rareza (ej: "rare" -> "Rare")
 const normalizeRarity = (rarity: string | undefined | null): string => {
     if (!rarity) return '';
-    // Convertir a Title Case (ej: "very rare" -> "Very Rare")
     return rarity.split(' ')
         .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
         .join(' ')
@@ -44,7 +44,18 @@ export default function TreasureStorePage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [buyingId, setBuyingId] = useState<number | null>(null);
 
-    // Cargar Datos
+    // Estados para Alertas y Modales
+    const [itemToBuy, setItemToBuy] = useState<Objeto | null>(null);
+    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+    
+    // Estado para el Modal de Resultado (Éxito/Error)
+    const [resultModal, setResultModal] = useState<{ isOpen: boolean; title: string; message: string; type: 'success' | 'error' }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'success'
+    });
+
     useEffect(() => {
         if (!accessToken) return;
         const headers = { 'Authorization': `Bearer ${accessToken}` };
@@ -58,12 +69,10 @@ export default function TreasureStorePage() {
             .then(data => {
                 const items = (data.results || data) as Objeto[];
                 const validItems = items.filter(i => {
-                    if (!i.in_tp_store) return false; 
-                    
+                    if (!i.in_tp_store) return false;
                     const normalized = normalizeRarity(i.Rarity);
                     return TP_RULES[normalized] !== undefined;
                 });
-                
                 setObjetos(validItems);
             });
     }, [accessToken]);
@@ -78,39 +87,63 @@ export default function TreasureStorePage() {
         return matchesSearch && matchesRarity;
     });
 
-    const handleBuy = async (objeto: Objeto) => {
-        if (!selectedPj || !accessToken) return;
-        
-        const normRarity = normalizeRarity(objeto.Rarity);
-        const rule = TP_RULES[normRarity];
-        
-        if (!confirm(`¿Confirmas comprar "${objeto.Name}" por ${rule.cost} TP?`)) return;
+    // 1. Iniciar proceso de compra (Abrir confirmación)
+    const initiateBuy = (objeto: Objeto) => {
+        setItemToBuy(objeto);
+        setIsConfirmOpen(true);
+    };
 
-        setBuyingId(objeto.id);
+    // 2. Confirmar compra (Llamada a API)
+    const handleConfirmPurchase = async () => {
+        if (!selectedPj || !accessToken || !itemToBuy) return;
+        
+        setIsConfirmOpen(false); // Cerrar confirmación
+        setBuyingId(itemToBuy.id); // Mostrar loading en el botón (opcional visualmente)
+
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/store/buy/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
                 body: JSON.stringify({
                     personaje_id: selectedPj.id,
-                    objeto_id: objeto.id
+                    objeto_id: itemToBuy.id
                 })
             });
 
             const data = await res.json();
+            
             if (res.ok) {
-                alert(`¡Compra exitosa! Te quedan ${data.new_tp} TP.`);
+                // Éxito
+                setResultModal({
+                    isOpen: true,
+                    title: '¡Objeto Adquirido!',
+                    message: `Has comprado "${itemToBuy.Name}". Te quedan ${data.new_tp} Treasure Points.`,
+                    type: 'success'
+                });
+                // Actualizar estado local
                 setPersonajes(prev => prev.map(p => 
                     p.id === selectedPj.id ? { ...p, treasure_points: data.new_tp } : p
                 ));
             } else {
-                alert(`Error: ${data.error}`);
+                // Error de lógica (Tier, Fondos, etc)
+                setResultModal({
+                    isOpen: true,
+                    title: 'No se pudo comprar',
+                    message: data.error || 'Ocurrió un error desconocido.',
+                    type: 'error'
+                });
             }
         } catch (error) {
             console.error(error);
-            alert("Error de conexión al comprar.");
+            setResultModal({
+                isOpen: true,
+                title: 'Error de Conexión',
+                message: 'No se pudo contactar con el servidor.',
+                type: 'error'
+            });
         } finally {
             setBuyingId(null);
+            setItemToBuy(null);
         }
     };
 
@@ -146,7 +179,7 @@ export default function TreasureStorePage() {
             </div>
 
             {selectedPj && (
-                <div className="bg-pergamino border border-madera-oscura rounded-xl p-4 flex justify-between items-center shadow-sm">
+                <div className="bg-pergamino border border-madera-oscura rounded-xl p-4 flex justify-between items-center">
                     <div className="flex gap-6">
                         <div>
                             <p className="text-xs text-stone-500 uppercase font-bold">Tier Actual</p>
@@ -164,7 +197,8 @@ export default function TreasureStorePage() {
                 </div>
             )}
 
-            <div className="flex gap-4 bg-white p-4 rounded-lg border border-stone-200 shadow-sm">
+            {/* Filtros - ESTILO ACTUALIZADO: Sin sombras, borde madera */}
+            <div className="flex gap-4 bg-white p-4 rounded-xl border border-madera-oscura">
                 <div className="flex-1 flex items-center gap-2">
                     <FaSearch className="text-stone-400"/>
                     <input 
@@ -192,9 +226,10 @@ export default function TreasureStorePage() {
                     const isBuyable = selectedPj && canAfford && hasTier;
 
                     return (
+                        // CARD ACTUALIZADO: Sin sombras (shadow-none por defecto en variant secondary si está configurado así, o controlamos clases extra aquí)
                         <Card key={item.id} variant="secondary" className={`flex flex-col relative overflow-hidden group hover:border-madera-oscura transition-colors ${!hasTier && selectedPj ? 'opacity-60 grayscale' : ''}`}>
                             
-                            <div className={`absolute top-0 right-0 px-3 py-1 rounded-bl-xl font-bold text-white text-xs shadow-sm ${
+                            <div className={`absolute top-0 right-0 px-3 py-1 rounded-bl-xl font-bold text-white text-xs ${
                                 normRarity === 'Legendary' ? 'bg-orange-600' :
                                 normRarity === 'Very Rare' ? 'bg-purple-600' :
                                 normRarity === 'Rare' ? 'bg-blue-600' : 'bg-green-600'
@@ -221,10 +256,10 @@ export default function TreasureStorePage() {
                                 <Button 
                                     variant={isBuyable ? 'primary' : 'secondary'} 
                                     className={`w-full flex justify-center items-center gap-2 ${!isBuyable ? 'cursor-not-allowed opacity-50' : ''}`}
-                                    onClick={() => isBuyable && handleBuy(item)}
+                                    onClick={() => isBuyable && initiateBuy(item)}
                                     disabled={!isBuyable || buyingId === item.id}
                                 >
-                                    {buyingId === item.id ? 'Comprando...' : (
+                                    {buyingId === item.id ? 'Procesando...' : (
                                         <>
                                             <FaShoppingCart /> 
                                             {canAfford ? 'Comprar' : 'Insuficientes TP'}
@@ -239,10 +274,39 @@ export default function TreasureStorePage() {
             
             {filteredObjects.length === 0 && (
                 <div className="text-center py-12 text-stone-500 italic">
-                    No se encontraron objetos disponibles en la tienda. <br/>
-                    <span className="text-xs">(Asegúrate de activar el interruptor Tienda en la gestión de Objetos)</span>
+                    No se encontraron objetos disponibles en la tienda.
                 </div>
             )}
+
+            {/* ALERTA DE CONFIRMACIÓN (Usando tu componente ConfirmAlert) */}
+            <ConfirmAlert 
+                isOpen={isConfirmOpen}
+                onClose={() => setIsConfirmOpen(false)}
+                onConfirm={handleConfirmPurchase}
+                title="Confirmar Compra"
+                message={`¿Estás seguro de que deseas comprar "${itemToBuy?.Name}" por ${itemToBuy ? TP_RULES[normalizeRarity(itemToBuy.Rarity)].cost : 0} TP? Esta acción es irreversible.`}
+                confirmText="Sí, Comprar"
+                cancelText="Cancelar"
+            />
+
+            {/* ALERTA DE RESULTADO (Usando Modal Genérico + Card) */}
+            <Modal
+                isOpen={resultModal.isOpen}
+                onClose={() => setResultModal({ ...resultModal, isOpen: false })}
+                title={resultModal.title}
+            >
+                <div className="text-center space-y-6 py-4">
+                    <p className={`text-lg ${resultModal.type === 'error' ? 'text-carmesi' : 'text-bosque'}`}>
+                        {resultModal.message}
+                    </p>
+                    <div className="flex justify-center">
+                        <Button variant="primary" onClick={() => setResultModal({ ...resultModal, isOpen: false })}>
+                            Entendido
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
         </div>
     );
 }
