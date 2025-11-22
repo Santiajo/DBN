@@ -155,6 +155,11 @@ class Receta(models.Model):
     # Campos básicos
     es_magico = models.BooleanField(default=False)
     herramienta = models.CharField(max_length=100, blank=True, null=True)
+
+    requiere_investigacion = models.BooleanField(
+        default=False,
+        help_text="Si es True, esta receta debe ser desbloqueada mediante investigación"
+    )
     
     # ✅ oro_necesario: Solo para objetos NO mágicos
     oro_necesario = models.IntegerField(

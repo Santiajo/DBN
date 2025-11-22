@@ -1,4 +1,4 @@
-// types/receta.ts
+// types/receta.ts - ARCHIVO COMPLETO ACTUALIZADO
 
 export interface Objeto {
   id: number;
@@ -14,15 +14,14 @@ export interface IngredienteAPI {
 }
 
 // 1. IngredienteForm: Usado para la gestión del estado local en el formulario. 
-// Permite que 'cantidad' sea string temporalmente para inputs.
 export interface IngredienteForm {
   id?: number; 
   objeto: number | string;
-  cantidad: number | string; // <-- Acepta string para el input
+  cantidad: number | string;
   nombre_objeto?: string;
 }
 
-// 2. RecetaFormData: Usado para la estructura final que se envía a la API (el payload).
+// 2. RecetaFormData: Usado para la estructura final que se envía a la API
 export interface RecetaFormData {
   nombre: string;
   objeto_final: number | string;
@@ -35,6 +34,66 @@ export interface RecetaFormData {
   grado_minimo_requerido: string;
   es_consumible: boolean;
   herramienta: string;
+  requiere_investigacion: boolean; // ✅ NUEVO
+}
+
+// ============ INVESTIGACIÓN ============
+
+export interface ObjetoInvestigable {
+  id: number;
+  nombre: string;
+  rareza: string;
+  es_objeto_final: boolean;
+}
+
+export interface RecetaDesbloqueada {
+  id: number;
+  personaje: number;
+  receta: number;
+  receta_nombre: string;
+  fecha_desbloqueo: string;
+}
+
+export interface HistorialTiradaInvestigacion {
+  id: number;
+  resultado_dado: number;
+  modificador: number;
+  resultado_total: number;
+  dc: number;
+  exito: boolean;
+  oro_gastado: number;
+  fecha: string;
+}
+
+export interface ProgresoInvestigacion {
+  id: number;
+  receta_nombre: string;
+  objeto_investigado_nombre: string;
+  fuente_informacion: 'libros' | 'entrevistas' | 'experimentos' | 'campo';
+  habilidad_nombre: string | null;
+  competencia_nombre: string | null;
+  exitos_conseguidos: number;
+  exitos_requeridos: number;
+  dc: number;
+  dias_trabajados: number;
+  oro_gastado_total: number;
+  estado: 'en_progreso' | 'completado';
+  porcentaje_completado: number;
+  tiradas: HistorialTiradaInvestigacion[];
+  fecha_inicio: string;
+}
+
+export interface HabilidadInvestigacion {
+  id: number | null;
+  nombre: string;
+  estadistica: string;
+}
+
+export interface HabilidadesPorFuente {
+  libros: HabilidadInvestigacion[];
+  entrevistas: HabilidadInvestigacion[];
+  experimentos: HabilidadInvestigacion[];
+  campo: never[];
 }
 
 // ============ RECETA ============
@@ -49,11 +108,11 @@ export interface Receta {
   oro_necesario: number;
   herramienta: string;
   ingredientes: Array<{
-    id: number;                    // ✅ ID del ingrediente
-    receta: number;                // ✅ ID de la receta
-    objeto: number;                // ✅ ID del objeto (no objeto_id)
-    nombre_ingrediente: string;    // ✅ Nombre (no nombre)
-    cantidad: number;              // ✅ Cantidad (no cantidad_necesaria)
+    id: number;
+    receta: number;
+    objeto: number;
+    nombre_ingrediente: string;
+    cantidad: number;
   }>;
   puede_craftear?: boolean;
   ingredientes_faltantes?: Array<{
@@ -73,6 +132,12 @@ export interface Receta {
   competencia_personaje?: CompetenciaPersonaje | null;
   coste_magico?: CosteMagico | null;
   puede_craftear_rareza?: boolean;
+  
+  //  NUEVOS CAMPOS PARA INVESTIGACIÓN
+  requiere_investigacion: boolean;
+  esta_desbloqueada: boolean;
+  objetos_investigables: ObjetoInvestigable[];
+  puede_investigar: boolean;
 }
 
 // ============ PERSONAJE ============
@@ -83,7 +148,6 @@ export interface Personaje {
   oro: number;
   tiempo_libre: number;
   nivel: number;
-  // Campos opcionales adicionales de tu modelo Django
   treasure_points?: number;
   clase?: string;
   treasure_points_gastados?: number;
@@ -132,7 +196,6 @@ export interface Competencia {
   fecha_obtencion?: string;
 }
 
-// Alias para competencia_personaje dentro de receta
 export interface CompetenciaPersonaje {
   id?: number;
   grado: string;
@@ -186,7 +249,7 @@ export interface SubidaGrado {
   competencia: Competencia;
 }
 
-// ============ RESPUESTAS DE LA API ============
+// ============ RESPUESTAS DE LA API - CRAFTING ============
 
 export interface RespuestaTirada {
   tirada: Tirada;
@@ -207,6 +270,66 @@ export interface RespuestaIniciarCrafting {
 export interface RespuestaMisProgresos {
   en_progreso: Progreso[];
   completados: Progreso[];
+}
+
+// ============ RESPUESTAS DE LA API - INVESTIGACIÓN ============
+
+export interface IniciarInvestigacionPayload {
+  receta_id: number;
+  personaje_id: number;
+  objeto_investigado_id: number;
+  fuente_informacion: 'libros' | 'entrevistas' | 'experimentos' | 'campo';
+  habilidad_id?: number | null;
+  competencia_herramienta_id?: number | null;
+}
+
+export interface TiradaInvestigacionPayload {
+  progreso_id: number;
+}
+
+export interface RespuestaIniciarInvestigacion {
+  progreso: ProgresoInvestigacion;
+  mensaje: string;
+}
+
+export interface RespuestaTiradaInvestigacion {
+  tirada: {
+    resultado_dado: number;
+    modificador: number;
+    resultado_total: number;
+    dc: number;
+    exito: boolean;
+    oro_gastado: number;
+    mensaje: string;
+  };
+  progreso: ProgresoInvestigacion;
+  personaje: {
+    oro: number;
+    tiempo_libre: number;
+  };
+  receta_desbloqueada: boolean;
+}
+
+export interface RespuestaMisInvestigaciones {
+  en_progreso: ProgresoInvestigacion[];
+  completadas: ProgresoInvestigacion[];
+}
+
+// ============ PROFICIENCIAS ============
+
+export interface Proficiencia {
+  id: number;
+  personaje: number;
+  personaje_nombre: string;
+  habilidad: number;
+  habilidad_nombre: string;
+  es_proficiente: boolean;
+}
+
+export interface Habilidad {
+  id: number;
+  nombre: string;
+  estadistica_asociada: string;
 }
 
 // ============ TIPOS PARA SELECT (React Select) ============
