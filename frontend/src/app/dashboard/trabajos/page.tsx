@@ -104,9 +104,9 @@ const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
             if (pagosRes.ok) {
               const pagosData = await pagosRes.json();
               trabajo.pagos = pagosData.results || pagosData || [];
-              console.log(`✅ Cargados ${trabajo.pagos?.length || 0} pagos para trabajo ${trabajo.nombre}`);
+              console.log(`Cargados ${trabajo.pagos?.length || 0} pagos para trabajo ${trabajo.nombre}`);
             } else {
-              console.log(`❌ Error cargando pagos para trabajo ${trabajo.id}:`, pagosRes.status);
+              console.log(`Error cargando pagos para trabajo ${trabajo.id}:`, pagosRes.status);
               trabajo.pagos = [];
             }
           } catch (error) {
@@ -131,11 +131,9 @@ const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
     }
 }, [accessToken, logout, selectedTrabajo, user?.is_staff]);
 
-    // Fetch habilidades
     const fetchHabilidades = useCallback(async () => {
         if (!accessToken) return;
-        
-        // 👇 CORREGIDO: Quitar /api/
+
         const url = buildApiUrl('habilidades/');
         console.log('🌐 URL fetchHabilidades:', url);
         

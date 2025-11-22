@@ -12,6 +12,9 @@ interface ConfirmAlertProps {
   message: string;
   confirmText?: string;
   cancelText?: string;
+  // --- NUEVAS PROPIEDADES ---
+  showCancel?: boolean; 
+  confirmVariant?: 'primary' | 'secondary' | 'dangerous'; 
 }
 
 export default function ConfirmAlert({
@@ -22,9 +25,10 @@ export default function ConfirmAlert({
   message,
   confirmText = "Sí, eliminar",
   cancelText = "Cancelar",
+  showCancel = true,
+  confirmVariant = "dangerous",
 }: ConfirmAlertProps) {
   
-  // Previene el scroll del fondo cuando el modal está abierto
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -39,7 +43,6 @@ export default function ConfirmAlert({
   if (!isOpen) return null;
 
   return (
-    // Efecto de blur
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/70 backdrop-blur-sm"
       onClick={onClose}
@@ -50,22 +53,24 @@ export default function ConfirmAlert({
       >
         <Card variant="secondary">
           <div className="p-8 text-center">
-            {/* Título */}
             <h2 className="font-title text-3xl text-madera-oscura mb-4">
               {title}
             </h2>
             
-            {/* Mensaje */}
             <p className="font-body text-base text-stone-700 mb-8">
               {message}
             </p>
 
-            {/* Botones de acción */}
             <div className="flex justify-center gap-4">
-              <Button variant="primary" onClick={onClose}>
-                {cancelText}
-              </Button>
-              <Button variant="dangerous" onClick={onConfirm}>
+              {/* Botón Cancelar (Condicional) */}
+              {showCancel && (
+                <Button variant="secondary" onClick={onClose}>
+                  {cancelText}
+                </Button>
+              )}
+              
+              {/* Botón Confirmar (Dinámico) */}
+              <Button variant={confirmVariant} onClick={onConfirm}>
                 {confirmText}
               </Button>
             </div>

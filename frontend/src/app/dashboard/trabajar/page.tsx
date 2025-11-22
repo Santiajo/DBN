@@ -229,6 +229,10 @@ export default function TrabajarUserPage() {
                 onConfirm={() => setSuccessAlert({ ...successAlert, isOpen: false })}
                 title="¡TRABAJO COMPLETADO!"
                 message={`Has realizado tus labores correctamente. Has ganado ${successAlert.gold.toFixed(2)} gp.`}
+
+                confirmText="¡Genial!"
+                confirmVariant="primary"
+                showCancel={false}
             />
         </div>
         
