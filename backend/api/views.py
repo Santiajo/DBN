@@ -267,7 +267,6 @@ class ProgresoTrabajoViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # Filtra para devolver solo el progreso del usuario logueado
         return ProgresoTrabajo.objects.filter(personaje__user=self.request.user)
 
 # ViewSet para el CRUD de Tienda
@@ -882,18 +881,14 @@ class PartyViewSet(viewsets.ModelViewSet):
         """
         party = self.get_object()
         personaje_id = request.data.get('personaje_id')
-
-        # 1. Validar que el personaje existe y pertenece al usuario
         try:
             personaje = Personaje.objects.get(id=personaje_id, user=request.user)
         except Personaje.DoesNotExist:
             return Response({"error": "Personaje inválido o no te pertenece."}, status=400)
 
-        # 2. Verificar si ya está unido
         if party.miembros.filter(id=personaje.id).exists():
              return Response({"message": "Ya eres miembro de esta party."}, status=200)
 
-        # 3. Unir
         party.miembros.add(personaje)
         return Response({"success": f"{personaje.nombre_personaje} se ha unido a {party.nombre}"})
 
@@ -903,7 +898,6 @@ class InventarioPartyViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # Permite filtrar por party: /api/inventario-party/?party=1
         party_id = self.request.query_params.get('party')
         if party_id:
             return InventarioParty.objects.filter(party_id=party_id)
@@ -926,34 +920,29 @@ class InventarioPartyViewSet(viewsets.ModelViewSet):
 
         try:
             with transaction.atomic():
-                # 1. Validaciones de seguridad
                 personaje = Personaje.objects.get(id=personaje_id, user=request.user)
                 party = Party.objects.get(id=party_id)
-                
-                # (Opcional) Verificar que el personaje esté en la party
+
                 if not party.miembros.filter(id=personaje.id).exists() and not request.user.is_staff:
                      return Response({"error": "Debes ser miembro de la party para donar."}, status=403)
 
-                # 2. Obtener el ítem del inventario PERSONAL (y bloquear fila para evitar race conditions)
                 item_personaje = Inventario.objects.select_for_update().get(personaje=personaje, objeto_id=objeto_id)
                 
                 if item_personaje.cantidad < cantidad:
                     return Response({"error": f"No tienes suficientes items. Tienes {item_personaje.cantidad}."}, status=400)
 
-                # 3. RESTAR del personaje
                 item_personaje.cantidad -= cantidad
                 if item_personaje.cantidad == 0:
-                    item_personaje.delete() # Se quedó sin el objeto
+                    item_personaje.delete() 
                 else:
                     item_personaje.save()
 
-                # 4. SUMAR a la Party
                 item_party, created = InventarioParty.objects.get_or_create(
                     party=party,
                     objeto_id=objeto_id,
                     defaults={'cantidad': 0, 'donado_por': personaje}
                 )
-                # Usamos F() para evitar condiciones de carrera al sumar
+
                 item_party.cantidad = F('cantidad') + cantidad
                 item_party.save()
 
