@@ -863,7 +863,7 @@ class FeatFeatureViewSet(viewsets.ModelViewSet):
     serializer_class = FeatFeatureSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
-# PARA PARTYS
+# PARA GRUPOS
 
 class PartyViewSet(viewsets.ModelViewSet):
     queryset = Party.objects.all()
@@ -876,7 +876,7 @@ class PartyViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def unirse(self, request, pk=None):
         """
-        POST /api/partys/{id}/unirse/
+        POST /api/grupos/{id}/unirse/
         Body: { "personaje_id": 12 }
         """
         party = self.get_object()

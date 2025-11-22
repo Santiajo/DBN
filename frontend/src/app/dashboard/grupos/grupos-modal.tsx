@@ -57,7 +57,7 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
   const fetchInventory = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(buildApiUrl(`inventario-party/?party=${party.id}`), {
+      const res = await fetch(buildApiUrl(`inventario-party/?grupos=${party.id}`), {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
       if (res.ok) {
@@ -72,7 +72,7 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
   const handleJoin = async () => {
     if (!selectedCharIdToJoin) return;
     try {
-      const res = await fetch(buildApiUrl(`partys/${party.id}/unirse/`), {
+      const res = await fetch(buildApiUrl(`grupos/${party.id}/unirse/`), {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -81,7 +81,7 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
         body: JSON.stringify({ personaje_id: Number(selectedCharIdToJoin) })
       });
       if (res.ok) {
-        alert("¡Te has unido a la party!");
+        alert("¡Te has unido al grupo!");
         onUpdate(); // Refresca la info de la party principal
         onClose();
       } else {

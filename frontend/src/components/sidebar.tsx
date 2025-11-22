@@ -20,6 +20,7 @@ import {
   FaMedal,        // Subclases
   FaStar,         // Dotes
   FaUserTie,      // NPCs
+  FaUsers,        // Grupos
   FaAngleLeft, 
   FaAngleRight, 
   FaChevronDown, 
@@ -69,6 +70,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
     { href: '/dashboard/trabajos', icon: <FaHammer />, label: 'Trabajos' },
     { href: '/dashboard/tiendas', icon: <FaBalanceScale />, label: 'Tiendas' },
     { href: '/dashboard/npcs', icon: <FaUserTie />, label: 'NPCs' },
+    { href: '/dashboard/grupos', icon: <FaUsers />, label: 'Grupos' },
   ];
 
   const renderLink = (link: { href: string; icon: React.ReactNode; label: string }, isSubItem = false) => {

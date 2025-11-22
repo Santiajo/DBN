@@ -987,16 +987,16 @@ class FeatFeature(models.Model):
         return f"{self.dnd_feat.name}: {self.name}"
     
 
-# TABLAS PARA LAS PARTYS
+# TABLAS PARA LAS GRUPOS
 
 class Party(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
     descripcion = models.TextField(blank=True, null=True)
     # El creador (User) para gestionar permisos
-    creador = models.ForeignKey(User, on_delete=models.CASCADE, related_name="partys_creadas")
+    creador = models.ForeignKey(User, on_delete=models.CASCADE, related_name="grupos_creados")
     
     # Los personajes que son miembros (ManyToMany)
-    miembros = models.ManyToManyField(Personaje, related_name="partys", blank=True)
+    miembros = models.ManyToManyField(Personaje, related_name="grupos", blank=True)
     
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 

@@ -661,7 +661,7 @@ class DnDFeatSerializer(serializers.ModelSerializer):
             return []
 
 
-# PARA PARTYS
+# PARA GRUPOS
 
 class InventarioPartySerializer(serializers.ModelSerializer):
     # Traemos datos del Objeto para mostrarlos en el frontend sin hacer otra petición
