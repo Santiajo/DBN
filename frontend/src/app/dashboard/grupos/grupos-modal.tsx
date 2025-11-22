@@ -301,7 +301,7 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
                                     // CASO C: NO TIENE OBJETOS
                                     <div className="p-3 bg-red-100 text-red-700 rounded text-sm border border-red-300">
                                         <p> Este personaje tiene el inventario vacío.</p>
-                                        <p className="text-xs mt-1">Ve a "Tiendas" o crea objetos para tener algo que donar.</p>
+                                        <p className="text-xs mt-1">Ve a Tiendas o crea objetos para tener algo que donar.</p>
                                         <div className="flex justify-end mt-2">
                                             <Button variant="secondary" onClick={() => setIsDonating(false)}>Cerrar</Button>
                                         </div>
