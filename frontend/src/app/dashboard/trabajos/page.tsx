@@ -229,12 +229,6 @@ const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
         setIsTrabajarModalOpen(true);
     };
 
-    const handleWorkSuccess = (oroGanado: number) => {
-        setIsTrabajarModalOpen(false); // Cierra el modal
-        fetchPersonajes(); // Refresca los datos del personaje (para ver el oro nuevo)
-
-        alert(`¡Trabajo completado! Has ganado ${oroGanado.toFixed(2)} de oro.`);
-    };
 
 
     

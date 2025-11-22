@@ -9,6 +9,7 @@ import Input from '@/components/input';
 // Importamos el formulario que ya existe en la otra carpeta
 import TrabajarForm from '../trabajar/trabajar-form';
 import { FaHammer, FaSearch, FaBriefcase, FaCoins, FaClock } from 'react-icons/fa';
+import ConfirmAlert from '@/components/confirm-alert';
 
 // Helper para URL
 const buildApiUrl = (endpoint: string) => {
@@ -19,6 +20,10 @@ const buildApiUrl = (endpoint: string) => {
 
 export default function TrabajarUserPage() {
     const { user, accessToken } = useAuth();
+    const [successAlert, setSuccessAlert] = useState({
+        isOpen: false,
+        gold: 0
+    });
 
     // --- ESTADOS DE DATOS ---
     const [trabajos, setTrabajos] = useState<Trabajo[]>([]);
@@ -33,8 +38,7 @@ export default function TrabajarUserPage() {
     const [selectedTrabajo, setSelectedTrabajo] = useState<Trabajo | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // --- FETCH DE DATOS ---
-    // Esta función carga TODO lo necesario para que el usuario trabaje
+
     const fetchAllData = useCallback(async () => {
         if (!accessToken) return;
         setIsLoading(true);
@@ -42,13 +46,10 @@ export default function TrabajarUserPage() {
         try {
             const headers = { 'Authorization': `Bearer ${accessToken}` };
 
-            // 1. Cargar Trabajos (con sus pagos)
-            // Nota: Hacemos una búsqueda simple de trabajos primero
             const resTrabajos = await fetch(buildApiUrl(`trabajos/?search=${searchTerm}`), { headers });
             const dataTrabajos = await resTrabajos.json();
             let listaTrabajos: Trabajo[] = dataTrabajos.results || dataTrabajos || [];
 
-            // 2. Cargar Pagos para cada trabajo (Necesario para el form)
             listaTrabajos = await Promise.all(listaTrabajos.map(async (t) => {
                 try {
                     const resPagos = await fetch(buildApiUrl(`trabajos/${t.id}/pagos/`), { headers });
@@ -61,7 +62,6 @@ export default function TrabajarUserPage() {
             }));
             setTrabajos(listaTrabajos);
 
-            // 3. Cargar Datos del Usuario (Personajes, Proficiencias, Bonus, Progreso)
             const [resPj, resProf, resBonus, resProg] = await Promise.all([
                 fetch(buildApiUrl('personajes/'), { headers }),
                 fetch(buildApiUrl('proficiencias/'), { headers }),
@@ -101,8 +101,12 @@ export default function TrabajarUserPage() {
 
     const handleWorkSuccess = (oroGanado: number) => {
         setIsModalOpen(false);
-        fetchAllData(); // Recargar datos (dinero, tiempo libre, progreso)
-        alert(`¡Trabajo completado! Has ganado ${oroGanado.toFixed(2)} gp.`);
+        fetchAllData();
+
+        setSuccessAlert({
+            isOpen: true,
+            gold: oroGanado
+        });
     };
 
     return (
@@ -189,7 +193,7 @@ export default function TrabajarUserPage() {
                                     <Button 
                                         variant="primary" 
                                         onClick={() => handleOpenTrabajarModal(trabajo)}
-                                        className="shadow-md"
+                                        className="shadow-md flex"
                                     >
                                         <FaHammer className="mr-2" /> Trabajar
                                     </Button>
@@ -219,6 +223,14 @@ export default function TrabajarUserPage() {
                     />
                 </Modal>
             )}
+            <ConfirmAlert
+                isOpen={successAlert.isOpen}
+                onClose={() => setSuccessAlert({ ...successAlert, isOpen: false })}
+                onConfirm={() => setSuccessAlert({ ...successAlert, isOpen: false })}
+                title="¡TRABAJO COMPLETADO!"
+                message={`Has realizado tus labores correctamente. Has ganado ${successAlert.gold.toFixed(2)} gp.`}
+            />
         </div>
+        
     );
 }
