@@ -38,6 +38,7 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
   const [charInventory, setCharInventory] = useState<InventarioItem[]>([]); // Inventario del personaje seleccionado
   const [selectedItemId, setSelectedItemId] = useState<string>('');
   const [donateAmount, setDonateAmount] = useState<number>(1);
+  const [isLoadingInventory, setIsLoadingInventory] = useState(false);
 
 
   // 1. Determinar si alguno de mis personajes ya está en la party
@@ -94,17 +95,25 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
   // --- LÓGICA: PREPARAR DONACIÓN (Cargar inventario del personaje) ---
   useEffect(() => {
     if (donateCharId) {
-      // Cargar inventario de este personaje
+      console.log("Personaje seleccionado para donar:", donateCharId); // <--- DEBUG
+      setIsLoadingInventory(true);
+      setCharInventory([]); // Limpiar inventario anterior visualmente
+      
       fetch(buildApiUrl(`personajes/${donateCharId}/inventario/`), {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       })
       .then(res => res.json())
-      .then(data => setCharInventory(data.results || data))
-      .catch(err => console.error(err));
+      .then(data => {
+          const items = data.results || data || [];
+          console.log("Objetos encontrados:", items); // <--- DEBUG
+          setCharInventory(items);
+      })
+      .catch(err => console.error(err))
+      .finally(() => setIsLoadingInventory(false));
     } else {
         setCharInventory([]);
     }
-  }, [donateCharId]);
+  }, [donateCharId, accessToken]);
 
   // --- LÓGICA: ENVIAR DONACIÓN ---
   const handleDonate = async () => {
@@ -243,37 +252,61 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
                 <Card variant="secondary" className="mb-4">
                     <h4 className="font-bold mb-2">Donar al alijo de la party</h4>
                     <div className="space-y-3">
+                        
+                        {/* 1. SELECCIONAR PERSONAJE */}
                         <div>
                             <label className="text-xs font-bold">1. ¿Quién dona?</label>
                             <Dropdown 
                                 options={donateCharOptions}
                                 value={donateCharId}
                                 onChange={(e) => setDonateCharId(e.target.value)}
+                                placeholder="Selecciona un personaje..."
                             />
                         </div>
+
+                        {/* MUESTRA ESTO SOLO SI HAY UN PERSONAJE SELECCIONADO */}
                         {donateCharId && (
                             <>
-                                <div>
-                                    <label className="text-xs font-bold">2. ¿Qué objeto?</label>
-                                    <Dropdown 
-                                        options={inventoryOptions}
-                                        value={selectedItemId}
-                                        onChange={(e) => setSelectedItemId(e.target.value)}
-                                        placeholder="Selecciona un objeto..."
-                                    />
-                                </div>
-                                <div>
-                                    <label className="text-xs font-bold">3. Cantidad</label>
-                                    <Input 
-                                        type="number" min="1" 
-                                        value={String(donateAmount)}
-                                        onChange={(e) => setDonateAmount(Number(e.target.value))}
-                                    />
-                                </div>
-                                <div className="flex justify-end gap-2 mt-2">
-                                    <Button variant="dangerous" onClick={() => setIsDonating(false)}>Cancelar</Button>
-                                    <Button variant="primary" onClick={handleDonate}>Confirmar Donación</Button>
-                                </div>
+                                {isLoadingInventory ? (
+                                    // CASO A: ESTÁ CARGANDO
+                                    <p className="text-sm italic text-stone-500 animate-pulse">
+                                        Buscando en la mochila...
+                                    </p>
+                                ) : charInventory.length > 0 ? (
+                                    // CASO B: TIENE OBJETOS -> MUESTRA EL RESTO DEL FORMULARIO
+                                    <>
+                                        <div>
+                                            <label className="text-xs font-bold">2. ¿Qué objeto?</label>
+                                            <Dropdown 
+                                                options={inventoryOptions}
+                                                value={selectedItemId}
+                                                onChange={(e) => setSelectedItemId(e.target.value)}
+                                                placeholder="Selecciona un objeto..."
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold">3. Cantidad</label>
+                                            <Input 
+                                                type="number" min="1" 
+                                                value={String(donateAmount)}
+                                                onChange={(e) => setDonateAmount(Number(e.target.value))}
+                                            />
+                                        </div>
+                                        <div className="flex justify-end gap-2 mt-2">
+                                            <Button variant="dangerous" onClick={() => setIsDonating(false)}>Cancelar</Button>
+                                            <Button variant="primary" onClick={handleDonate}>Confirmar Donación</Button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    // CASO C: NO TIENE OBJETOS
+                                    <div className="p-3 bg-red-100 text-red-700 rounded text-sm border border-red-300">
+                                        <p> Este personaje tiene el inventario vacío.</p>
+                                        <p className="text-xs mt-1">Ve a "Tiendas" o crea objetos para tener algo que donar.</p>
+                                        <div className="flex justify-end mt-2">
+                                            <Button variant="secondary" onClick={() => setIsDonating(false)}>Cerrar</Button>
+                                        </div>
+                                    </div>
+                                )}
                             </>
                         )}
                     </div>
