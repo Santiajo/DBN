@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import Card from "@/components/card";
@@ -10,7 +10,7 @@ import Pagination from '@/components/pagination';
 import Modal from '@/components/modal';
 import ObjectForm from './object-form';
 import ConfirmAlert from '@/components/confirm-alert';
-import { FaSearch, FaTrash, FaPencilAlt, FaEye, FaPlus, FaStore, FaCheck } from 'react-icons/fa';
+import { FaSearch, FaTrash, FaPencilAlt, FaEye, FaPlus, FaStore } from 'react-icons/fa';
 import { Objeto } from '@/types';
 
 const API_ENDPOINT = '/api/objetos/';
@@ -22,6 +22,10 @@ export default function ObjetosPage() {
 
     const [objetos, setObjetos] = useState<Objeto[]>([]);
     const [selectedObject, setSelectedObject] = useState<Objeto | null>(null);
+    
+    // REF: Para romper el ciclo infinito de dependencias
+    const selectedObjectRef = useRef<Objeto | null>(null);
+
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -30,7 +34,12 @@ export default function ObjetosPage() {
     const [editingObject, setEditingObject] = useState<Objeto | null>(null);
     const [isAlertOpen, setIsAlertOpen] = useState(false);
 
-    // Cargar Objetos
+    // Sincronizar Ref con Estado
+    useEffect(() => {
+        selectedObjectRef.current = selectedObject;
+    }, [selectedObject]);
+
+    // Cargar Objetos (Ahora estable, sin depender de selectedObject)
     const fetchObjects = useCallback(async (page = 1, searchQuery = '') => {
         if (!accessToken) return;
         const params = new URLSearchParams({
@@ -49,11 +58,13 @@ export default function ObjetosPage() {
             setTotalPages(Math.ceil(data.count / PAGE_SIZE));
             setCurrentPage(page);
             
-            // Mantener selección
+            // Lógica de selección usando el Ref
+            const currentSelected = selectedObjectRef.current;
             if (data.results.length > 0) {
-                if (selectedObject) {
-                    const stillExists = data.results.find((o: Objeto) => o.id === selectedObject.id);
-                    setSelectedObject(stillExists || data.results[0]);
+                if (currentSelected) {
+                    const stillExists = data.results.find((o: Objeto) => o.id === currentSelected.id);
+                    if (stillExists) setSelectedObject(stillExists);
+                    else setSelectedObject(data.results[0]);
                 } else {
                     setSelectedObject(data.results[0]);
                 }
@@ -63,7 +74,7 @@ export default function ObjetosPage() {
         } catch (error) {
             console.error(error);
         }
-    }, [accessToken, logout, selectedObject]);
+    }, [accessToken, logout]); // <--- Dependencia eliminada: selectedObject
 
     useEffect(() => {
         if (user?.is_staff) {
@@ -103,23 +114,25 @@ export default function ObjetosPage() {
             });
             if (!res.ok) throw new Error(`Error al guardar objeto`);
             
+            const savedItem = await res.json();
             setIsModalOpen(false);
             setEditingObject(null);
+            
+            // Forzar selección y recargar
+            setSelectedObject(savedItem);
+            selectedObjectRef.current = savedItem;
             fetchObjects(currentPage, searchTerm);
         } catch (error) { console.error(error); }
     };
 
-    // --- NUEVO: Handler para togglear Tienda TP ---
     const handleToggleStore = async (obj: Objeto) => {
         if (!accessToken) return;
         try {
             const newValue = !obj.in_tp_store;
             
-            // Optimistic UI update
             setObjetos(prev => prev.map(o => o.id === obj.id ? { ...o, in_tp_store: newValue } : o));
             if (selectedObject?.id === obj.id) setSelectedObject({ ...selectedObject, in_tp_store: newValue });
 
-            // API Update (PATCH)
             await fetch(`${process.env.NEXT_PUBLIC_API_URL}${API_ENDPOINT}${obj.id}/`, {
                 method: 'PATCH',
                 headers: {
@@ -130,7 +143,7 @@ export default function ObjetosPage() {
             });
         } catch (error) {
             console.error("Error actualizando tienda:", error);
-            fetchObjects(currentPage, searchTerm); // Revertir si falla
+            fetchObjects(currentPage, searchTerm);
         }
     };
 
@@ -143,8 +156,12 @@ export default function ObjetosPage() {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${accessToken}` },
             });
-            fetchObjects(currentPage, searchTerm);
+            
+            // Limpiar selección antes de recargar para evitar conflictos
             setSelectedObject(null);
+            selectedObjectRef.current = null;
+            
+            fetchObjects(currentPage, searchTerm);
         } catch (error) { console.error(error); } 
         finally { setIsAlertOpen(false); }
     };
@@ -165,7 +182,7 @@ export default function ObjetosPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                {/* Tabla Estilizada (Incrustada) */}
+                {/* Tabla */}
                 <div className="lg:col-span-2">
                     <div className="overflow-x-auto rounded-xl border border-madera-oscura bg-white">
                         <table className="min-w-full text-left text-sm">
@@ -193,14 +210,13 @@ export default function ObjetosPage() {
                                                 }
                                             `}
                                         >
-                                            {/* Botón de Tienda */}
                                             <td className="px-4 py-2 text-center" onClick={(e) => e.stopPropagation()}>
                                                 <button 
                                                     onClick={() => handleToggleStore(obj)}
                                                     className={`p-2 rounded-full transition-colors hover:bg-white/20 ${
                                                         obj.in_tp_store 
-                                                            ? 'text-yellow-500 drop-shadow-sm' // Activo (Dorado)
-                                                            : 'text-stone-300 hover:text-yellow-200' // Inactivo (Gris)
+                                                            ? 'text-yellow-500 drop-shadow-sm' 
+                                                            : 'text-stone-300 hover:text-yellow-200'
                                                     }`}
                                                     title={obj.in_tp_store ? "En Tienda TP" : "Añadir a Tienda TP"}
                                                 >
@@ -229,7 +245,7 @@ export default function ObjetosPage() {
                     <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
                 </div>
 
-                {/* Detalle Lateral */}
+                {/* Detalle */}
                 <div className="lg:col-span-1">
                     {selectedObject ? (
                         <Card variant="primary" className="h-full flex flex-col">
@@ -257,7 +273,6 @@ export default function ObjetosPage() {
                             <div className="flex justify-end gap-2 mt-auto pt-4">
                                 <Button variant="dangerous" onClick={handleDelete}><FaTrash /></Button>
                                 <Button variant="secondary" onClick={() => handleOpenEditModal(selectedObject)}><FaPencilAlt /></Button>
-                                {/* Botón rápido para Toggle Tienda en el detalle */}
                                 <Button 
                                     variant="secondary" 
                                     onClick={() => handleToggleStore(selectedObject)}
