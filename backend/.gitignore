@@ -10,6 +10,7 @@ db.sqlite3
 # Entornos locales
 .env
 .env.local
+.admin.py
 
 # Ignorar todas las migraciones de Django
 */migrations/
