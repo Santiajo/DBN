@@ -461,6 +461,8 @@ export interface RelacionNPC {
   id: number;
   personaje: number;
   npc: number;
+  npc_nombre?: string;
+  npc_titulo?: string;
   valor_amistad: number;
   notas_jugador: string;
 }
