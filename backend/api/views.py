@@ -337,8 +337,8 @@ def comprar_objeto(request, personaje_pk):
 def debug_trabajo_pagos(request, trabajo_pk):
     """Endpoint para debug de rutas nested"""
     from django.urls import resolve, get_resolver
-    print(f"🔍 Debug: trabajo_pk = {trabajo_pk}")
-    print(f"🔍 Debug: kwargs = {request.resolver_match.kwargs if hasattr(request, 'resolver_match') else 'No resolver_match'}")
+    print(f" Debug: trabajo_pk = {trabajo_pk}")
+    print(f" Debug: kwargs = {request.resolver_match.kwargs if hasattr(request, 'resolver_match') else 'No resolver_match'}")
     return Response({
         'trabajo_pk': trabajo_pk,
         'message': 'Endpoint de debug funcionando'
@@ -549,7 +549,7 @@ class CraftingViewSet(viewsets.ViewSet):
         competencia = progreso.competencia_utilizada
         receta = progreso.receta
         
-        # ✅ DIFERENTE LÓGICA PARA MÁGICOS Y NO MÁGICOS
+        # DIFERENTE LÓGICA PARA MÁGICOS Y NO MÁGICOS
         if receta.es_magico:
             # OBJETOS MÁGICOS: No se cobra por tirada, solo al completar
             # Solo verificamos que tenga los recursos finales disponibles
@@ -789,6 +789,379 @@ class CraftingViewSet(viewsets.ViewSet):
         ).order_by('-grado', '-exitos_acumulados')
         
         serializer = CompetenciaHerramientaSerializer(competencias, many=True)
+        return Response(serializer.data) 
+
+    @action(detail=False, methods=['get'])
+    def habilidades_investigacion(self, request):
+        """
+        Retorna las habilidades disponibles para investigación organizadas por fuente
+        """
+        habilidades_data = {
+            'libros': [
+                {'id': None, 'nombre': 'Investigation', 'estadistica': 'inteligencia'}
+            ],
+            'entrevistas': [
+                {'id': None, 'nombre': 'Persuasion', 'estadistica': 'carisma'},
+                {'id': None, 'nombre': 'Deception', 'estadistica': 'carisma'}
+            ],
+            'experimentos': [
+                {'id': None, 'nombre': 'Survival', 'estadistica': 'sabiduria'},
+                {'id': None, 'nombre': 'Perception', 'estadistica': 'sabiduria'}
+            ],
+            'campo': []  # Para herramientas
+        }
+        
+        # Obtener IDs reales de las habilidades
+        try:
+            # Libros
+            investigation = Habilidad.objects.get(nombre__iexact='investigacion')
+            habilidades_data['libros'][0]['id'] = investigation.id
+            
+            # Entrevistas
+            persuasion = Habilidad.objects.get(nombre__iexact='persuasion')
+            deception = Habilidad.objects.get(nombre__iexact='engano')
+            habilidades_data['entrevistas'][0]['id'] = persuasion.id
+            habilidades_data['entrevistas'][1]['id'] = deception.id
+            
+            # Experimentos
+            survival = Habilidad.objects.get(nombre__iexact='supervivencia')
+            perception = Habilidad.objects.get(nombre__iexact='percepcion')
+            habilidades_data['experimentos'][0]['id'] = survival.id
+            habilidades_data['experimentos'][1]['id'] = perception.id
+            
+        except Habilidad.DoesNotExist:
+            pass
+        
+        return Response(habilidades_data)
+    
+    @action(detail=False, methods=['post'])
+    def iniciar_investigacion(self, request):
+        """Inicia el proceso de investigación de un objeto para desbloquear una receta"""
+        serializer = IniciarInvestigacionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        receta_id = serializer.validated_data['receta_id']
+        personaje_id = serializer.validated_data['personaje_id']
+        objeto_investigado_id = serializer.validated_data['objeto_investigado_id']
+        fuente_informacion = serializer.validated_data['fuente_informacion']
+        habilidad_id = serializer.validated_data.get('habilidad_id')
+        competencia_herramienta_id = serializer.validated_data.get('competencia_herramienta_id')
+        
+        try:
+            personaje = Personaje.objects.get(id=personaje_id, user=request.user)
+            receta = Receta.objects.get(id=receta_id)
+            objeto_investigado = Objeto.objects.get(id=objeto_investigado_id)
+        except (Personaje.DoesNotExist, Receta.DoesNotExist, Objeto.DoesNotExist) as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Validaciones
+        with transaction.atomic():
+            # 1. Verificar que la receta requiere investigación
+            if not receta.requiere_investigacion:
+                return Response(
+                    {'error': 'Esta receta no requiere investigación'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # 2. Verificar que no esté ya desbloqueada
+            if RecetaDesbloqueada.objects.filter(personaje=personaje, receta=receta).exists():
+                return Response(
+                    {'error': 'Ya has desbloqueado esta receta'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # 3. Verificar que el objeto investigado es investigable
+            if not objeto_investigado.es_investigable:
+                return Response(
+                    {'error': 'Este objeto no es investigable'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # 4. Verificar que el objeto está en la receta
+            objeto_en_receta = False
+            
+            if receta.objeto_final and receta.objeto_final.id == objeto_investigado.id:
+                objeto_en_receta = True
+            
+            for ing in receta.ingredientes.all():
+                if ing.objeto.id == objeto_investigado.id:
+                    objeto_en_receta = True
+                    break
+            
+            if not objeto_en_receta:
+                return Response(
+                    {'error': 'Este objeto no está relacionado con esta receta'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # 5. Verificar que tiene el objeto en inventario
+            if not Inventario.objects.filter(personaje=personaje, objeto=objeto_investigado).exists():
+                return Response(
+                    {'error': f'No tienes {objeto_investigado.Name} en tu inventario'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # 6. Verificar que no tenga una investigación activa de esta receta
+            if ProgresoInvestigacion.objects.filter(
+                personaje=personaje,
+                receta=receta,
+                estado='en_progreso'
+            ).exists():
+                return Response(
+                    {'error': 'Ya tienes una investigación activa para esta receta'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # 7. Obtener DC y éxitos necesarios según rareza del objeto
+            dc = obtener_dc_investigacion(objeto_investigado.Rarity)
+            exitos_requeridos = obtener_exitos_investigacion(objeto_investigado.Rarity)
+            
+            # 8. Validar fuente y habilidad/competencia
+            habilidad = None
+            competencia = None
+            
+            if fuente_informacion == 'campo':
+                # Trabajo de campo: usar herramienta
+                if not competencia_herramienta_id:
+                    return Response(
+                        {'error': 'Debes seleccionar una herramienta para trabajo de campo'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                try:
+                    competencia = CompetenciaHerramienta.objects.get(
+                        id=competencia_herramienta_id,
+                        personaje=personaje
+                    )
+                except CompetenciaHerramienta.DoesNotExist:
+                    return Response(
+                        {'error': 'Competencia con herramienta no encontrada'},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+            else:
+                # Otras fuentes: usar habilidad
+                if not habilidad_id:
+                    return Response(
+                        {'error': 'Debes seleccionar una habilidad'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                try:
+                    habilidad = Habilidad.objects.get(id=habilidad_id)
+                except Habilidad.DoesNotExist:
+                    return Response(
+                        {'error': 'Habilidad no encontrada'},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+            
+            # 9. Crear progreso de investigación
+            progreso = ProgresoInvestigacion.objects.create(
+                personaje=personaje,
+                receta=receta,
+                objeto_investigado=objeto_investigado,
+                fuente_informacion=fuente_informacion,
+                habilidad_utilizada=habilidad,
+                competencia_utilizada=competencia,
+                exitos_requeridos=exitos_requeridos,
+                dc=dc
+            )
+            
+            response_serializer = ProgresoInvestigacionSerializer(progreso)
+            return Response({
+                'progreso': response_serializer.data,
+                'mensaje': f'Investigación iniciada. DC: {dc}, Éxitos necesarios: {exitos_requeridos}'
+            }, status=status.HTTP_201_CREATED)
+    
+    @action(detail=False, methods=['post'])
+    def realizar_tirada_investigacion(self, request):
+        """Realiza una tirada de investigación"""
+        serializer = TiradaInvestigacionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        progreso_id = serializer.validated_data['progreso_id']
+        
+        try:
+            progreso = ProgresoInvestigacion.objects.select_related(
+                'personaje', 'receta', 'objeto_investigado', 
+                'habilidad_utilizada', 'competencia_utilizada'
+            ).get(
+                id=progreso_id,
+                personaje__user=request.user
+            )
+        except ProgresoInvestigacion.DoesNotExist:
+            return Response(
+                {'error': 'Progreso de investigación no encontrado'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        if progreso.estado == 'completado':
+            return Response(
+                {'error': 'Esta investigación ya está completada'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        personaje = progreso.personaje
+        COSTE_DIA = 25  # Coste fijo por día
+        
+        # Verificar recursos
+        if personaje.tiempo_libre < 1:
+            return Response(
+                {'error': 'No tienes suficiente tiempo libre (Downtime)'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if personaje.oro < COSTE_DIA:
+            return Response(
+                {'error': f'No tienes suficiente oro. Necesitas {COSTE_DIA} gp'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        with transaction.atomic():
+            # Calcular modificador
+            if progreso.fuente_informacion == 'campo':
+                # Usar competencia con herramienta
+                modificador = calcular_modificador_investigacion_herramienta(progreso.competencia_utilizada)
+            else:
+                # Usar habilidad
+                modificador = calcular_modificador_investigacion_habilidad(
+                    personaje, 
+                    progreso.habilidad_utilizada
+                )
+            
+            # Tirada d20
+            resultado_dado = random.randint(1, 20)
+            resultado_total = resultado_dado + modificador
+            
+            exito = resultado_total >= progreso.dc
+            
+            # Consumir recursos
+            personaje.tiempo_libre -= 1
+            personaje.oro -= COSTE_DIA
+            personaje.save()
+            
+            # Actualizar progreso
+            progreso.dias_trabajados += 1
+            progreso.oro_gastado_total += COSTE_DIA
+            
+            mensaje_resultado = ""
+            receta_desbloqueada = False
+            
+            if exito:
+                progreso.exitos_conseguidos += 1
+                mensaje_resultado = f"¡Éxito! Progreso: {progreso.exitos_conseguidos}/{progreso.exitos_requeridos} éxitos"
+                
+                # Verificar si completó la investigación
+                if progreso.exitos_conseguidos >= progreso.exitos_requeridos:
+                    progreso.estado = 'completado'
+                    progreso.fecha_completado = timezone.now()
+                    
+                    # Desbloquear receta
+                    RecetaDesbloqueada.objects.create(
+                        personaje=personaje,
+                        receta=progreso.receta
+                    )
+                    
+                    receta_desbloqueada = True
+                    mensaje_resultado = f"¡Investigación completada! Has desbloqueado la receta: {progreso.receta.nombre}"
+            else:
+                mensaje_resultado = f"Fallo. Progreso: {progreso.exitos_conseguidos}/{progreso.exitos_requeridos} éxitos"
+            
+            progreso.save()
+            
+            # Registrar tirada
+            tirada = HistorialTiradaInvestigacion.objects.create(
+                progreso=progreso,
+                resultado_dado=resultado_dado,
+                modificador=modificador,
+                resultado_total=resultado_total,
+                dc=progreso.dc,
+                exito=exito,
+                oro_gastado=COSTE_DIA
+            )
+            
+            # Preparar respuesta
+            response_data = {
+                'tirada': {
+                    'resultado_dado': resultado_dado,
+                    'modificador': modificador,
+                    'resultado_total': resultado_total,
+                    'dc': progreso.dc,
+                    'exito': exito,
+                    'oro_gastado': COSTE_DIA,
+                    'mensaje': mensaje_resultado
+                },
+                'progreso': ProgresoInvestigacionSerializer(progreso).data,
+                'personaje': {
+                    'oro': personaje.oro,
+                    'tiempo_libre': personaje.tiempo_libre
+                },
+                'receta_desbloqueada': receta_desbloqueada
+            }
+            
+            return Response(response_data)
+    
+    @action(detail=False, methods=['get'])
+    def mis_investigaciones(self, request):
+        """Lista las investigaciones activas y completadas del personaje"""
+        personaje_id = request.query_params.get('personaje_id')
+        
+        if not personaje_id:
+            return Response(
+                {'error': 'personaje_id es requerido'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            personaje = Personaje.objects.get(id=personaje_id, user=request.user)
+        except Personaje.DoesNotExist:
+            return Response(
+                {'error': 'Personaje no encontrado'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Separar por estado
+        en_progreso = ProgresoInvestigacion.objects.filter(
+            personaje=personaje,
+            estado='en_progreso'
+        ).order_by('-fecha_inicio')
+        
+        completadas = ProgresoInvestigacion.objects.filter(
+            personaje=personaje,
+            estado='completado'
+        ).order_by('-fecha_completado')
+        
+        return Response({
+            'en_progreso': ProgresoInvestigacionSerializer(en_progreso, many=True).data,
+            'completadas': ProgresoInvestigacionSerializer(completadas, many=True).data
+        })
+    
+    @action(detail=False, methods=['get'])
+    def recetas_desbloqueadas(self, request):
+        """Lista todas las recetas desbloqueadas por el personaje"""
+        personaje_id = request.query_params.get('personaje_id')
+        
+        if not personaje_id:
+            return Response(
+                {'error': 'personaje_id es requerido'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            personaje = Personaje.objects.get(id=personaje_id, user=request.user)
+        except Personaje.DoesNotExist:
+            return Response(
+                {'error': 'Personaje no encontrado'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        recetas_desbloqueadas = RecetaDesbloqueada.objects.filter(
+            personaje=personaje
+        ).order_by('-fecha_desbloqueo')
+        
+        serializer = RecetaDesbloqueadaSerializer(recetas_desbloqueadas, many=True)
         return Response(serializer.data)
     
 # Views para especies
