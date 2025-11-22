@@ -17,7 +17,7 @@ const buildApiUrl = (endpoint: string) => {
   return `${baseUrl}/api/${normalizedEndpoint}`;
 };
 
-export default function gruposPage() {
+export default function GruposPage() {
   const { user, accessToken } = useAuth();
 
   // Estados
