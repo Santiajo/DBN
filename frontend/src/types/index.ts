@@ -13,6 +13,7 @@ export type Objeto = {
   Weight: string | number;
   Value: string | number;
   Text: string;
+  in_tp_store?: boolean;
 };
 
 export interface ObjetoTienda {
