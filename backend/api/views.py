@@ -15,6 +15,7 @@ from .serializers import MyTokenObtainPairSerializer
 from django.db import transaction
 from django.db.models import F
 import rest_framework.filters as filters
+import random
 
 @api_view(['POST']) # Solo permite solicitudes POST
 @permission_classes([AllowAny]) # Permite que cualquiera pueda acceder a esta vista
@@ -1095,6 +1096,138 @@ class StoreViewSet(viewsets.ViewSet):
             return Response({'error': 'Personaje no encontrado'}, status=404)
         except Objeto.DoesNotExist:
             return Response({'error': 'Objeto no encontrado'}, status=404)
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
+
+# View para irse de juerga
+CAROUSING_OPTIONS = {
+    'Baja': 10,
+    'Modesta': 50,
+    'Comoda': 200,
+    'Adinerada': 500,
+    'Aristócrata': 1000,
+}
+
+class DowntimeViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+
+    @action(detail=False, methods=['post'])
+    def carousing(self, request):
+        personaje_id = request.data.get('personaje_id')
+        social_class = request.data.get('social_class')
+
+        if not personaje_id or social_class not in CAROUSING_OPTIONS:
+            return Response({'error': 'Datos inválidos.'}, status=400)
+
+        try:
+            with transaction.atomic():
+                pj = Personaje.objects.get(pk=personaje_id)
+                
+                # Validar Recursos
+                cost = CAROUSING_OPTIONS[social_class]
+                days_cost = 5
+
+                if pj.oro < cost:
+                    return Response({'error': f'No tienes suficiente oro ({cost} gp requeridos).'}, status=400)
+                
+                if pj.tiempo_libre < days_cost:
+                    return Response({'error': f'No tienes suficiente tiempo libre ({days_cost} días requeridos).'}, status=400)
+
+                # Cobrar
+                pj.oro -= cost
+                pj.tiempo_libre -= days_cost
+                pj.save()
+
+                # Calcular Modificador (Persuasión)
+                cha_mod = (pj.carisma - 10) // 2
+                prof_bonus = 0
+                
+                # Buscar habilidad persuacion
+                try:
+                    persuasion_skill = Habilidad.objects.get(nombre="persuasion") # nombre exacto en DB
+                    if Proficiencia.objects.filter(personaje=pj, habilidad=persuasion_skill, es_proficiente=True).exists():
+                        prof_bonus = (pj.nivel - 1) // 4 + 2
+                except Habilidad.DoesNotExist:
+                    pass 
+                
+                # Realizar Tirada|
+                total_modifier = cha_mod + prof_bonus
+                roll = random.randint(1, 20)
+                total_score = roll + total_modifier
+
+                # Determinar Resultado y NPCs
+                outcome = ""
+                result_type = "neutral"
+                npcs_affected = []
+                
+                # Definir cuántos y cuánto cambia la reputación
+                contacts_count = 0
+                rep_change = 0 
+
+                if total_score <= 5:
+                    outcome = "Has tenido un malentendido. Bajas tu reputación con un contacto."
+                    result_type = "failure"
+                    contacts_count = 1
+                    rep_change = -2
+                    
+                elif total_score <= 10:
+                    outcome = "Una semana tranquila. No ha cambiado tu reputación."
+                    result_type = "neutral"
+                    
+                elif total_score <= 15:
+                    outcome = "¡Buena fiesta! Aumentas reputación con un contacto."
+                    result_type = "success"
+                    contacts_count = 1
+                    rep_change = 2
+                    
+                elif total_score <= 20:
+                    outcome = "¡Eres el alma de la fiesta! Aumentas reputación con dos contactos."
+                    result_type = "success"
+                    contacts_count = 2
+                    rep_change = 3
+                    
+                else: 
+                    outcome = "¡Leyenda local! Aumentas reputación con tres contactos."
+                    result_type = "success"
+                    contacts_count = 3
+                    rep_change = 5
+
+                # Aplicar Cambios a NPCs
+                if contacts_count > 0:
+                    random_npcs = NPC.objects.order_by('?')[:contacts_count]
+                    
+                    for npc in random_npcs:
+                        relacion, created = RelacionNPC.objects.get_or_create(
+                            personaje=pj,
+                            npc=npc,
+                            defaults={'valor_amistad': 0}
+                        )
+                        # Actualizar valor
+                        relacion.valor_amistad += rep_change
+                        relacion.save()
+                        
+                        # Guardar info para mostrar en el frontend
+                        npcs_affected.append({
+                            'name': npc.name,
+                            'change': rep_change,
+                            'new_value': relacion.valor_amistad,
+                            'title': npc.title
+                        })
+
+                return Response({
+                    'success': True,
+                    'roll_base': roll,
+                    'modifier': total_modifier,
+                    'total': total_score,
+                    'outcome': outcome,
+                    'result_type': result_type,
+                    'npcs_affected': npcs_affected,
+                    'new_gold': pj.oro,
+                    'new_downtime': pj.tiempo_libre
+                })
+
+        except Personaje.DoesNotExist:
+            return Response({'error': 'Personaje no encontrado'}, status=404)
         except Exception as e:
             return Response({'error': str(e)}, status=500)
 
