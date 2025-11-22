@@ -2,12 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Personaje, Objeto } from '@/types'; // Asegúrate de tener Objeto en types
+import { Personaje, Objeto } from '@/types'; 
 import Card from "@/components/card";
 import Button from "@/components/button";
 import Dropdown, { OptionType } from '@/components/dropdown';
-import Input from '@/components/input';
-import { FaCoins, FaShoppingCart, FaLock, FaSearch, FaFilter } from 'react-icons/fa';
+import { FaCoins, FaShoppingCart, FaLock, FaSearch } from 'react-icons/fa';
 
 // Reglas de Negocio (Frontend para visualización)
 const TP_RULES = {
@@ -25,7 +24,7 @@ const getTier = (level: number) => {
 };
 
 export default function TreasureStorePage() {
-    const { user, accessToken } = useAuth();
+    const { accessToken } = useAuth();
     
     // Estados de Datos
     const [personajes, setPersonajes] = useState<Personaje[]>([]);
@@ -218,7 +217,6 @@ export default function TreasureStorePage() {
                                     variant={isBuyable ? 'primary' : 'secondary'} 
                                     className={`w-full flex justify-center items-center gap-2 ${!isBuyable ? 'cursor-not-allowed opacity-50' : ''}`}
                                     onClick={() => isBuyable && handleBuy(item)}
-                                    // @ts-ignore: La prop disabled no está en tu componente Button pero html la soporta si la pasas
                                     disabled={!isBuyable || buyingId === item.id}
                                 >
                                     {buyingId === item.id ? 'Comprando...' : (
