@@ -20,7 +20,8 @@ import {
   FaMedal,        // Subclases
   FaStar,         // Dotes
   FaUserTie,      // NPCs
-  FaUsers,        // Grupos
+  FaUsers,        // Grupos 
+  FaCoins,        // Monedas 
   FaAngleLeft, 
   FaAngleRight, 
   FaChevronDown, 
@@ -59,6 +60,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
     { href: '/dashboard', icon: <FaDungeon />, label: 'Inicio' },
     { href: '/dashboard/personajes', icon: <FaUserShield />, label: 'Personajes' },
     { href: '/dashboard/compras', icon: <FaStore />, label: 'Tiendas' },
+    { href: '/dashboard/tiendatp', icon: <FaCoins />, label: 'Treasure Points' },
   ];
 
   const managementLinks = [

@@ -129,7 +129,8 @@ class Objeto(models.Model):
     Weight = models.CharField(max_length=150, blank=True, null=True)  
     Value = models.CharField(max_length=150, blank=True, null=True)  
     Text = models.TextField(blank=True, null=True)
-    es_investigable = models.BooleanField(default=False)  
+    es_investigable = models.BooleanField(default=False)
+    in_tp_store = models.BooleanField(default=False, help_text="Si es True, aparece en la Tienda de Treasure Points")  
 
     def __str__(self):
         return self.Name
@@ -1077,3 +1078,15 @@ class RelacionNPC(models.Model):
 
     def __str__(self):
         return f"{self.personaje.nombre_personaje} <-> {self.npc.name}: {self.valor_amistad}"
+
+# Modelo para registrar compras de treasure points
+class TPTransaction(models.Model):
+    personaje = models.ForeignKey(Personaje, on_delete=models.CASCADE, related_name='tp_transactions')
+    objeto = models.ForeignKey(Objeto, on_delete=models.CASCADE)
+    costo = models.IntegerField()
+    fecha = models.DateTimeField(auto_now_add=True)
+    nivel_personaje = models.IntegerField()
+    tier_personaje = models.IntegerField()
+
+    def __str__(self):
+        return f"{self.personaje.nombre_personaje} compró {self.objeto.Name} por {self.costo} TP"

@@ -984,3 +984,100 @@ class RelacionNPCViewSet(viewsets.ModelViewSet):
             return RelacionNPC.objects.all()
         return RelacionNPC.objects.filter(personaje__user=user)
 
+# Vierws para compras de objetos con treasure points
+TP_COSTS = {
+    'Uncommon': 2,
+    'Rare': 6,
+    'Very Rare': 12,
+    'Legendary': 20
+}
+
+TP_TIER_REQ = {
+    'Uncommon': 1,
+    'Rare': 2,
+    'Very Rare': 3,
+    'Legendary': 4
+}
+
+def get_tier(level):
+    if level <= 4: return 1
+    if level <= 10: return 2
+    if level <= 16: return 3
+    return 4
+
+class StoreViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+
+    @action(detail=False, methods=['post'])
+    def buy(self, request):
+        personaje_id = request.data.get('personaje_id')
+        objeto_id = request.data.get('objeto_id')
+
+        if not personaje_id or not objeto_id:
+            return Response({'error': 'Faltan datos (personaje_id, objeto_id)'}, status=400)
+
+        try:
+            pj = Personaje.objects.get(pk=personaje_id)
+            if not request.user.is_staff and pj.user != request.user:
+                return Response({'error': 'No tienes permiso sobre este personaje'}, status=403)
+
+            objeto = Objeto.objects.get(pk=objeto_id)
+
+            rarity = objeto.Rarity
+            if rarity not in TP_COSTS:
+                return Response({'error': f'El objeto "{objeto.Name}" tiene una rareza no válida para la tienda ({rarity})'}, status=400)
+
+            cost = TP_COSTS[rarity]
+            tier_req = TP_TIER_REQ[rarity]
+            pj_tier = get_tier(pj.nivel)
+
+            if pj_tier < tier_req:
+                return Response({'error': f'Nivel insuficiente. Necesitas Tier {tier_req} (Nivel {get_min_level_for_tier(tier_req)}) para objetos {rarity}.'}, status=400)
+
+            if pj.treasure_points < cost:
+                return Response({'error': f'TP Insuficientes. Tienes {pj.treasure_points}, necesitas {cost}.'}, status=400)
+            
+            # Descontar Puntos
+            pj.treasure_points -= cost
+            pj.treasure_points_gastados = (pj.treasure_points_gastados or 0) + cost
+            pj.save()
+
+            # Añadir al Inventario
+            inv_item, created = Inventario.objects.get_or_create(
+                personaje=pj, 
+                objeto=objeto,
+                defaults={'cantidad': 0} # Si se crea, empieza en 0 para sumar 1 abajo
+            )
+            inv_item.cantidad += 1
+            inv_item.save()
+
+            # Registrar Log
+            TPTransaction.objects.create(
+                personaje=pj,
+                objeto=objeto,
+                costo=cost,
+                nivel_personaje=pj.nivel,
+                tier_personaje=pj_tier
+            )
+
+            return Response({
+                'success': True, 
+                'message': f'¡Comprado {objeto.Name}!',
+                'new_tp': pj.treasure_points,
+                'objeto': objeto.Name
+            })
+
+        except Personaje.DoesNotExist:
+            return Response({'error': 'Personaje no encontrado'}, status=404)
+        except Objeto.DoesNotExist:
+            return Response({'error': 'Objeto no encontrado'}, status=404)
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
+
+def get_min_level_for_tier(tier):
+    if tier == 1: return 1
+    if tier == 2: return 5
+    if tier == 3: return 11
+    if tier == 4: return 17
+    return 20
+
