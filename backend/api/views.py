@@ -989,14 +989,15 @@ TP_COSTS = {
     'Uncommon': 2,
     'Rare': 6,
     'Very Rare': 12,
-    'Legendary': 20
+    'Legendary': 20,
 }
 
 TP_TIER_REQ = {
+    'Common': 1,
     'Uncommon': 1,
     'Rare': 2,
     'Very Rare': 3,
-    'Legendary': 4
+    'Legendary': 4,
 }
 
 def get_tier(level):
@@ -1004,6 +1005,18 @@ def get_tier(level):
     if level <= 10: return 2
     if level <= 16: return 3
     return 4
+
+def get_min_level_for_tier(tier):
+    if tier == 1: return 1
+    if tier == 2: return 5
+    if tier == 3: return 11
+    if tier == 4: return 17
+    return 20
+
+def normalize_rarity(rarity):
+    if not rarity:
+        return None
+    return ' '.join(word.capitalize() for word in rarity.strip().split())
 
 class StoreViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
@@ -1014,44 +1027,56 @@ class StoreViewSet(viewsets.ViewSet):
         objeto_id = request.data.get('objeto_id')
 
         if not personaje_id or not objeto_id:
-            return Response({'error': 'Faltan datos (personaje_id, objeto_id)'}, status=400)
+            return Response({'error': 'Faltan datos'}, status=400)
 
         try:
+            # Validar Personaje
             pj = Personaje.objects.get(pk=personaje_id)
+            # Permitir si es admin O si es el dueño
             if not request.user.is_staff and pj.user != request.user:
                 return Response({'error': 'No tienes permiso sobre este personaje'}, status=403)
 
+            # Validar Objeto
             objeto = Objeto.objects.get(pk=objeto_id)
 
-            rarity = objeto.Rarity
+            rarity_raw = objeto.Rarity
+            rarity = normalize_rarity(rarity_raw)
+
             if rarity not in TP_COSTS:
-                return Response({'error': f'El objeto "{objeto.Name}" tiene una rareza no válida para la tienda ({rarity})'}, status=400)
+                return Response({
+                    'error': f'El objeto "{objeto.Name}" tiene una rareza no válida ({rarity_raw} -> {rarity})'
+                }, status=400)
 
             cost = TP_COSTS[rarity]
-            tier_req = TP_TIER_REQ[rarity]
+            tier_req = TP_TIER_REQ.get(rarity, 1)
             pj_tier = get_tier(pj.nivel)
 
+            # Validar Requisitos
             if pj_tier < tier_req:
-                return Response({'error': f'Nivel insuficiente. Necesitas Tier {tier_req} (Nivel {get_min_level_for_tier(tier_req)}) para objetos {rarity}.'}, status=400)
+                min_lvl = get_min_level_for_tier(tier_req)
+                return Response({
+                    'error': f'Nivel insuficiente. Necesitas Tier {tier_req} (Nivel {min_lvl}+) para objetos {rarity}.'
+                }, status=400)
 
             if pj.treasure_points < cost:
-                return Response({'error': f'TP Insuficientes. Tienes {pj.treasure_points}, necesitas {cost}.'}, status=400)
-            
-            # Descontar Puntos
+                return Response({
+                    'error': f'TP Insuficientes. Tienes {pj.treasure_points}, necesitas {cost}.'
+                }, status=400)
+
+            # Ejecutar Transacción
             pj.treasure_points -= cost
             pj.treasure_points_gastados = (pj.treasure_points_gastados or 0) + cost
             pj.save()
 
-            # Añadir al Inventario
             inv_item, created = Inventario.objects.get_or_create(
                 personaje=pj, 
                 objeto=objeto,
-                defaults={'cantidad': 0} # Si se crea, empieza en 0 para sumar 1 abajo
+                defaults={'cantidad': 0}
             )
             inv_item.cantidad += 1
             inv_item.save()
 
-            # Registrar Log
+            # Log de Transacción
             TPTransaction.objects.create(
                 personaje=pj,
                 objeto=objeto,
@@ -1062,9 +1087,8 @@ class StoreViewSet(viewsets.ViewSet):
 
             return Response({
                 'success': True, 
-                'message': f'¡Comprado {objeto.Name}!',
-                'new_tp': pj.treasure_points,
-                'objeto': objeto.Name
+                'message': f'¡Comprado {objeto.Name}!', 
+                'new_tp': pj.treasure_points
             })
 
         except Personaje.DoesNotExist:
@@ -1073,11 +1097,4 @@ class StoreViewSet(viewsets.ViewSet):
             return Response({'error': 'Objeto no encontrado'}, status=404)
         except Exception as e:
             return Response({'error': str(e)}, status=500)
-
-def get_min_level_for_tier(tier):
-    if tier == 1: return 1
-    if tier == 2: return 5
-    if tier == 3: return 11
-    if tier == 4: return 17
-    return 20
 
