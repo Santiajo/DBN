@@ -13,6 +13,7 @@ export type Objeto = {
   Weight: string | number;
   Value: string | number;
   Text: string;
+  in_tp_store?: boolean;
 };
 
 export interface ObjetoTienda {
@@ -460,6 +461,8 @@ export interface RelacionNPC {
   id: number;
   personaje: number;
   npc: number;
+  npc_nombre?: string;
+  npc_titulo?: string;
   valor_amistad: number;
   notas_jugador: string;
 }

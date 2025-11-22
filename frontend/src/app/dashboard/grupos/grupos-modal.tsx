@@ -7,6 +7,7 @@ import Dropdown from '@/components/dropdown';
 import Table from '@/components/table';
 import Input from '@/components/input';
 import Card from '@/components/card';
+import ConfirmAlert from '@/components/confirm-alert';
 
 // --- Función Helper (cópiala o impórtala) ---
 const buildApiUrl = (endpoint: string) => {
@@ -29,6 +30,15 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
   const [inventarioParty, setInventarioParty] = useState<InventarioParty[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  const [alertConfig, setAlertConfig] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => {}
+    });
+
+  const closeAlert = () => setAlertConfig(prev => ({ ...prev, isOpen: false }));
+
   // --- ESTADOS PARA UNIRSE ---
   const [selectedCharIdToJoin, setSelectedCharIdToJoin] = useState<string>('');
 
@@ -38,6 +48,7 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
   const [charInventory, setCharInventory] = useState<InventarioItem[]>([]); // Inventario del personaje seleccionado
   const [selectedItemId, setSelectedItemId] = useState<string>('');
   const [donateAmount, setDonateAmount] = useState<number>(1);
+  const [isLoadingInventory, setIsLoadingInventory] = useState(false);
 
 
   // 1. Determinar si alguno de mis personajes ya está en la party
@@ -81,30 +92,52 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
         body: JSON.stringify({ personaje_id: Number(selectedCharIdToJoin) })
       });
       if (res.ok) {
-        alert("¡Te has unido al grupo!");
-        onUpdate(); // Refresca la info de la party principal
-        onClose();
-      } else {
-        const err = await res.json();
-        alert(err.error || "Error al unirse");
-      }
-    } catch (e) { console.error(e); }
+                // ÉXITO: Configurar alerta. 
+                // Al confirmar (darle OK), cerramos el modal principal.
+                setAlertConfig({
+                    isOpen: true,
+                    title: '¡BIENVENIDO AL GREMIO!',
+                    message: 'Te has unido al grupo exitosamente.',
+                    onConfirm: () => {
+                        closeAlert();
+                        onUpdate(); // Refrescar lista
+                        onClose();  // Cerrar modal de la party
+                    }
+                });
+            } else {
+                // ERROR
+                const err = await res.json();
+                setAlertConfig({
+                    isOpen: true,
+                    title: 'ERROR AL UNIRSE',
+                    message: err.error || "No se pudo completar la acción.",
+                    onConfirm: closeAlert // Solo cerrar la alerta
+                });
+                }
+        } catch (e) { console.error(e); }
   };
 
-  // --- LÓGICA: PREPARAR DONACIÓN (Cargar inventario del personaje) ---
   useEffect(() => {
     if (donateCharId) {
-      // Cargar inventario de este personaje
+      console.log("Personaje seleccionado para donar:", donateCharId); // <--- DEBUG
+      setIsLoadingInventory(true);
+      setCharInventory([]); // Limpiar inventario anterior visualmente
+      
       fetch(buildApiUrl(`personajes/${donateCharId}/inventario/`), {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       })
       .then(res => res.json())
-      .then(data => setCharInventory(data.results || data))
-      .catch(err => console.error(err));
+      .then(data => {
+          const items = data.results || data || [];
+          console.log("Objetos encontrados:", items); // <--- DEBUG
+          setCharInventory(items);
+      })
+      .catch(err => console.error(err))
+      .finally(() => setIsLoadingInventory(false));
     } else {
         setCharInventory([]);
     }
-  }, [donateCharId]);
+  }, [donateCharId, accessToken]);
 
   // --- LÓGICA: ENVIAR DONACIÓN ---
   const handleDonate = async () => {
@@ -126,15 +159,29 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
       });
 
       if (res.ok) {
-        alert("Objeto donado exitosamente.");
-        setIsDonating(false);
-        fetchInventory(); // Refrescar inventario de la party
-        // Opcional: Refrescar inventario del personaje
-      } else {
-        const err = await res.json();
-        alert(err.error || "Error al donar");
-      }
-    } catch (e) { console.error(e); }
+                // ÉXITO
+                setAlertConfig({
+                    isOpen: true,
+                    title: 'DONACIÓN REALIZADA',
+                    message: 'El objeto se ha transferido al alijo de la party correctamente.',
+                    onConfirm: () => {
+                        closeAlert();
+                        setIsDonating(false);
+                        fetchInventory();
+                        // Aquí podrías refrescar el inventario del personaje también si quisieras
+                    }
+                });
+            } else {
+                // ERROR
+                const err = await res.json();
+                setAlertConfig({
+                    isOpen: true,
+                    title: 'NO SE PUDO DONAR',
+                    message: err.error || "Ocurrió un error inesperado.",
+                    onConfirm: closeAlert
+                });
+            }
+        } catch (e) { console.error(e); }
   };
 
 
@@ -219,7 +266,7 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
             )}
             {isMember && (
                 <p className="text-center text-sm text-green-700 font-bold bg-green-100 p-2 rounded">
-                    ✅ Eres miembro de esta party con {myMemberCharacter?.nombre_personaje}
+                    Eres miembro de esta party con {myMemberCharacter?.nombre_personaje}
                 </p>
             )}
         </div>
@@ -233,7 +280,7 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
             {isMember && !isDonating && (
                 <div className="flex justify-end">
                     <Button variant="secondary" onClick={() => setIsDonating(true)}>
-                        📦 Donar Objeto
+                        Donar Objeto
                     </Button>
                 </div>
             )}
@@ -243,37 +290,61 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
                 <Card variant="secondary" className="mb-4">
                     <h4 className="font-bold mb-2">Donar al alijo de la party</h4>
                     <div className="space-y-3">
+                        
+                        {/* 1. SELECCIONAR PERSONAJE */}
                         <div>
                             <label className="text-xs font-bold">1. ¿Quién dona?</label>
                             <Dropdown 
                                 options={donateCharOptions}
                                 value={donateCharId}
                                 onChange={(e) => setDonateCharId(e.target.value)}
+                                placeholder="Selecciona un personaje..."
                             />
                         </div>
+
+                        {/* MUESTRA ESTO SOLO SI HAY UN PERSONAJE SELECCIONADO */}
                         {donateCharId && (
                             <>
-                                <div>
-                                    <label className="text-xs font-bold">2. ¿Qué objeto?</label>
-                                    <Dropdown 
-                                        options={inventoryOptions}
-                                        value={selectedItemId}
-                                        onChange={(e) => setSelectedItemId(e.target.value)}
-                                        placeholder="Selecciona un objeto..."
-                                    />
-                                </div>
-                                <div>
-                                    <label className="text-xs font-bold">3. Cantidad</label>
-                                    <Input 
-                                        type="number" min="1" 
-                                        value={String(donateAmount)}
-                                        onChange={(e) => setDonateAmount(Number(e.target.value))}
-                                    />
-                                </div>
-                                <div className="flex justify-end gap-2 mt-2">
-                                    <Button variant="dangerous" onClick={() => setIsDonating(false)}>Cancelar</Button>
-                                    <Button variant="primary" onClick={handleDonate}>Confirmar Donación</Button>
-                                </div>
+                                {isLoadingInventory ? (
+                                    // CASO A: ESTÁ CARGANDO
+                                    <p className="text-sm italic text-stone-500 animate-pulse">
+                                        Buscando en la mochila...
+                                    </p>
+                                ) : charInventory.length > 0 ? (
+                                    // CASO B: TIENE OBJETOS -> MUESTRA EL RESTO DEL FORMULARIO
+                                    <>
+                                        <div>
+                                            <label className="text-xs font-bold">2. ¿Qué objeto?</label>
+                                            <Dropdown 
+                                                options={inventoryOptions}
+                                                value={selectedItemId}
+                                                onChange={(e) => setSelectedItemId(e.target.value)}
+                                                placeholder="Selecciona un objeto..."
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold">3. Cantidad</label>
+                                            <Input 
+                                                type="number" min="1" 
+                                                value={String(donateAmount)}
+                                                onChange={(e) => setDonateAmount(Number(e.target.value))}
+                                            />
+                                        </div>
+                                        <div className="flex justify-end gap-2 mt-2">
+                                            <Button variant="dangerous" onClick={() => setIsDonating(false)}>Cancelar</Button>
+                                            <Button variant="primary" onClick={handleDonate}>Confirmar Donación</Button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    // CASO C: NO TIENE OBJETOS
+                                    <div className="p-3 bg-red-100 text-red-700 rounded text-sm border border-red-300">
+                                        <p> Este personaje tiene el inventario vacío.</p>
+                                        <p className="text-xs mt-1">Ve a Tiendas o crea objetos para tener algo que donar.</p>
+                                        <div className="flex justify-end mt-2">
+                                            <Button variant="secondary" onClick={() => setIsDonating(false)}>Cerrar</Button>
+                                        </div>
+                                    </div>
+                                )}
                             </>
                         )}
                     </div>
@@ -302,6 +373,14 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
       <div className="flex justify-end pt-4 border-t border-madera-oscura">
         <Button variant="secondary" onClick={onClose}>Cerrar</Button>
       </div>
+    <ConfirmAlert
+                isOpen={alertConfig.isOpen}
+                onClose={closeAlert}
+                onConfirm={alertConfig.onConfirm}
+                title={alertConfig.title}
+                message={alertConfig.message}
+            />  
     </div>
+    
   );
 }

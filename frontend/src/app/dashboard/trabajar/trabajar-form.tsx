@@ -1,4 +1,3 @@
-// Crea este archivo en: trabajos/trabajar-form.tsx
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -12,9 +11,6 @@ const buildApiUrl = (endpoint: string) => {
   const normalizedEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
   return `${baseUrl}/api/${normalizedEndpoint}`;
 };
-
-// --- Funciones Helper ---
-// (Puedes ponerlas en un archivo utils.ts e importarlas)
 
 /**
  * Traduce la tirada de d20 al multiplicador de desempeño
@@ -92,13 +88,12 @@ export default function TrabajarForm({
         const pj = personajes.find(p => p.id === Number(selectedPersonajeId));
         if (!pj) return { personaje: null, modificadorEstadistica: 0, bonusProficiencia: 0 };
 
-        // 1. Calcular Modificador de Estadística (¡CORREGIDO!)
         let mod = 0;
 
         const statKey = trabajo.requisito_habilidad_estadistica as keyof Personaje;
         
         if (statKey && pj[statKey] !== undefined) {
-            // Accedemos dinámicamente al valor (ej: pj['fuerza'] -> 16)
+
             const statValue = pj[statKey] as number;
 
             mod = calcularModificador(statValue);
@@ -106,8 +101,7 @@ export default function TrabajarForm({
 
             console.warn(`No se pudo encontrar la estadística '${statKey}' en el personaje.`);
         }
-        
-        // 2. Calcular Bonus de Proficiencia (Esta lógica ya era correcta)
+
         let bonus = 0;
         const tieneProficiencia = proficiencias.find(
             p => p.personaje === pj.id && 
@@ -128,14 +122,12 @@ export default function TrabajarForm({
 
     }, [selectedPersonajeId, personajes, trabajo, proficiencias, bonusTabla]);
 
-    
-    // Opciones para el dropdown de personajes
+
     const personajeOptions: OptionType[] = personajes.map(p => ({
         value: String(p.id),
         label: p.nombre_personaje
     }));
 
-    // Opciones para el dropdown de rango
     const rangoOptions: OptionType[] = (trabajo.pagos ?? [])
         .filter(pago => pago.rango === currentRank) 
         .map(pago => ({
@@ -145,7 +137,6 @@ export default function TrabajarForm({
 
     const maxRank = (trabajo.pagos?.length ?? 0) === 0;
 
-    // --- ENVÍO DEL FORMULARIO ---
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!personaje) {
@@ -156,10 +147,8 @@ export default function TrabajarForm({
         setIsLoading(true);
         setError(null);
 
-        // 1. Traducir d20 a multiplicador
         const multiplicadorDesempenio = getDesempenio(tiradaD20);
 
-        // 2. Construir el body para la API
         const datosParaAPI = {
             personaje: personaje.id,
             trabajo: trabajo.id,
@@ -171,7 +160,6 @@ export default function TrabajarForm({
             desempenio: multiplicadorDesempenio
         };
 
-        // 3. Hacer el POST
         try {
             const url = buildApiUrl('trabajos-realizados/');
             const res = await fetch(url, {
@@ -189,8 +177,7 @@ export default function TrabajarForm({
             }
 
             const trabajoCreado = await res.json(); 
-            
-            // ¡Éxito! Llama a la función y pásale el pago total
+
             onWorkSuccess(trabajoCreado.pago_total);
 
         } catch (err: unknown) { 
@@ -202,7 +189,6 @@ export default function TrabajarForm({
             } else {
                 setError("Ocurrió un error inesperado.");
             }
-            // ---------------------------------
 
         } finally {
             setIsLoading(false);

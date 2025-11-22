@@ -5,10 +5,8 @@ import { usePathname } from 'next/navigation';
 import { 
   FaUser, 
   FaBoxOpen, 
-  FaScroll, 
-  FaBolt, 
-  FaBook, 
-  FaArrowLeft 
+  FaArrowLeft,
+  FaHandshake 
 } from 'react-icons/fa';
 
 interface CharacterNavbarProps {
@@ -23,9 +21,7 @@ export default function CharacterNavbar({ personajeId }: CharacterNavbarProps) {
   const tabs = [
     { name: 'General', path: '', icon: <FaUser /> }, 
     { name: 'Inventario', path: '/inventario', icon: <FaBoxOpen /> },
-    { name: 'Rasgos', path: '/rasgos', icon: <FaBolt /> },
-    { name: 'Hechizos', path: '/hechizos', icon: <FaScroll /> },
-    { name: 'Diario', path: '/diario', icon: <FaBook /> },
+    { name: 'Relaciones', path: '/relaciones', icon: <FaHandshake /> },
   ];
 
   return (

@@ -129,7 +129,8 @@ class Objeto(models.Model):
     Weight = models.CharField(max_length=150, blank=True, null=True)  
     Value = models.CharField(max_length=150, blank=True, null=True)  
     Text = models.TextField(blank=True, null=True)
-    es_investigable = models.BooleanField(default=False)  
+    es_investigable = models.BooleanField(default=False)
+    in_tp_store = models.BooleanField(default=False, help_text="Si es True, aparece en la Tienda de Treasure Points")  
 
     def __str__(self):
         return self.Name
@@ -1082,172 +1083,15 @@ class RelacionNPC(models.Model):
 
     def __str__(self):
         return f"{self.personaje.nombre_personaje} <-> {self.npc.name}: {self.valor_amistad}"
-    
 
-class RecetaDesbloqueada(models.Model):
-    """Tracking de qué recetas ha desbloqueado cada personaje mediante investigación"""
-    personaje = models.ForeignKey(Personaje, on_delete=models.CASCADE, related_name='recetas_desbloqueadas')
-    receta = models.ForeignKey(Receta, on_delete=models.CASCADE, related_name='desbloqueos')
-    fecha_desbloqueo = models.DateTimeField(auto_now_add=True)
-    
-    class Meta:
-        unique_together = ('personaje', 'receta')
-        verbose_name_plural = "Recetas Desbloqueadas"
-    
-    def __str__(self):
-        return f"{self.personaje.nombre_personaje} desbloqueó {self.receta.nombre}"
-
-
-class ProgresoInvestigacion(models.Model):
-    """Tracking del progreso de investigación de un objeto para desbloquear una receta"""
-    
-    FUENTE_CHOICES = [
-        ('libros', 'Libros y Archivos'),
-        ('entrevistas', 'Entrevistas y Rumores'),
-        ('experimentos', 'Experimentos y Análisis'),
-        ('campo', 'Trabajo de Campo'),
-    ]
-    
-    ESTADO_CHOICES = [
-        ('en_progreso', 'En Progreso'),
-        ('completado', 'Completado'),
-    ]
-    
-    personaje = models.ForeignKey(Personaje, on_delete=models.CASCADE, related_name='investigaciones')
-    receta = models.ForeignKey(Receta, on_delete=models.CASCADE, related_name='investigaciones')
-    objeto_investigado = models.ForeignKey(Objeto, on_delete=models.CASCADE, related_name='investigaciones')
-    
-    fuente_informacion = models.CharField(max_length=20, choices=FUENTE_CHOICES)
-    
-    # Para fuentes con habilidades (libros, entrevistas, experimentos)
-    habilidad_utilizada = models.ForeignKey(
-        'Habilidad', 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True,
-        help_text="Habilidad usada (Investigation, Persuasion, etc.)"
-    )
-    
-    # Para trabajo de campo (herramientas)
-    competencia_utilizada = models.ForeignKey(
-        'CompetenciaHerramienta',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        help_text="Competencia con herramienta usada"
-    )
-    
-    exitos_conseguidos = models.IntegerField(default=0)
-    exitos_requeridos = models.IntegerField()
-    dc = models.IntegerField()
-    
-    dias_trabajados = models.IntegerField(default=0)
-    oro_gastado_total = models.IntegerField(default=0)
-    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='en_progreso')
-    
-    fecha_inicio = models.DateTimeField(auto_now_add=True)
-    fecha_completado = models.DateTimeField(null=True, blank=True)
-    
-    class Meta:
-        verbose_name_plural = "Progresos de Investigación"
-    
-    def __str__(self):
-        return f"{self.personaje.nombre_personaje} investigando {self.objeto_investigado.Name} para {self.receta.nombre}"
-
-
-class HistorialTiradaInvestigacion(models.Model):
-    """Historial de tiradas de investigación"""
-    progreso = models.ForeignKey(ProgresoInvestigacion, on_delete=models.CASCADE, related_name='tiradas')
-    resultado_dado = models.IntegerField()  # Resultado del d20
-    modificador = models.IntegerField()
-    resultado_total = models.IntegerField()
-    dc = models.IntegerField()
-    exito = models.BooleanField()
-    oro_gastado = models.IntegerField(default=25)  # Coste fijo por tirada
+# Modelo para registrar compras de treasure points
+class TPTransaction(models.Model):
+    personaje = models.ForeignKey(Personaje, on_delete=models.CASCADE, related_name='tp_transactions')
+    objeto = models.ForeignKey(Objeto, on_delete=models.CASCADE)
+    costo = models.IntegerField()
     fecha = models.DateTimeField(auto_now_add=True)
-    
+    nivel_personaje = models.IntegerField()
+    tier_personaje = models.IntegerField()
+
     def __str__(self):
-        return f"Tirada {self.resultado_total} vs DC {self.dc} - {'Éxito' if self.exito else 'Fallo'}"
-    
-
-# models.py - Añadir estas funciones helper
-
-def obtener_dc_investigacion(rareza: str) -> int:
-    """
-    Retorna la DC de investigación según la rareza del objeto
-    """
-    dc_map = {
-        'Common': 10,
-        'Uncommon': 15,
-        'Rare': 20,
-        'Very Rare': 25,
-        'Legendary': 30,
-    }
-    return dc_map.get(rareza, 10)
-
-
-def obtener_exitos_investigacion(rareza: str) -> int:
-    """
-    Retorna los éxitos necesarios según la rareza del objeto
-    """
-    exitos_map = {
-        'Common': 1,
-        'Uncommon': 1,
-        'Rare': 1,
-        'Very Rare': 3,
-        'Legendary': 3,
-    }
-    return exitos_map.get(rareza, 1)
-
-
-def calcular_modificador_investigacion_habilidad(personaje, habilidad):
-    """
-    Calcula el modificador para investigación usando una habilidad
-    Modificador = Modificador de Atributo + Bonus de Proficiencia (si es proficiente)
-    """
-    # Obtener la estadística asociada a la habilidad
-    estadistica_nombre = habilidad.estadistica_asociada.lower()
-    
-    # Mapeo de nombres de estadística a campos del personaje
-    estadistica_map = {
-        'fuerza': personaje.fuerza,
-        'destreza': personaje.destreza,
-        'constitucion': personaje.constitucion,
-        'inteligencia': personaje.inteligencia,
-        'sabiduria': personaje.sabiduria,
-        'carisma': personaje.carisma,
-    }
-    
-    valor_estadistica = estadistica_map.get(estadistica_nombre, 10)
-    
-    # Calcular modificador de atributo
-    mod_atributo = math.floor((valor_estadistica - 10) / 2)
-    
-    # Verificar si es proficiente
-    try:
-        proficiencia = Proficiencia.objects.get(
-            personaje=personaje,
-            habilidad=habilidad
-        )
-        es_proficiente = proficiencia.es_proficiente
-    except Proficiencia.DoesNotExist:
-        es_proficiente = False
-    
-    # Obtener bonus de proficiencia según nivel
-    mod_proficiencia = 0
-    if es_proficiente:
-        try:
-            pb = BonusProficiencia.objects.get(nivel=personaje.nivel).bonus
-            mod_proficiencia = pb
-        except BonusProficiencia.DoesNotExist:
-            mod_proficiencia = 2  # Default
-    
-    return mod_atributo + mod_proficiencia
-
-
-def calcular_modificador_investigacion_herramienta(competencia):
-    """
-    Calcula el modificador para investigación usando una herramienta
-    Usa el mismo sistema que crafting
-    """
-    return competencia.obtener_modificador()
+        return f"{self.personaje.nombre_personaje} compró {self.objeto.Name} por {self.costo} TP"

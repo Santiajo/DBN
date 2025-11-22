@@ -15,6 +15,7 @@ from .serializers import MyTokenObtainPairSerializer
 from django.db import transaction
 from django.db.models import F
 import rest_framework.filters as filters
+import random
 
 @api_view(['POST']) # Solo permite solicitudes POST
 @permission_classes([AllowAny]) # Permite que cualquiera pueda acceder a esta vista
@@ -1356,4 +1357,250 @@ class RelacionNPCViewSet(viewsets.ModelViewSet):
         if user.is_staff:
             return RelacionNPC.objects.all()
         return RelacionNPC.objects.filter(personaje__user=user)
+
+# Vierws para compras de objetos con treasure points
+TP_COSTS = {
+    'Uncommon': 2,
+    'Rare': 6,
+    'Very Rare': 12,
+    'Legendary': 20,
+}
+
+TP_TIER_REQ = {
+    'Common': 1,
+    'Uncommon': 1,
+    'Rare': 2,
+    'Very Rare': 3,
+    'Legendary': 4,
+}
+
+def get_tier(level):
+    if level <= 4: return 1
+    if level <= 10: return 2
+    if level <= 16: return 3
+    return 4
+
+def get_min_level_for_tier(tier):
+    if tier == 1: return 1
+    if tier == 2: return 5
+    if tier == 3: return 11
+    if tier == 4: return 17
+    return 20
+
+def normalize_rarity(rarity):
+    if not rarity:
+        return None
+    return ' '.join(word.capitalize() for word in rarity.strip().split())
+
+class StoreViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+
+    @action(detail=False, methods=['post'])
+    def buy(self, request):
+        personaje_id = request.data.get('personaje_id')
+        objeto_id = request.data.get('objeto_id')
+
+        if not personaje_id or not objeto_id:
+            return Response({'error': 'Faltan datos'}, status=400)
+
+        try:
+            # Validar Personaje
+            pj = Personaje.objects.get(pk=personaje_id)
+            # Permitir si es admin O si es el dueño
+            if not request.user.is_staff and pj.user != request.user:
+                return Response({'error': 'No tienes permiso sobre este personaje'}, status=403)
+
+            # Validar Objeto
+            objeto = Objeto.objects.get(pk=objeto_id)
+
+            rarity_raw = objeto.Rarity
+            rarity = normalize_rarity(rarity_raw)
+
+            if rarity not in TP_COSTS:
+                return Response({
+                    'error': f'El objeto "{objeto.Name}" tiene una rareza no válida ({rarity_raw} -> {rarity})'
+                }, status=400)
+
+            cost = TP_COSTS[rarity]
+            tier_req = TP_TIER_REQ.get(rarity, 1)
+            pj_tier = get_tier(pj.nivel)
+
+            # Validar Requisitos
+            if pj_tier < tier_req:
+                min_lvl = get_min_level_for_tier(tier_req)
+                return Response({
+                    'error': f'Nivel insuficiente. Necesitas Tier {tier_req} (Nivel {min_lvl}+) para objetos {rarity}.'
+                }, status=400)
+
+            if pj.treasure_points < cost:
+                return Response({
+                    'error': f'TP Insuficientes. Tienes {pj.treasure_points}, necesitas {cost}.'
+                }, status=400)
+
+            # Ejecutar Transacción
+            pj.treasure_points -= cost
+            pj.treasure_points_gastados = (pj.treasure_points_gastados or 0) + cost
+            pj.save()
+
+            inv_item, created = Inventario.objects.get_or_create(
+                personaje=pj, 
+                objeto=objeto,
+                defaults={'cantidad': 0}
+            )
+            inv_item.cantidad += 1
+            inv_item.save()
+
+            # Log de Transacción
+            TPTransaction.objects.create(
+                personaje=pj,
+                objeto=objeto,
+                costo=cost,
+                nivel_personaje=pj.nivel,
+                tier_personaje=pj_tier
+            )
+
+            return Response({
+                'success': True, 
+                'message': f'¡Comprado {objeto.Name}!', 
+                'new_tp': pj.treasure_points
+            })
+
+        except Personaje.DoesNotExist:
+            return Response({'error': 'Personaje no encontrado'}, status=404)
+        except Objeto.DoesNotExist:
+            return Response({'error': 'Objeto no encontrado'}, status=404)
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
+
+# View para irse de juerga
+CAROUSING_OPTIONS = {
+    'Baja': 10,
+    'Modesta': 50,
+    'Comoda': 200,
+    'Adinerada': 500,
+    'Aristócrata': 1000,
+}
+
+class DowntimeViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+
+    @action(detail=False, methods=['post'])
+    def carousing(self, request):
+        personaje_id = request.data.get('personaje_id')
+        social_class = request.data.get('social_class')
+
+        if not personaje_id or social_class not in CAROUSING_OPTIONS:
+            return Response({'error': 'Datos inválidos.'}, status=400)
+
+        try:
+            with transaction.atomic():
+                pj = Personaje.objects.get(pk=personaje_id)
+                
+                # Validar Recursos
+                cost = CAROUSING_OPTIONS[social_class]
+                days_cost = 5
+
+                if pj.oro < cost:
+                    return Response({'error': f'No tienes suficiente oro ({cost} gp requeridos).'}, status=400)
+                
+                if pj.tiempo_libre < days_cost:
+                    return Response({'error': f'No tienes suficiente tiempo libre ({days_cost} días requeridos).'}, status=400)
+
+                # Cobrar
+                pj.oro -= cost
+                pj.tiempo_libre -= days_cost
+                pj.save()
+
+                # Calcular Modificador (Persuasión)
+                cha_mod = (pj.carisma - 10) // 2
+                prof_bonus = 0
+                
+                # Buscar habilidad persuacion
+                try:
+                    persuasion_skill = Habilidad.objects.get(nombre="persuasion") # nombre exacto en DB
+                    if Proficiencia.objects.filter(personaje=pj, habilidad=persuasion_skill, es_proficiente=True).exists():
+                        prof_bonus = (pj.nivel - 1) // 4 + 2
+                except Habilidad.DoesNotExist:
+                    pass 
+                
+                # Realizar Tirada|
+                total_modifier = cha_mod + prof_bonus
+                roll = random.randint(1, 20)
+                total_score = roll + total_modifier
+
+                # Determinar Resultado y NPCs
+                outcome = ""
+                result_type = "neutral"
+                npcs_affected = []
+                
+                # Definir cuántos y cuánto cambia la reputación
+                contacts_count = 0
+                rep_change = 0 
+
+                if total_score <= 5:
+                    outcome = "Has tenido un malentendido. Bajas tu reputación con un contacto."
+                    result_type = "failure"
+                    contacts_count = 1
+                    rep_change = -2
+                    
+                elif total_score <= 10:
+                    outcome = "Una semana tranquila. No ha cambiado tu reputación."
+                    result_type = "neutral"
+                    
+                elif total_score <= 15:
+                    outcome = "¡Buena fiesta! Aumentas reputación con un contacto."
+                    result_type = "success"
+                    contacts_count = 1
+                    rep_change = 2
+                    
+                elif total_score <= 20:
+                    outcome = "¡Eres el alma de la fiesta! Aumentas reputación con dos contactos."
+                    result_type = "success"
+                    contacts_count = 2
+                    rep_change = 3
+                    
+                else: 
+                    outcome = "¡Leyenda local! Aumentas reputación con tres contactos."
+                    result_type = "success"
+                    contacts_count = 3
+                    rep_change = 5
+
+                # Aplicar Cambios a NPCs
+                if contacts_count > 0:
+                    random_npcs = NPC.objects.order_by('?')[:contacts_count]
+                    
+                    for npc in random_npcs:
+                        relacion, created = RelacionNPC.objects.get_or_create(
+                            personaje=pj,
+                            npc=npc,
+                            defaults={'valor_amistad': 0}
+                        )
+                        # Actualizar valor
+                        relacion.valor_amistad += rep_change
+                        relacion.save()
+                        
+                        # Guardar info para mostrar en el frontend
+                        npcs_affected.append({
+                            'name': npc.name,
+                            'change': rep_change,
+                            'new_value': relacion.valor_amistad,
+                            'title': npc.title
+                        })
+
+                return Response({
+                    'success': True,
+                    'roll_base': roll,
+                    'modifier': total_modifier,
+                    'total': total_score,
+                    'outcome': outcome,
+                    'result_type': result_type,
+                    'npcs_affected': npcs_affected,
+                    'new_gold': pj.oro,
+                    'new_downtime': pj.tiempo_libre
+                })
+
+        except Personaje.DoesNotExist:
+            return Response({'error': 'Personaje no encontrado'}, status=404)
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
 

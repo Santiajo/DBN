@@ -10,7 +10,6 @@ import Button from "@/components/button";
 import Pagination from '@/components/pagination';
 import Modal from '@/components/modal';
 import TrabajoForm from './trabajo-form';
-import TrabajarForm from './trabajar-form';
 import ConfirmAlert from '@/components/confirm-alert';
 import { FaSearch, FaTrash, FaPencilAlt, FaEye, FaHammer } from 'react-icons/fa';
 import { Trabajo, Habilidad, PagoRango, Personaje, Proficiencia, BonusProficiencia, ProgresoTrabajo } from '@/types';
@@ -230,12 +229,6 @@ const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
         setIsTrabajarModalOpen(true);
     };
 
-    const handleWorkSuccess = (oroGanado: number) => {
-        setIsTrabajarModalOpen(false); // Cierra el modal
-        fetchPersonajes(); // Refresca los datos del personaje (para ver el oro nuevo)
-
-        alert(`¡Trabajo completado! Has ganado ${oroGanado.toFixed(2)} de oro.`);
-    };
 
 
     
@@ -443,25 +436,6 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
                 />
             </Modal>
 
-            {selectedTrabajo && (
-                <Modal
-                    isOpen={isTrabajarModalOpen}
-                    onClose={() => setIsTrabajarModalOpen(false)}
-                    title={`Trabajar como: ${selectedTrabajo.nombre}`}
-                >
-                    <TrabajarForm
-                        trabajo={selectedTrabajo}
-                        personajes={personajes}
-                        proficiencias={proficiencias}
-                        bonusTabla={bonusTabla}
-                        accessToken={accessToken!}
-                        onClose={() => setIsTrabajarModalOpen(false)}
-                        onWorkSuccess={handleWorkSuccess}
-                        progresoTrabajos={progresoTrabajos}
-                    />
-                </Modal>
-            )}
-
             <ConfirmAlert
                 isOpen={isAlertOpen}
                 onClose={() => setIsAlertOpen(false)}
@@ -580,15 +554,6 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
                                 </Button>
                             </>
                         )}
-                        <Button 
-                            variant="primary" 
-                            onClick={handleOpenTrabajarModal} 
-                            className={!user?.is_staff ? 'w-full' : ''}
-                        >
-                            <FaHammer className="mr-2" />
-                            Trabajar
-                        </Button>
-                        
                     </div>
                     </Card>
                 ) : (

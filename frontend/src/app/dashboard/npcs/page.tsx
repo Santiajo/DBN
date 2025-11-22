@@ -25,7 +25,7 @@ export default function NPCsPage() {
 
     const [npcs, setNpcs] = useState<NPC[]>([]);
     const [speciesMap, setSpeciesMap] = useState<Record<number, string>>({});
-    
+
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
@@ -63,17 +63,17 @@ export default function NPCsPage() {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${API_ENDPOINT}?${params}`, {
                 headers: { 'Authorization': `Bearer ${accessToken}` }
             });
-            
+
             if (!res.ok) {
                 if (res.status === 401) logout();
                 throw new Error('Error fetching NPCs');
             }
-            
+
             const data = await res.json();
             setNpcs(data.results || []);
             setTotalPages(Math.ceil(data.count / PAGE_SIZE));
             setCurrentPage(page);
-        } catch (error) { console.error(error); } 
+        } catch (error) { console.error(error); }
         finally { setLoading(false); }
     }, [accessToken, logout]);
 
@@ -85,7 +85,7 @@ export default function NPCsPage() {
     const handleSave = async (data: NPCPayload) => {
         if (!accessToken) return;
         const isEditing = !!editingNPC;
-        const url = isEditing 
+        const url = isEditing
             ? `${process.env.NEXT_PUBLIC_API_URL}${API_ENDPOINT}${editingNPC.slug}/`
             : `${process.env.NEXT_PUBLIC_API_URL}${API_ENDPOINT}`;
         const method = isEditing ? 'PUT' : 'POST';
@@ -98,7 +98,7 @@ export default function NPCsPage() {
             });
 
             if (!res.ok) throw new Error('Error saving NPC');
-            
+
             setIsModalOpen(false);
             setEditingNPC(null);
             fetchNPCs(currentPage, searchTerm);
@@ -113,7 +113,7 @@ export default function NPCsPage() {
                 headers: { 'Authorization': `Bearer ${accessToken}` }
             });
             fetchNPCs(currentPage, searchTerm);
-        } catch (error) { console.error(error); } 
+        } catch (error) { console.error(error); }
         finally { setIsAlertOpen(false); setNpcToDelete(null); }
     };
 
@@ -126,11 +126,10 @@ export default function NPCsPage() {
                 <Button variant="primary" onClick={() => { setEditingNPC(null); setIsModalOpen(true); }}>
                     <div className="flex items-center gap-2"><FaPlus /> Crear NPC</div>
                 </Button>
-            </div>
-
-            {/* Barra de Búsqueda */}
-            <div className="max-w-md">
-                <Input placeholder="Buscar por nombre, título o ubicación..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                {/* Barra de Búsqueda */}
+                <div className="max-w-md">
+                    <Input placeholder="Buscar por nombre, título o ubicación..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                </div>
             </div>
 
             {/* Tabla de NPCs */}
@@ -167,14 +166,14 @@ export default function NPCsPage() {
                                 </td>
                                 <td className="px-4 py-3 text-right">
                                     <div className="flex justify-end gap-2">
-                                        <button 
+                                        <button
                                             onClick={() => { setEditingNPC(npc); setIsModalOpen(true); }}
                                             className="p-2 bg-white/20 rounded hover:bg-white hover:text-bosque transition-colors"
                                             title="Editar"
                                         >
                                             <FaPencilAlt />
                                         </button>
-                                        <button 
+                                        <button
                                             onClick={() => { setNpcToDelete(npc); setIsAlertOpen(true); }}
                                             className="p-2 bg-white/20 rounded hover:bg-carmesi hover:text-white transition-colors"
                                             title="Eliminar"
@@ -193,7 +192,7 @@ export default function NPCsPage() {
                     </tbody>
                 </table>
             </div>
-            
+
             <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={(p) => fetchNPCs(p, searchTerm)} />
 
             {/* Modales */}
@@ -201,12 +200,12 @@ export default function NPCsPage() {
                 <NPCForm onSave={handleSave} onCancel={() => setIsModalOpen(false)} initialData={editingNPC} />
             </Modal>
 
-            <ConfirmAlert 
-                isOpen={isAlertOpen} 
-                onClose={() => setIsAlertOpen(false)} 
-                onConfirm={handleDelete} 
-                title="Eliminar NPC" 
-                message={`¿Estás seguro de eliminar a "${npcToDelete?.name}"? Esto borrará todas sus relaciones con personajes.`} 
+            <ConfirmAlert
+                isOpen={isAlertOpen}
+                onClose={() => setIsAlertOpen(false)}
+                onConfirm={handleDelete}
+                title="Eliminar NPC"
+                message={`¿Estás seguro de eliminar a "${npcToDelete?.name}"? Esto borrará todas sus relaciones con personajes.`}
             />
         </div>
     );
