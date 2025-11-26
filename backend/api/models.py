@@ -161,13 +161,11 @@ class Receta(models.Model):
         help_text="Si es True, esta receta debe ser desbloqueada mediante investigación"
     )
     
-    # ✅ oro_necesario: Solo para objetos NO mágicos
     oro_necesario = models.IntegerField(
         default=0,
         help_text="Solo para objetos no mágicos. Los mágicos usan costes fijos según rareza."
     )
     
-    # ✅ grado_minimo_requerido: Solo para objetos NO mágicos
     GRADO_MINIMO_CHOICES = [
         ('Novato', 'Novato'),
         ('Aprendiz', 'Aprendiz'),
@@ -182,7 +180,7 @@ class Receta(models.Model):
         help_text="Solo para objetos no mágicos. Para mágicos se determina automáticamente por rareza."
     )
     
-    # ✅ Campos SOLO para objetos mágicos
+    #  Campos SOLO para objetos mágicos
     RAREZA_CHOICES = [
         ('Common', 'Common'),
         ('Uncommon', 'Uncommon'),
@@ -212,8 +210,7 @@ class Receta(models.Model):
         help_text="Si es un consumible mágico (DC más baja)"
     )
     
-    # ✅ ELIMINADO: tipo_artesano (no se usa)
-    
+    # 
     def obtener_grado_minimo_efectivo(self):
         """
         Retorna el grado mínimo requerido:
@@ -603,16 +600,7 @@ class HistorialTirada(models.Model):
         return f"Tirada {self.resultado_total} - {'Éxito' if self.exito else 'Fallo'}"
     
 def puede_craftear_rareza(grado_competencia: str, rareza: str) -> bool:
-    """
-    Verifica si un grado de competencia puede craftear una rareza específica.
-    
-    Jerarquía:
-    - Novato: Common
-    - Aprendiz: Common, Uncommon
-    - Experto: Common, Uncommon, Rare
-    - Maestro Artesano: Common, Uncommon, Rare, Very Rare
-    - Gran Maestro: Todas (Common, Uncommon, Rare, Very Rare, Legendary)
-    """
+
     jerarquia_grados = {
         'Novato': ['Common'],
         'Aprendiz': ['Common', 'Uncommon'],
