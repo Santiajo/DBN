@@ -396,18 +396,14 @@ class ProgresoTrabajo(models.Model):
     """
     personaje = models.ForeignKey(Personaje, on_delete=models.CASCADE, related_name="progreso_trabajos")
     trabajo = models.ForeignKey(Trabajo, on_delete=models.CASCADE, related_name="progreso_personajes")
-    
-    # el rango actual que tiene el personaje en este trabajo
     rango_actual = models.PositiveIntegerField(
         default=1, 
         validators=[MinValueValidator(1), MaxValueValidator(5)]
     )
-    
-    # Días acumulados para el *siguiente* rango
+
     dias_acumulados_rango = models.PositiveIntegerField(default=0)
 
     class Meta:
-        # un personaje solo puede tener una entrada de progreso por trabajo
         unique_together = ('personaje', 'trabajo')
 
     def __str__(self):
@@ -985,10 +981,9 @@ class FeatFeature(models.Model):
 class Party(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
     descripcion = models.TextField(blank=True, null=True)
-    # El creador (User) para gestionar permisos
+
     creador = models.ForeignKey(User, on_delete=models.CASCADE, related_name="grupos_creados")
-    
-    # Los personajes que son miembros (ManyToMany)
+
     miembros = models.ManyToManyField(Personaje, related_name="grupos", blank=True)
     
     fecha_creacion = models.DateTimeField(auto_now_add=True)

@@ -559,6 +559,7 @@ class ProgresoRecetaSerializer(serializers.ModelSerializer):
     es_magico = serializers.BooleanField(source='receta.es_magico', read_only=True)
     
     #  AÑADIR ESTOS CAMPOS
+
     oro_necesario = serializers.IntegerField(source='receta.oro_necesario', read_only=True)
     dc = serializers.IntegerField(source='receta.obtener_dc', read_only=True)
     
@@ -758,19 +759,15 @@ class InventarioPartySerializer(serializers.ModelSerializer):
 class PartySerializer(serializers.ModelSerializer):
     creador_nombre = serializers.CharField(source='creador.username', read_only=True)
     
-    # Información reducida de los miembros para mostrarlos en la lista
     miembros_info = serializers.SerializerMethodField()
-    
-    # Opcional: ver el inventario directamente al pedir la party
-    # inventario = InventarioPartySerializer(source='inventario_party', many=True, read_only=True)
 
     class Meta:
         model = Party
         fields = ['id', 'nombre', 'descripcion', 'creador', 'creador_nombre', 'miembros', 'miembros_info', 'fecha_creacion']
-        read_only_fields = ['creador', 'miembros'] # Miembros se gestiona vía acción 'unirse'
+        read_only_fields = ['creador', 'miembros'] 
 
     def get_miembros_info(self, obj):
-        # Devuelve un array con ID, nombre y clase de los miembros
+
         return obj.miembros.values('id', 'nombre_personaje', 'clase', 'nivel')
 
 # Serializers para NPCs

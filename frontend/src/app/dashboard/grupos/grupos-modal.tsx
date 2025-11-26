@@ -18,10 +18,10 @@ const buildApiUrl = (endpoint: string) => {
 
 interface PartyModalProps {
   party: Party;
-  userPersonajes: Personaje[]; // Los personajes del usuario actual
+  userPersonajes: Personaje[]; 
   accessToken: string;
   onClose: () => void;
-  onUpdate: () => void; // Para refrescar la lista si algo cambia
+  onUpdate: () => void; 
 }
 
 export default function PartyModal({ party, userPersonajes, accessToken, onClose, onUpdate }: PartyModalProps) {
@@ -31,11 +31,15 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
   const [isLoading, setIsLoading] = useState(false);
 
   const [alertConfig, setAlertConfig] = useState({
-        isOpen: false,
-        title: '',
-        message: '',
-        onConfirm: () => {}
-    });
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+
+    confirmText: 'Aceptar',
+    confirmVariant: 'primary' as 'primary' | 'dangerous',
+    showCancel: false
+});
 
   const closeAlert = () => setAlertConfig(prev => ({ ...prev, isOpen: false }));
 
@@ -45,20 +49,18 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
   // --- ESTADOS PARA DONAR ---
   const [isDonating, setIsDonating] = useState(false);
   const [donateCharId, setDonateCharId] = useState<string>('');
-  const [charInventory, setCharInventory] = useState<InventarioItem[]>([]); // Inventario del personaje seleccionado
+  const [charInventory, setCharInventory] = useState<InventarioItem[]>([]); 
   const [selectedItemId, setSelectedItemId] = useState<string>('');
   const [donateAmount, setDonateAmount] = useState<number>(1);
   const [isLoadingInventory, setIsLoadingInventory] = useState(false);
 
 
-  // 1. Determinar si alguno de mis personajes ya está en la party
   const myMemberCharacter = useMemo(() => {
     return userPersonajes.find(pj => party.miembros.includes(pj.id));
   }, [userPersonajes, party.miembros]);
 
   const isMember = !!myMemberCharacter;
 
-  // 2. Cargar Inventario de la Party (Solo si entramos a la tab inventario)
   useEffect(() => {
     if (activeTab === 'inventario') {
       fetchInventory();
@@ -80,8 +82,9 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
   };
 
   // --- LÓGICA: UNIRSE A LA PARTY ---
-  const handleJoin = async () => {
+ const handleJoin = async () => {
     if (!selectedCharIdToJoin) return;
+    
     try {
       const res = await fetch(buildApiUrl(`grupos/${party.id}/unirse/`), {
         method: 'POST',
@@ -91,37 +94,41 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
         },
         body: JSON.stringify({ personaje_id: Number(selectedCharIdToJoin) })
       });
+
       if (res.ok) {
-                // ÉXITO: Configurar alerta. 
-                // Al confirmar (darle OK), cerramos el modal principal.
-                setAlertConfig({
-                    isOpen: true,
-                    title: '¡BIENVENIDO AL GREMIO!',
-                    message: 'Te has unido al grupo exitosamente.',
-                    onConfirm: () => {
-                        closeAlert();
-                        onUpdate(); // Refrescar lista
-                        onClose();  // Cerrar modal de la party
-                    }
-                });
-            } else {
-                // ERROR
-                const err = await res.json();
-                setAlertConfig({
-                    isOpen: true,
-                    title: 'ERROR AL UNIRSE',
-                    message: err.error || "No se pudo completar la acción.",
-                    onConfirm: closeAlert // Solo cerrar la alerta
-                });
-                }
-        } catch (e) { console.error(e); }
+        setAlertConfig({
+            isOpen: true,
+            title: '¡BIENVENIDO AL GREMIO!',
+            message: 'Te has unido al grupo exitosamente.',
+            confirmText: '¡Entendido!',
+            confirmVariant: 'primary',
+            showCancel: false, 
+            onConfirm: () => {
+                closeAlert();
+                onUpdate(); 
+                onClose();  
+            }
+        });
+      } else {
+        const err = await res.json();
+        setAlertConfig({
+            isOpen: true,
+            title: 'ERROR AL UNIRSE',
+            message: err.error || "No se pudo completar la acción.",
+            confirmText: 'Cerrar',
+            confirmVariant: 'dangerous',
+            showCancel: false,
+            onConfirm: closeAlert 
+        });
+      }
+    } catch (e) { console.error(e); }
   };
 
   useEffect(() => {
     if (donateCharId) {
-      console.log("Personaje seleccionado para donar:", donateCharId); // <--- DEBUG
+      console.log("Personaje seleccionado para donar:", donateCharId); 
       setIsLoadingInventory(true);
-      setCharInventory([]); // Limpiar inventario anterior visualmente
+      setCharInventory([]); 
       
       fetch(buildApiUrl(`personajes/${donateCharId}/inventario/`), {
         headers: { 'Authorization': `Bearer ${accessToken}` }
@@ -129,7 +136,7 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
       .then(res => res.json())
       .then(data => {
           const items = data.results || data || [];
-          console.log("Objetos encontrados:", items); // <--- DEBUG
+          console.log("Objetos encontrados:", items);
           setCharInventory(items);
       })
       .catch(err => console.error(err))
@@ -143,7 +150,7 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
   const handleDonate = async () => {
     if (!donateCharId || !selectedItemId) return;
     
-    try {
+    try { 
       const res = await fetch(buildApiUrl(`inventario-party/donar_objeto/`), {
         method: 'POST',
         headers: { 
@@ -159,29 +166,32 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
       });
 
       if (res.ok) {
-                // ÉXITO
-                setAlertConfig({
-                    isOpen: true,
-                    title: 'DONACIÓN REALIZADA',
-                    message: 'El objeto se ha transferido al alijo de la party correctamente.',
-                    onConfirm: () => {
-                        closeAlert();
-                        setIsDonating(false);
-                        fetchInventory();
-                        // Aquí podrías refrescar el inventario del personaje también si quisieras
-                    }
-                });
-            } else {
-                // ERROR
-                const err = await res.json();
-                setAlertConfig({
-                    isOpen: true,
-                    title: 'NO SE PUDO DONAR',
-                    message: err.error || "Ocurrió un error inesperado.",
-                    onConfirm: closeAlert
-                });
+        setAlertConfig({
+            isOpen: true,
+            title: 'DONACIÓN REALIZADA',
+            message: 'El objeto se ha transferido al alijo de la party correctamente.',
+            confirmText: 'Genial',
+            confirmVariant: 'primary',
+            showCancel: false,
+            onConfirm: () => {
+                closeAlert();
+                setIsDonating(false);
+                fetchInventory();
             }
-        } catch (e) { console.error(e); }
+        });
+      } else {
+        const err = await res.json();
+        setAlertConfig({
+            isOpen: true,
+            title: 'NO SE PUDO DONAR',
+            message: err.error || "Ocurrió un error inesperado.",
+            confirmText: 'Entendido',
+            confirmVariant: 'dangerous',
+            showCancel: false,
+            onConfirm: closeAlert
+        });
+      }
+    } catch (e) { console.error(e); }
   };
 
 
@@ -374,12 +384,15 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
         <Button variant="secondary" onClick={onClose}>Cerrar</Button>
       </div>
     <ConfirmAlert
-                isOpen={alertConfig.isOpen}
-                onClose={closeAlert}
-                onConfirm={alertConfig.onConfirm}
-                title={alertConfig.title}
-                message={alertConfig.message}
-            />  
+        isOpen={alertConfig.isOpen}
+        onClose={closeAlert}
+        onConfirm={alertConfig.onConfirm}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        confirmText={alertConfig.confirmText}
+        confirmVariant={alertConfig.confirmVariant}
+        showCancel={alertConfig.showCancel}
+    />
     </div>
     
   );
