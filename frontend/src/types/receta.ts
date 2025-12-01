@@ -34,7 +34,7 @@ export interface RecetaFormData {
   grado_minimo_requerido: string;
   es_consumible: boolean;
   herramienta: string;
-  requiere_investigacion: boolean; // ✅ NUEVO
+  requiere_investigacion: boolean; //  NUEVO
 }
 
 // ============ INVESTIGACIÓN ============
@@ -108,11 +108,10 @@ export interface Receta {
   oro_necesario: number;
   herramienta: string;
   ingredientes: Array<{
-    id: number;
-    receta: number;
-    objeto: number;
-    nombre_ingrediente: string;
-    cantidad: number;
+  objeto_id: number;
+  nombre: string;
+  cantidad_necesaria: number;
+  es_material_raro?: boolean;
   }>;
   puede_craftear?: boolean;
   ingredientes_faltantes?: Array<{

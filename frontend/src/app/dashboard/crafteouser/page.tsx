@@ -1,5 +1,3 @@
-// app/crafteo/page.tsx - VERSIÓN COMPLETA ACTUALIZADA
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -17,7 +15,7 @@ const DynamicSelectorPersonaje = dynamic(
     () => import('@/components/crafting/SelectorPersonaje'),
     {
         ssr: false,
-        loading: () => <p className="text-stone-500">Cargando selector...</p>,
+        loading: () => <p className="text-[#5a4a3a]">Cargando selector...</p>,
     }
 );
 
@@ -99,7 +97,7 @@ export default function CrafteoPage() {
             if (!res.ok) {
                 const errorData = await res.json().catch(() => ({ detail: 'No hay cuerpo de error.' }));
                 console.error('Error del servidor al cargar recetas:', errorData);
-                throw new Error(`Fallo de la API con código: ${res.status}`);
+                throw new Error(`Fallo de la API con codigo: ${res.status}`);
             }
 
             const data = await res.json();
@@ -165,7 +163,6 @@ export default function CrafteoPage() {
     };
 
     const handleRecetaClick = (receta: Receta) => {
-        // Si requiere investigación y no está desbloqueada
         if (receta.requiere_investigacion && !receta.esta_desbloqueada) {
             setRecetaParaInvestigar(receta);
         } else if (receta.puede_craftear) {
@@ -229,7 +226,6 @@ export default function CrafteoPage() {
         setInvestigacionActiva(null);
     };
 
-    // ✅ Separar recetas por categorías
     const recetasInvestigables = recetas.filter(r => 
         r.requiere_investigacion && !r.esta_desbloqueada && r.puede_investigar
     );
@@ -243,21 +239,22 @@ export default function CrafteoPage() {
     );
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-piedra-50 via-stone-100 to-amber-50 p-6 font-body">
-            <div className="max-w-7xl mx-auto">
+        <div className="min-h-full bg-[#F5F5F4] py-8 px-4">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 
                 {/* Header */}
-                <div className="bg-white rounded-lg shadow-lg p-6 mb-6 border-t-4 border-bosque">
+                <div className="bg-[#f5ede1] rounded-xl border-2 border-[#3a2a1a] shadow-[0_4px_12px_rgba(0,0,0,0.15)] p-6 mb-6">
                     <div className="flex justify-between items-center flex-wrap gap-4">
                         <div className="flex items-center gap-4">
-                            <FaHammer className="text-4xl text-bosque" />
+                            <div className="w-14 h-14 bg-[#5a7a5a] rounded-lg flex items-center justify-center">
+                                <FaHammer className="text-2xl text-[#f5ede1]" />
+                            </div>
                             <div>
-                                <h1 className="text-3xl font-title font-bold text-stone-800">Taller de Crafteo</h1>
-                                <p className="text-sm text-stone-600">Crea objetos mundanos y mágicos</p>
+                                <h1 className="font-serif text-3xl text-[#3a2a1a] tracking-wide">Taller de Crafteo</h1>
+                                <p className="text-sm text-[#6a5a4a]">Crea objetos mundanos y magicos</p>
                             </div>
                         </div>
 
-                        {/* Selector de Personaje */}
                         <div className="flex items-center gap-4">
                             <DynamicSelectorPersonaje
                                 personajes={personajes}
@@ -267,13 +264,13 @@ export default function CrafteoPage() {
                             
                             {personajeSeleccionado && (
                                 <div className="flex gap-3">
-                                    <div className="flex items-center gap-2 bg-yellow-100 px-4 py-2 rounded-lg border border-yellow-300">
-                                        <FaCoins className="text-yellow-600" />
-                                        <span className="font-bold text-stone-800">{personajeSeleccionado.oro} gp</span>
+                                    <div className="flex items-center gap-2 bg-[#f8f4eb] px-4 py-2 rounded-lg border border-[#c9a65a]">
+                                        <FaCoins className="text-[#c9a65a]" />
+                                        <span className="font-semibold text-[#4a3f35]">{personajeSeleccionado.oro} gp</span>
                                     </div>
-                                    <div className="flex items-center gap-2 bg-blue-100 px-4 py-2 rounded-lg border border-blue-300">
-                                        <FaClock className="text-blue-600" />
-                                        <span className="font-bold text-stone-800">{personajeSeleccionado.tiempo_libre} días</span>
+                                    <div className="flex items-center gap-2 bg-[#f8f4eb] px-4 py-2 rounded-lg border border-[#6a8a9a]">
+                                        <FaClock className="text-[#6a8a9a]" />
+                                        <span className="font-semibold text-[#4a3f35]">{personajeSeleccionado.tiempo_libre} dias</span>
                                     </div>
                                 </div>
                             )}
@@ -283,28 +280,30 @@ export default function CrafteoPage() {
 
                 {/* Mensaje de error */}
                 {error && (
-                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4">
+                    <div className="bg-[#fdf0f0] border-2 border-[#c45a5a] text-[#7a3030] px-4 py-3 rounded-lg mb-4">
                         {error}
                     </div>
                 )}
 
                 {/* Sin personaje seleccionado */}
                 {!personajeSeleccionado && (
-                    <div className="bg-white rounded-lg shadow-md p-12 text-center">
-                        <FaHammer className="text-6xl text-stone-300 mx-auto mb-4" />
-                        <p className="text-xl text-stone-600 font-semibold">Selecciona un personaje para comenzar</p>
-                        <p className="text-stone-500 mt-2">Elige uno de tus personajes del menú superior</p>
+                    <div className="bg-[#f5ede1] rounded-xl border-2 border-[#3a2a1a] shadow-[0_4px_12px_rgba(0,0,0,0.15)] p-12 text-center">
+                        <div className="w-20 h-20 bg-[#e8e0d0] rounded-full flex items-center justify-center mx-auto mb-4">
+                            <FaHammer className="text-4xl text-[#a0988a]" />
+                        </div>
+                        <p className="text-xl text-[#4a3f35] font-serif">Selecciona un personaje para comenzar</p>
+                        <p className="text-[#6a5a4a] mt-2">Elige uno de tus personajes del menu superior</p>
                     </div>
                 )}
 
                 {/* Con personaje seleccionado */}
                 {personajeSeleccionado && (
                     <>
-                        {/* ✅ NUEVO: Investigaciones Activas */}
+                        {/* Investigaciones Activas */}
                         {investigacionesActivas.length > 0 && (
                             <div className="mb-6">
-                                <h2 className="text-2xl font-title font-bold text-stone-800 mb-4 flex items-center gap-2">
-                                    <FaSearch className="text-purple-600" />
+                                <h2 className="font-serif text-2xl text-[#6a4a7a] mb-4 flex items-center gap-2">
+                                    <FaSearch className="text-[#8a6a9a]" />
                                     Investigaciones en Curso ({investigacionesActivas.length})
                                 </h2>
                                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -312,20 +311,21 @@ export default function CrafteoPage() {
                                         <button
                                             key={investigacion.id}
                                             onClick={() => setInvestigacionActiva(investigacion)}
-                                            className="bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-300 rounded-lg p-4 hover:shadow-lg transition-all text-left"
+                                            className="bg-gradient-to-br from-[#f0e8f8] to-[#e8e0f0] border-2 border-[#8a6a9a] rounded-xl p-4 hover:shadow-[0_6px_16px_rgba(100,60,120,0.2)] transition-all text-left"
                                         >
-                                            <h3 className="font-bold text-stone-800 mb-2">{investigacion.receta_nombre}</h3>
-                                            <div className="flex items-center gap-2 text-sm text-stone-600 mb-2">
-                                                <span>🔍 {investigacion.objeto_investigado_nombre}</span>
+                                            <h3 className="font-semibold text-[#4a3f35] mb-2">{investigacion.receta_nombre}</h3>
+                                            <div className="flex items-center gap-2 text-sm text-[#6a5a4a] mb-2">
+                                                <FaSearch className="text-[#8a6a9a] w-3 h-3" />
+                                                <span>{investigacion.objeto_investigado_nombre}</span>
                                             </div>
-                                            <div className="w-full bg-stone-200 rounded-full h-2 mb-2">
+                                            <div className="w-full bg-[#e0d8e8] rounded-full h-2 mb-2">
                                                 <div
-                                                    className="bg-gradient-to-r from-purple-600 to-purple-800 h-2 rounded-full transition-all"
+                                                    className="bg-gradient-to-r from-[#8a6a9a] to-[#6a4a7a] h-2 rounded-full transition-all"
                                                     style={{ width: `${investigacion.porcentaje_completado}%` }}
                                                 />
                                             </div>
-                                            <p className="text-xs text-stone-600">
-                                                {investigacion.exitos_conseguidos}/{investigacion.exitos_requeridos} éxitos
+                                            <p className="text-xs text-[#6a5a4a]">
+                                                {investigacion.exitos_conseguidos}/{investigacion.exitos_requeridos} exitos
                                             </p>
                                         </button>
                                     ))}
@@ -336,8 +336,8 @@ export default function CrafteoPage() {
                         {/* Progresos Activos de Crafting */}
                         {progresosActivos.length > 0 && (
                             <div className="mb-6">
-                                <h2 className="text-2xl font-title font-bold text-stone-800 mb-4 flex items-center gap-2">
-                                    <FaClock className="text-blue-600" />
+                                <h2 className="font-serif text-2xl text-[#4a6a7a] mb-4 flex items-center gap-2">
+                                    <FaClock className="text-[#6a8a9a]" />
                                     Proyectos en Curso ({progresosActivos.length})
                                 </h2>
                                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -345,21 +345,22 @@ export default function CrafteoPage() {
                                         <button
                                             key={progreso.id}
                                             onClick={() => setProgresoActivo(progreso)}
-                                            className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-300 rounded-lg p-4 hover:shadow-lg transition-all text-left"
+                                            className="bg-gradient-to-br from-[#e8f0f4] to-[#e0e8f0] border-2 border-[#6a8a9a] rounded-xl p-4 hover:shadow-[0_6px_16px_rgba(60,100,120,0.2)] transition-all text-left"
                                         >
-                                            <h3 className="font-bold text-stone-800 mb-2">{progreso.receta_nombre}</h3>
-                                            <div className="flex items-center gap-2 text-sm text-stone-600 mb-2">
-                                                <span>→ {progreso.objeto_final}</span>
+                                            <h3 className="font-semibold text-[#4a3f35] mb-2">{progreso.receta_nombre}</h3>
+                                            <div className="flex items-center gap-2 text-sm text-[#6a5a4a] mb-2">
+                                                <span className="text-[#6a8a9a]">&#8594;</span>
+                                                <span>{progreso.objeto_final}</span>
                                             </div>
-                                            <div className="w-full bg-stone-200 rounded-full h-2 mb-2">
+                                            <div className="w-full bg-[#d8e0e8] rounded-full h-2 mb-2">
                                                 <div
-                                                    className="bg-gradient-to-r from-bosque to-green-600 h-2 rounded-full transition-all"
+                                                    className="bg-gradient-to-r from-[#5a7a5a] to-[#4a6a4a] h-2 rounded-full transition-all"
                                                     style={{ width: `${progreso.porcentaje_completado}%` }}
                                                 />
                                             </div>
-                                            <p className="text-xs text-stone-600">
+                                            <p className="text-xs text-[#6a5a4a]">
                                                 {progreso.es_magico 
-                                                    ? `${progreso.exitos_conseguidos}/${progreso.exitos_requeridos} éxitos`
+                                                    ? `${progreso.exitos_conseguidos}/${progreso.exitos_requeridos} exitos`
                                                     : `${progreso.oro_acumulado}/${progreso.oro_necesario} gp`
                                                 }
                                             </p>
@@ -372,20 +373,22 @@ export default function CrafteoPage() {
                         {/* Loading */}
                         {loading && (
                             <div className="flex justify-center items-center py-12">
-                                <FaSpinner className="animate-spin text-4xl text-bosque" />
+                                <FaSpinner className="animate-spin text-4xl text-[#5a7a5a]" />
                             </div>
                         )}
 
-                        {/* ✅ NUEVO: Recetas Investigables */}
+                        {/* Recetas Investigables */}
                         {!loading && recetasInvestigables.length > 0 && (
                             <div className="mb-8">
-                                <h2 className="text-2xl font-title font-bold text-purple-800 mb-4 flex items-center gap-2">
-                                    <FaSearch className="text-purple-600 animate-pulse" />
+                                <h2 className="font-serif text-2xl text-[#6a4a7a] mb-4 flex items-center gap-2">
+                                    <FaSearch className="text-[#8a6a9a]" />
                                     Recetas por Descubrir ({recetasInvestigables.length})
                                 </h2>
-                                <p className="text-sm text-purple-700 mb-4 bg-purple-50 p-3 rounded-lg border border-purple-200">
-                                    💡 Estas recetas requieren investigación. Investiga los objetos marcados para desbloquearlas.
-                                </p>
+                                <div className="bg-[#f0e8f8] border border-[#c4b0d4] rounded-lg p-3 mb-4">
+                                    <p className="text-sm text-[#6a4a7a]">
+                                        Estas recetas requieren investigacion. Investiga los objetos marcados para desbloquearlas.
+                                    </p>
+                                </div>
                                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {recetasInvestigables.map(receta => (
                                         <RecetaCard
@@ -403,8 +406,8 @@ export default function CrafteoPage() {
                         {/* Recetas Disponibles */}
                         {!loading && recetasDisponibles.length > 0 && (
                             <div className="mb-8">
-                                <h2 className="text-2xl font-title font-bold text-stone-800 mb-4 flex items-center gap-2">
-                                    <FaCheckCircle className="text-green-500" />
+                                <h2 className="font-serif text-2xl text-[#3a5a3a] mb-4 flex items-center gap-2">
+                                    <FaCheckCircle className="text-[#5a7a5a]" />
                                     Recetas Disponibles ({recetasDisponibles.length})
                                 </h2>
                                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -424,11 +427,11 @@ export default function CrafteoPage() {
                         {/* Recetas Bloqueadas */}
                         {!loading && recetasBloqueadas.length > 0 && (
                             <div>
-                                <h2 className="text-2xl font-title font-bold text-stone-500 mb-4 flex items-center gap-2">
-                                    <FaLock className="text-gray-400" />
+                                <h2 className="font-serif text-2xl text-[#6a5a4a] mb-4 flex items-center gap-2">
+                                    <FaLock className="text-[#8a8078]" />
                                     Recetas No Disponibles ({recetasBloqueadas.length})
                                 </h2>
-                                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-60">
+                                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {recetasBloqueadas.map(receta => (
                                         <RecetaCard
                                             key={receta.id}
@@ -444,8 +447,8 @@ export default function CrafteoPage() {
 
                         {/* Sin recetas */}
                         {!loading && recetas.length === 0 && (
-                            <div className="bg-white rounded-lg shadow-md p-12 text-center">
-                                <p className="text-xl text-stone-600">No hay recetas disponibles</p>
+                            <div className="bg-[#f5ede1] rounded-xl border-2 border-[#3a2a1a] shadow-[0_4px_12px_rgba(0,0,0,0.15)] p-12 text-center">
+                                <p className="text-xl text-[#4a3f35] font-serif">No hay recetas disponibles</p>
                             </div>
                         )}
                     </>
@@ -461,7 +464,7 @@ export default function CrafteoPage() {
                     />
                 )}
 
-                {/* ✅ NUEVO: Modal Iniciar Investigación */}
+                {/* Modal Iniciar Investigacion */}
                 {recetaParaInvestigar && personajeSeleccionado && (
                     <ModalIniciarInvestigacion
                         receta={recetaParaInvestigar}
@@ -481,7 +484,7 @@ export default function CrafteoPage() {
                     />
                 )}
 
-                {/* ✅ NUEVO: Modal Investigación Activa */}
+                {/* Modal Investigacion Activa */}
                 {investigacionActiva && personajeSeleccionado && (
                     <ModalProgresoInvestigacion
                         progreso={investigacionActiva}
