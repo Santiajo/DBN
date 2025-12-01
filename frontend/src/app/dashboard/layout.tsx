@@ -19,7 +19,7 @@ export default function DashboardLayout({
       <div className="flex-1 flex flex-col relative">
         <Navbar pageTitle={pageTitle} isSidebarCollapsed={isSidebarCollapsed} />
 
-        <main className="flex-1 overflow-y-auto pt-24">
+        <main className="flex-1 overflow-y-auto pt-18">
           {children}
         </main>
       </div>

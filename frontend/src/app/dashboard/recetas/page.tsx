@@ -7,7 +7,7 @@ import Button from "@/components/button";
 import Modal from '@/components/modal';
 import ConfirmAlert from '@/components/confirm-alert';
 import RecetaForm from '@/components/receta-form';
-import { FaPlus, FaPencilAlt, FaTrash, FaTag, FaCoins, FaMagic, FaStar, FaTools, FaFlask } from 'react-icons/fa';
+import { FaPlus, FaPencilAlt, FaTrash, FaCoins, FaMagic, FaStar, FaTools, FaFlask } from 'react-icons/fa';
 import { RecetaFormData, Receta } from '@/types/receta';
 
 export default function RecetasPage() {
@@ -39,14 +39,13 @@ export default function RecetasPage() {
             const data = await res.json();
             const recetasData = data.results || data;
             
-            console.log('📦 Recetas cargadas:', recetasData);
+            console.log('Recetas cargadas:', recetasData);
             
-            // ✅ VALIDAR que cada receta tenga ingredientes
             recetasData.forEach((receta: Receta) => {
                 if (!receta.ingredientes) {
-                    console.warn(`⚠️ Receta "${receta.nombre}" (ID: ${receta.id}) no tiene ingredientes`);
+                    console.warn(`Receta "${receta.nombre}" (ID: ${receta.id}) no tiene ingredientes`);
                 } else {
-                    console.log(`✅ Receta "${receta.nombre}" tiene ${receta.ingredientes.length} ingredientes`);
+                    console.log(`Receta "${receta.nombre}" tiene ${receta.ingredientes.length} ingredientes`);
                 }
             });
             
@@ -54,7 +53,7 @@ export default function RecetasPage() {
             setErrorMessage('');
         } catch (error) {
             console.error(error);
-            setErrorMessage('Error al cargar las recetas. Inténtalo de nuevo.');
+            setErrorMessage('Error al cargar las recetas. Intentalo de nuevo.');
         } finally {
             setLoading(false);
         }
@@ -64,12 +63,11 @@ export default function RecetasPage() {
         fetchRecetas();
     }, [fetchRecetas]);
 
-    // ✅ Función para cargar UNA receta con todos sus detalles
     const fetchRecetaDetalle = async (recetaId: number): Promise<Receta | null> => {
         if (!accessToken) return null;
         
         try {
-            console.log(`🔍 Cargando detalles de receta ID: ${recetaId}`);
+            console.log(`Cargando detalles de receta ID: ${recetaId}`);
             const res = await fetch(`${apiUrl}/api/recetas/${recetaId}/`, {
                 headers: { 'Authorization': `Bearer ${accessToken}` },
             });
@@ -79,14 +77,13 @@ export default function RecetasPage() {
             }
             
             const recetaDetalle = await res.json();
-            console.log('📋 Detalles completos:', recetaDetalle);
+            console.log('Detalles completos:', recetaDetalle);
             
-            // ✅ Validar ingredientes
             if (!recetaDetalle.ingredientes) {
-                console.error('❌ La receta no tiene campo "ingredientes"');
+                console.error('La receta no tiene campo "ingredientes"');
                 recetaDetalle.ingredientes = [];
             } else {
-                console.log(`✅ Ingredientes: ${recetaDetalle.ingredientes.length}`);
+                console.log(`Ingredientes: ${recetaDetalle.ingredientes.length}`);
                 recetaDetalle.ingredientes.forEach((ing: { objeto_id: number; nombre: string; cantidad_necesaria: number }) => {
                     console.log(`  - ${ing.cantidad_necesaria}x ${ing.nombre} (ID: ${ing.objeto_id})`);
                 });
@@ -109,9 +106,8 @@ export default function RecetasPage() {
 
         setErrorMessage('');
         try {
-            console.log('📤 Guardando receta:', recetaData);
+            console.log('Guardando receta:', recetaData);
             
-            // ✅ 1. Preparar el body con TODOS los campos
             const bodyReceta = {
                 nombre: recetaData.nombre,
                 objeto_final: recetaData.objeto_final,
@@ -141,11 +137,10 @@ export default function RecetasPage() {
             const savedReceta: Receta = await res.json();
             const recetaId = savedReceta.id;
 
-            console.log('✅ Receta guardada:', savedReceta);
+            console.log('Receta guardada:', savedReceta);
 
-            // ✅ 2. GESTIÓN DE INGREDIENTES MEJORADA
             if (isEditing) {
-                console.log('🗑️ Eliminando ingredientes antiguos...');
+                console.log('Eliminando ingredientes antiguos...');
                 
                 const resIngredientes = await fetch(`${apiUrl}/api/ingredientes/?receta=${recetaId}`, {
                     headers: { 'Authorization': `Bearer ${accessToken}` },
@@ -165,18 +160,17 @@ export default function RecetasPage() {
                             if (!res.ok) {
                                 console.error(`Error al eliminar ingrediente ${ing.id}`);
                             } else {
-                                console.log(`✅ Ingrediente ${ing.id} eliminado`);
+                                console.log(`Ingrediente ${ing.id} eliminado`);
                             }
                         })
                     );
                     
                     await Promise.all(deletePromises);
-                    console.log('✅ Todos los ingredientes antiguos eliminados');
+                    console.log('Todos los ingredientes antiguos eliminados');
                 }
             }
 
-            // ✅ 3. Crear los NUEVOS ingredientes
-            console.log(`➕ Creando ${recetaData.ingredientes.length} nuevos ingredientes...`);
+            console.log(`Creando ${recetaData.ingredientes.length} nuevos ingredientes...`);
             
             const createPromises = recetaData.ingredientes.map((ing, index) => {
                 const bodyIngrediente = {
@@ -201,13 +195,13 @@ export default function RecetasPage() {
                         throw new Error(`Error al crear ingrediente: ${JSON.stringify(errorData)}`);
                     }
                     const created = await res.json();
-                    console.log(`✅ Ingrediente creado:`, created);
+                    console.log(`Ingrediente creado:`, created);
                     return created;
                 });
             });
 
             await Promise.all(createPromises);
-            console.log('✅ Todos los ingredientes nuevos creados');
+            console.log('Todos los ingredientes nuevos creados');
 
             setIsModalOpen(false);
             setEditingReceta(null);
@@ -215,7 +209,7 @@ export default function RecetasPage() {
             await fetchRecetas();
             
         } catch (error) {
-            console.error('❌ Error completo:', error);
+            console.error('Error completo:', error);
             setErrorMessage(`Error: ${error instanceof Error ? error.message : 'Error desconocido al guardar.'}`);
         }
     };
@@ -246,9 +240,8 @@ export default function RecetasPage() {
     };
     
     const handleOpenEditModal = async (receta: Receta) => { 
-        console.log('🔧 Editando receta:', receta);
+        console.log('Editando receta:', receta);
         
-        // ✅ Cargar detalles completos de la receta
         const recetaDetalle = await fetchRecetaDetalle(receta.id);
         
         if (recetaDetalle) {
@@ -264,10 +257,21 @@ export default function RecetasPage() {
         setIsAlertOpen(true); 
     };
     
-    if (loading) return <div className="p-8 font-title">Cargando recetas...</div>
+    if (loading) return (
+        <div className="min-h-screen bg-[##F5F5F4] flex items-center justify-center">
+            <div className="text-[#4a3f35] font-serif text-lg">Cargando recetas...</div>
+        </div>
+    );
 
     return (
-        <div className="p-8 space-y-6">
+        <div className="min-h-full bg-[#F5F5F4] py-8 px-4">
+            <style jsx global>{`
+                @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&display=swap');
+                
+                .font-medieval {
+                    font-family: 'Cinzel', serif;
+                }
+            `}</style>
             
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingReceta ? "Editar Receta" : "Crear Nueva Receta"}>
                 <RecetaForm 
@@ -281,132 +285,180 @@ export default function RecetasPage() {
                 isOpen={isAlertOpen} 
                 onClose={() => setIsAlertOpen(false)} 
                 onConfirm={handleConfirmDelete} 
-                title="¿ELIMINAR RECETA?" 
-                message={`La receta "${recetaToDelete?.nombre}" que produce "${recetaToDelete?.nombre_objeto_final || recetaToDelete?.objeto_final}" será eliminada permanentemente.`} 
+                title="ELIMINAR RECETA?" 
+                message={`La receta "${recetaToDelete?.nombre}" que produce "${recetaToDelete?.nombre_objeto_final || recetaToDelete?.objeto_final}" sera eliminada permanentemente.`} 
             />
 
-            <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-title text-stone-800">Gestión de Recetas</h1>
-                <Button variant="primary" onClick={handleOpenCreateModal}><FaPlus className="mr-2" />Crear Receta</Button>
-            </div>
-
-            {errorMessage && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-                    <strong className="font-bold">Error:</strong>
-                    <span className="block sm:inline ml-2">{errorMessage}</span>
+            {/* Header */}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-2">
+                <div className="text-center mb-8">
+                    <h1 className="font-medieval text-4xl text-[#3a2a1a] tracking-wider mb-2">
+                        Gestion de Recetas
+                    </h1>
+                    <div className="flex justify-center">
+                        <span className="text-[#5a4a3a] text-lg">&#9878;</span>
+                    </div>
                 </div>
-            )}
 
-            {/* Listado de Recetas */}
-            {recetas.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {recetas.map(receta => (
-                        <Card key={receta.id} variant="secondary" className="flex flex-col">
-                            <div className="flex-grow">
-                                <div className="flex justify-between items-start mb-2">
-                                    <h3 className="font-title text-2xl text-bosque">{receta.nombre}</h3>
-                                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                                        receta.es_magico 
-                                            ? 'bg-purple-200 text-purple-800' 
-                                            : 'bg-stone-200 text-stone-700'
-                                    }`}>
-                                        {receta.es_magico ? '✨ Mágico' : '⚒️ Mundano'}
-                                    </span>
-                                </div>
+                {/* Boton crear */}
+                <div className="flex justify-end mb-6">
+                    <button 
+                        onClick={handleOpenCreateModal}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-[#c9a65a] border border-[#a88a3a] text-white rounded font-medium hover:bg-[#b8954a] transition-colors shadow-md"
+                    >
+                        <FaPlus className="w-3 h-3" />
+                        Crear Receta
+                    </button>
+                </div>
 
-                                <p className="text-md italic text-stone-600 mb-4">
-                                    Produce: <strong className='font-body'>
-                                        {receta.cantidad_final}x {receta.nombre_objeto_final || receta.objeto_final}
-                                    </strong>
-                                </p>
-                                
-                                <div className="space-y-2 text-sm font-body border-t border-madera pt-4">
-                                    
-                                    {receta.herramienta && (
+                {/* Error message */}
+                {errorMessage && (
+                    <div className="bg-[#fef2f2] border-2 border-[#b91c1c] text-[#7f1d1d] px-4 py-3 rounded-lg mb-6" role="alert">
+                        <strong className="font-bold">Error:</strong>
+                        <span className="block sm:inline ml-2">{errorMessage}</span>
+                    </div>
+                )}
+
+                {/* Cards de recetas */}
+                {recetas.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                        {recetas.map(receta => (
+                            <div 
+                                key={receta.id} 
+                                className="bg-[#f5ede1] border-2 border-[#3a2a1a] rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.15)] hover:shadow-[0_6px_16px_rgba(0,0,0,0.2)] transition-shadow overflow-hidden flex flex-col"
+                            >
+                                {/* Header de la card */}
+                                <div className="p-5 pb-4">
+                                    <div className="flex justify-between items-start mb-3">
+                                        <h3 className="font-medieval text-xl text-[#3a2a1a] tracking-wide">
+                                            {receta.nombre}
+                                        </h3>
+                                        <span className={`px-3 py-1 rounded text-xs font-semibold ${
+                                            receta.es_magico 
+                                                ? 'bg-[#5a4a3a] text-[#f5ede1]' 
+                                                : 'bg-[#8b7355] text-[#f5ede1]'
+                                        }`}>
+                                            {receta.es_magico ? 'Magico' : 'Mundano'}
+                                        </span>
+                                    </div>
+
+                                    {/* Info principal */}
+                                    <div className="space-y-2 text-sm text-[#4a3f35]">
                                         <p className="flex items-center gap-2">
-                                            <FaTools className="text-stone-600" /> 
-                                            <strong>Herramienta:</strong> {receta.herramienta}
+                                            <span className="text-[#c9a65a]">&#9670;</span>
+                                            <span>Produce:</span>
+                                            <strong>{receta.cantidad_final}x {receta.nombre_objeto_final || receta.objeto_final}</strong>
                                         </p>
-                                    )}
+                                        
+                                        {receta.herramienta && (
+                                            <p className="flex items-center gap-2">
+                                                <span className="text-[#c9a65a]">&#9670;</span>
+                                                <span>Herramienta:</span>
+                                                <strong>{receta.herramienta}</strong>
+                                            </p>
+                                        )}
 
-                                    {receta.grado_minimo_requerido && receta.grado_minimo_requerido !== 'Novato' && (
-                                        <p className="flex items-center gap-2 text-amber-700">
-                                            <FaStar className="text-amber-600" /> 
-                                            <strong>Requiere:</strong> {receta.grado_minimo_requerido}
-                                        </p>
-                                    )}
+                                        {!receta.es_magico && (
+                                            <p className="flex items-center gap-2">
+                                                <span className="text-[#c9a65a]">&#9670;</span>
+                                                <span>Oro necesario:</span>
+                                                <strong>{receta.oro_necesario} gp</strong>
+                                            </p>
+                                        )}
 
-                                    {!receta.es_magico && (
-                                        <p className="flex items-center gap-2">
-                                            <FaCoins className="text-yellow-500" /> 
-                                            <strong>Oro necesario:</strong> {receta.oro_necesario} gp
-                                        </p>
-                                    )}
+                                        {receta.grado_minimo_requerido && receta.grado_minimo_requerido !== 'Novato' && (
+                                            <p className="flex items-center gap-2">
+                                                <span className="text-[#c9a65a]">&#9670;</span>
+                                                <span>Requiere:</span>
+                                                <strong>{receta.grado_minimo_requerido}</strong>
+                                            </p>
+                                        )}
+                                    </div>
 
+                                    {/* Seccion magico */}
                                     {receta.es_magico && (
-                                        <div className="bg-purple-50 p-2 rounded mt-2 space-y-1">
+                                        <div className="bg-[#ebe3d5] p-3 rounded mt-3 space-y-1 text-sm">
                                             {receta.rareza && (
-                                                <p className="flex items-center gap-2">
-                                                    <FaMagic className="text-purple-600" /> 
-                                                    <strong>Rareza:</strong> {receta.rareza}
+                                                <p className="flex items-center gap-2 text-[#4a3f35]">
+                                                    <FaMagic className="text-[#8b7355] w-3 h-3" /> 
+                                                    <span>Rareza:</span>
+                                                    <strong>{receta.rareza}</strong>
                                                 </p>
                                             )}
                                             {receta.tipo_artesano && (
-                                                <p className="flex items-center gap-2">
-                                                    <FaFlask className="text-purple-600" /> 
-                                                    <strong>Artesano:</strong> {receta.tipo_artesano}
+                                                <p className="flex items-center gap-2 text-[#4a3f35]">
+                                                    <FaFlask className="text-[#8b7355] w-3 h-3" /> 
+                                                    <span>Artesano:</span>
+                                                    <strong>{receta.tipo_artesano}</strong>
                                                 </p>
                                             )}
                                             {receta.nombre_material_raro && (
-                                                <p className="flex items-center gap-2 text-purple-800">
-                                                    <FaStar className="text-yellow-500" /> 
-                                                    <strong>Material Raro:</strong> {receta.nombre_material_raro}
+                                                <p className="flex items-center gap-2 text-[#4a3f35]">
+                                                    <FaStar className="text-[#c9a65a] w-3 h-3" /> 
+                                                    <span>Material Raro:</span>
+                                                    <strong>{receta.nombre_material_raro}</strong>
                                                 </p>
                                             )}
                                             {receta.es_consumible && (
-                                                <p className="text-xs text-purple-600 italic">
-                                                    * Consumible (DC reducida)
+                                                <p className="text-xs text-[#6a5a4a] italic mt-1">
+                                                    Consumible (DC reducida)
                                                 </p>
                                             )}
                                         </div>
                                     )}
+                                </div>
 
-                                    <h4 className="font-semibold mt-3 flex items-center gap-2">
-                                        <FaTag className="text-madera-oscura"/>Ingredientes:
+                                {/* Separador con linea punteada */}
+                                <div className="border-t border-dashed border-[#c4b998] mx-5"></div>
+
+                                {/* Seccion ingredientes */}
+                                <div className="p-5 pt-4">
+                                    <h4 className="font-semibold text-sm mb-3 text-[#4a3f35]">
+                                        Ingredientes:
                                     </h4>
-                                    <ul className="list-none ml-2 space-y-1">
+                                    <div className="space-y-2">
                                         {receta.ingredientes && receta.ingredientes.length > 0 ? (
                                             receta.ingredientes.map((ing, idx) => (
-                                                <li key={ing.id || idx} className="text-xs text-stone-700 flex items-center gap-2">
-                                                    <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold">
-                                                        {ing.cantidad}x
+                                                <div 
+                                                    key={ing.objeto_id || idx} 
+                                                    className="flex items-center gap-2 bg-[#ebe3d5] rounded px-3 py-2"
+                                                >
+                                                    <span className="bg-[#c9a65a] text-white px-2 py-0.5 rounded text-xs font-bold min-w-[28px] text-center">
+                                                        {ing.cantidad_necesaria}x
                                                     </span>
-                                                    <span>{ing.nombre_ingrediente}</span>
-                                                </li>
+                                                    <span className="text-sm text-[#4a3f35]">{ing.nombre}</span>
+                                                </div>
                                             ))
                                         ) : (
-                                            <li className="text-xs text-red-500 italic">Sin ingredientes</li>
+                                            <p className="text-xs text-[#a85555] italic">Sin ingredientes</p>
                                         )}
-                                    </ul>
+                                    </div>
+                                </div>
+
+                                {/* Botones de accion */}
+                                <div className="flex justify-end gap-2 px-5 pb-5 mt-auto">
+                                    <button 
+                                        onClick={() => handleOpenDeleteAlert(receta)}
+                                        className="px-4 py-2 bg-[#8b4545] hover:bg-[#7a3535] text-white rounded text-sm font-medium transition-colors"
+                                    >
+                                        Eliminar
+                                    </button>
+                                    <button 
+                                        onClick={() => handleOpenEditModal(receta)}
+                                        className="px-4 py-2 bg-[#f0e6d3] border border-[#c4b998] text-[#5a4a3a] rounded text-sm font-medium hover:bg-[#e8dcc8] transition-colors"
+                                    >
+                                        Editar
+                                    </button>
                                 </div>
                             </div>
-                            
-                            <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-madera">
-                                <Button variant="dangerous" onClick={() => handleOpenDeleteAlert(receta)}>
-                                    <FaTrash />
-                                </Button>
-                                <Button variant="secondary" onClick={() => handleOpenEditModal(receta)}>
-                                    <FaPencilAlt />
-                                </Button>
-                            </div>
-                        </Card>
-                    ))}
-                </div>
-            ) : (
-                <div className="text-center py-16">
-                    <p className="text-stone-500">Aún no hay recetas registradas.</p>
-                </div>
-            )}
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-center py-16">
+                        <p className="text-[#5a4a3a] font-serif text-lg">Aun no hay recetas registradas.</p>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
