@@ -16,6 +16,12 @@ from django.db import transaction
 from django.db.models import F
 import rest_framework.filters as filters
 import random
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from django.db import transaction
+from django.utils import timezone
 
 @api_view(['POST']) # Solo permite solicitudes POST
 @permission_classes([AllowAny]) # Permite que cualquiera pueda acceder a esta vista
@@ -65,6 +71,7 @@ class MyTokenObtainPairView(TokenObtainPairView):
     
 class PersonajeViewSet(viewsets.ModelViewSet):
     serializer_class = PersonajeSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return Personaje.objects.filter(user=self.request.user)
@@ -81,6 +88,7 @@ class ObjetoViewSet(viewsets.ModelViewSet):
 class RecetaViewSet(viewsets.ModelViewSet):
     queryset= Receta.objects.all()
     serializer_class = RecetaSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
 
 class IngredienteViewSet(viewsets.ModelViewSet):
     queryset = Ingredientes.objects.all()
@@ -347,25 +355,6 @@ def debug_trabajo_pagos(request, trabajo_pk):
 
 # views.py - AÑADIR ESTE VIEWSET
 
-from rest_framework import viewsets, status
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from django.db import transaction
-from django.utils import timezone
-import random
-
-from .models import (
-    Personaje, Receta, Inventario, ProgresoReceta, 
-    CompetenciaHerramienta, HistorialTirada, Ingredientes
-)
-from .serializers import (
-    RecetaDisponibleSerializer, ProgresoRecetaSerializer,
-    IniciarCraftingSerializer, TiradaCraftingSerializer,
-    CompetenciaHerramientaSerializer
-)
-
-
 class CraftingViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
     
@@ -602,9 +591,19 @@ class CraftingViewSet(viewsets.ViewSet):
             nuevo_grado = None
             
             if receta.es_magico:
-                # ✅ OBJETOS MÁGICOS: Sistema de éxitos SIN COSTE POR TIRADA
                 if exito:
                     progreso.exitos_conseguidos += 1
+                    
+                    # MOVER ESTO AQUI - Sumar éxito a competencia en CADA tirada exitosa
+                    competencia.exitos_acumulados += 1
+                    competencia.save()
+                    
+                    # Verificar subida de grado en cada éxito
+                    nuevo_grado = competencia.verificar_subida_grado()
+                    if nuevo_grado:
+                        subio_grado = True
+                        competencia.refresh_from_db()
+                    
                     mensaje_resultado = f"¡Éxito! Progreso: {progreso.exitos_conseguidos}/{progreso.exitos_requeridos} éxitos"
                     
                     # Verificar si completó
@@ -612,7 +611,7 @@ class CraftingViewSet(viewsets.ViewSet):
                         progreso.estado = 'completado'
                         progreso.fecha_completado = timezone.now()
                         
-                        # ✅ COBRAR EL COSTE TOTAL AL FINALIZAR
+                        # Cobrar coste total al finalizar
                         coste_magico = receta.obtener_coste_magico()
                         personaje.tiempo_libre -= coste_magico['dias']
                         personaje.oro -= coste_magico['oro']
@@ -631,22 +630,12 @@ class CraftingViewSet(viewsets.ViewSet):
                             inventario_item.cantidad += receta.cantidad_final
                             inventario_item.save()
                         
-                        # Sumar éxito a competencia
-                        competencia.exitos_acumulados += 1
-                        competencia.save()
-                        
-                        # Verificar subida de grado
-                        nuevo_grado = competencia.verificar_subida_grado()
-                        if nuevo_grado:
-                            subio_grado = True
-                            competencia.refresh_from_db()
-                        
-                        mensaje_resultado = f"¡Objeto mágico completado! {receta.objeto_final.Name} añadido a tu inventario. Coste: {coste_magico['dias']} días, {coste_magico['oro']} gp"
+                        mensaje_resultado = f"¡Objeto mágico completado! {receta.objeto_final.Name} añadido a tu inventario."
                 else:
-                    mensaje_resultado = f"Fallo. Progreso: {progreso.exitos_conseguidos}/{progreso.exitos_requeridos} éxitos (sin coste)"
+                    mensaje_resultado = f"Fallo. Progreso: {progreso.exitos_conseguidos}/{progreso.exitos_requeridos} éxitos"
             
             else:
-                # OBJETOS NO MÁGICOS: Sistema existente (cobro por día)
+                # OBJETOS NO MÁGICOS
                 info_grado = competencia.obtener_info_grado()
                 oro_gastado = info_grado['gasto_oro']
                 dias_gastados = 1
@@ -654,6 +643,17 @@ class CraftingViewSet(viewsets.ViewSet):
                 if exito:
                     oro_sumado = info_grado['suma_oro']
                     progreso.oro_acumulado += oro_sumado
+                    
+                    # SUMAR EXITO EN CADA TIRADA EXITOSA
+                    competencia.exitos_acumulados += 1
+                    competencia.save()
+                    
+                    # Verificar subida de grado
+                    nuevo_grado = competencia.verificar_subida_grado()
+                    if nuevo_grado:
+                        subio_grado = True
+                        competencia.refresh_from_db()
+                    
                     mensaje_resultado = f"¡Éxito! Sumaste {oro_sumado} gp. Progreso: {progreso.oro_acumulado}/{receta.oro_necesario} gp"
                     
                     if progreso.oro_acumulado >= receta.oro_necesario:
@@ -669,19 +669,11 @@ class CraftingViewSet(viewsets.ViewSet):
                             inventario_item.cantidad += receta.cantidad_final
                             inventario_item.save()
                         
-                        competencia.exitos_acumulados += 1
-                        competencia.save()
-                        
-                        nuevo_grado = competencia.verificar_subida_grado()
-                        if nuevo_grado:
-                            subio_grado = True
-                            competencia.refresh_from_db()
-                        
                         mensaje_resultado = f"¡Objeto completado! {receta.objeto_final.Name} añadido a tu inventario."
                 else:
                     mensaje_resultado = f"Fallo. Progreso: {progreso.oro_acumulado}/{receta.oro_necesario} gp"
                 
-                # Gastar recursos por día (solo no mágicos)
+                # Gastar recursos
                 personaje.tiempo_libre -= dias_gastados
                 personaje.oro -= oro_gastado
                 personaje.save()

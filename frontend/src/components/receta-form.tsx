@@ -9,7 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 import { 
     IngredienteForm, 
     RecetaFormData, 
-    Receta, 
+    RecetaAdmin, 
     Objeto,
     SelectOption,
 } from '@/types/receta'; 
@@ -17,7 +17,7 @@ import {
 interface RecetaFormProps {
     onSave: (receta: RecetaFormData) => Promise<void>;
     onCancel: () => void;
-    initialData?: Receta | null;
+    initialData?: RecetaAdmin | null;
 }
 
 const defaultFormState: RecetaFormData = {
@@ -178,21 +178,19 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
             } else {
                 const initialIngredientesForm: IngredienteForm[] = initialData.ingredientes
                     .filter(ing => {
-                        const isValid = ing && ing.objeto_id != null && ing.objeto_id !== undefined;
+                        const isValid = ing && ing.objeto != null && ing.objeto !== undefined;
                         if (!isValid) {
                             console.error('Ingrediente invalido:', ing);
                         }
                         return isValid;
                     })
                     .map(ing => {
-                        const nombreObjeto = getObjectNameById(ing.objeto_id);
-                        console.log(`Ingrediente: ${ing.objeto_id} -> ${nombreObjeto} (${ing.cantidad_necesaria}x)`);
-                        
+                        const nombreObjeto = getObjectNameById(ing.objeto);
                         return {
-                            id: ing.objeto_id,
-                            objeto: ing.objeto_id,
-                            cantidad: ing.cantidad_necesaria,
-                            nombre_objeto: nombreObjeto,
+                            id: ing.id,
+                            objeto: ing.objeto,
+                            cantidad: ing.cantidad,
+                            nombre_objeto: nombreObjeto || ing.nombre_ingrediente,
                         };
                     });
 
@@ -208,10 +206,10 @@ export default function RecetaForm({ onSave, onCancel, initialData }: RecetaForm
                 oro_necesario: initialData.oro_necesario || 0,
                 grado_minimo_requerido: initialData.grado_minimo_requerido || 'Novato',
                 ingredientes: initialData.ingredientes
-                    .filter(ing => ing && ing.objeto_id != null)
+                    .filter(ing => ing && ing.objeto != null)
                     .map(ing => ({
-                        objeto: ing.objeto_id,
-                        cantidad: ing.cantidad_necesaria,
+                        objeto: ing.objeto,
+                        cantidad: ing.cantidad,
                     })),
                 rareza: initialData.rareza || null,
                 material_raro: initialData.material_raro || null,
