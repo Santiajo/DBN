@@ -27,9 +27,14 @@ interface Personaje {
     nivel: number;
 }
 
+// NO BORRAR, si se borra no funciona la pag xd
+const KAMILA_ENABLED = true;
+
 export default function CrafteoPage() {
     const { accessToken } = useAuth();
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    // Uso temporalmente una variable de entorno ficticia para evitar errores de linting, 
+    // aunque en un proyecto real la URL debería estar disponible.
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'; 
 
     const [personajes, setPersonajes] = useState<Personaje[]>([]);
     const [personajeSeleccionado, setPersonajeSeleccionado] = useState<Personaje | null>(null);
@@ -47,13 +52,13 @@ export default function CrafteoPage() {
     const [error, setError] = useState('');
 
     useEffect(() => {
-        if (accessToken) {
+        if (accessToken && KAMILA_ENABLED) {
             cargarPersonajes();
         }
     }, [accessToken]);
 
     useEffect(() => {
-        if (personajeSeleccionado && accessToken) {
+        if (personajeSeleccionado && accessToken && KAMILA_ENABLED) {
             cargarRecetas();
             cargarProgresosActivos();
             cargarInvestigacionesActivas();
@@ -242,7 +247,7 @@ export default function CrafteoPage() {
         <div className="min-h-full bg-[#F5F5F4] py-8 px-4">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 
-                {/* Header */}
+                {/* Header (Siempre visible) */}
                 <div className="bg-[#f5ede1] rounded-xl border-2 border-[#3a2a1a] shadow-[0_4px_12px_rgba(0,0,0,0.15)] p-6 mb-6">
                     <div className="flex justify-between items-center flex-wrap gap-4">
                         <div className="flex items-center gap-4">
@@ -255,7 +260,8 @@ export default function CrafteoPage() {
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-4">
+                        {/* El selector de personaje es importante que esté visible para el usuario */}
+                        <div className="flex items-end gap-4">
                             <DynamicSelectorPersonaje
                                 personajes={personajes}
                                 personajeSeleccionado={personajeSeleccionado}
@@ -263,14 +269,20 @@ export default function CrafteoPage() {
                             />
                             
                             {personajeSeleccionado && (
-                                <div className="flex gap-3">
-                                    <div className="flex items-center gap-2 bg-[#f8f4eb] px-4 py-2 rounded-lg border border-[#c9a65a]">
-                                        <FaCoins className="text-[#c9a65a]" />
-                                        <span className="font-semibold text-[#4a3f35]">{personajeSeleccionado.oro} gp</span>
+                                <div className="flex items-end gap-3">
+                                    <div>
+                                        <p className="text-sm font-medium text-transparent mb-2">.</p>
+                                        <div className="flex items-center gap-2 bg-[#f8f4eb] px-4 py-2 rounded-lg border border-[#c9a65a]">
+                                            <FaCoins className="text-[#c9a65a]" />
+                                            <span className="font-semibold text-[#4a3f35]">{personajeSeleccionado.oro} gp</span>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-2 bg-[#f8f4eb] px-4 py-2 rounded-lg border border-[#6a8a9a]">
-                                        <FaClock className="text-[#6a8a9a]" />
-                                        <span className="font-semibold text-[#4a3f35]">{personajeSeleccionado.tiempo_libre} dias</span>
+                                    <div>
+                                        <p className="text-sm font-medium text-transparent mb-2">.</p>
+                                        <div className="flex items-center gap-2 bg-[#f8f4eb] px-4 py-2 rounded-lg border border-[#6a8a9a]">
+                                            <FaClock className="text-[#6a8a9a]" />
+                                            <span className="font-semibold text-[#4a3f35]">{personajeSeleccionado.tiempo_libre} dias</span>
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -278,181 +290,204 @@ export default function CrafteoPage() {
                     </div>
                 </div>
 
-                {/* Mensaje de error */}
+                {/* Mensaje de error (Siempre visible) */}
                 {error && (
                     <div className="bg-[#fdf0f0] border-2 border-[#c45a5a] text-[#7a3030] px-4 py-3 rounded-lg mb-4">
                         {error}
                     </div>
                 )}
 
-                {/* Sin personaje seleccionado */}
-                {!personajeSeleccionado && (
+                {/* ---------------------------------------------------------------------------------- */}
+                {/* LOGICA DE FEATURE FLAG */}
+                {/* ---------------------------------------------------------------------------------- */}
+                {!KAMILA_ENABLED ? (
+                    /* Contenido si la feature flag está deshabilitada */
                     <div className="bg-[#f5ede1] rounded-xl border-2 border-[#3a2a1a] shadow-[0_4px_12px_rgba(0,0,0,0.15)] p-12 text-center">
                         <div className="w-20 h-20 bg-[#e8e0d0] rounded-full flex items-center justify-center mx-auto mb-4">
-                            <FaHammer className="text-4xl text-[#a0988a]" />
+                            <FaLock className="text-4xl text-[#a0988a]" />
                         </div>
-                        <p className="text-xl text-[#4a3f35] font-serif">Selecciona un personaje para comenzar</p>
-                        <p className="text-[#6a5a4a] mt-2">Elige uno de tus personajes del menu superior</p>
+                        <h2 className="text-2xl text-[#7a3030] font-serif">Sección Deshabilitada Temporalmente</h2>
+                        <p className="text-[#6a5a4a] mt-2">
+                            La funcionalidad de crafteo ha sido deshabilitada por mantenimiento o configuración.
+                        </p>
                     </div>
-                )}
-
-                {/* Con personaje seleccionado */}
-                {personajeSeleccionado && (
+                ) : (
+                    /* Contenido original de la página si la feature flag está habilitada (KAMILA_ENABLED === true) */
                     <>
-                        {/* Investigaciones Activas */}
-                        {investigacionesActivas.length > 0 && (
-                            <div className="mb-6">
-                                <h2 className="font-serif text-2xl text-[#6a4a7a] mb-4 flex items-center gap-2">
-                                    <FaSearch className="text-[#8a6a9a]" />
-                                    Investigaciones en Curso ({investigacionesActivas.length})
-                                </h2>
-                                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {investigacionesActivas.map(investigacion => (
-                                        <button
-                                            key={investigacion.id}
-                                            onClick={() => setInvestigacionActiva(investigacion)}
-                                            className="bg-gradient-to-br from-[#f0e8f8] to-[#e8e0f0] border-2 border-[#8a6a9a] rounded-xl p-4 hover:shadow-[0_6px_16px_rgba(100,60,120,0.2)] transition-all text-left"
-                                        >
-                                            <h3 className="font-semibold text-[#4a3f35] mb-2">{investigacion.receta_nombre}</h3>
-                                            <div className="flex items-center gap-2 text-sm text-[#6a5a4a] mb-2">
-                                                <FaSearch className="text-[#8a6a9a] w-3 h-3" />
-                                                <span>{investigacion.objeto_investigado_nombre}</span>
-                                            </div>
-                                            <div className="w-full bg-[#e0d8e8] rounded-full h-2 mb-2">
-                                                <div
-                                                    className="bg-gradient-to-r from-[#8a6a9a] to-[#6a4a7a] h-2 rounded-full transition-all"
-                                                    style={{ width: `${investigacion.porcentaje_completado}%` }}
-                                                />
-                                            </div>
-                                            <p className="text-xs text-[#6a5a4a]">
-                                                {investigacion.exitos_conseguidos}/{investigacion.exitos_requeridos} exitos
-                                            </p>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Progresos Activos de Crafting */}
-                        {progresosActivos.length > 0 && (
-                            <div className="mb-6">
-                                <h2 className="font-serif text-2xl text-[#4a6a7a] mb-4 flex items-center gap-2">
-                                    <FaClock className="text-[#6a8a9a]" />
-                                    Proyectos en Curso ({progresosActivos.length})
-                                </h2>
-                                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {progresosActivos.map(progreso => (
-                                        <button
-                                            key={progreso.id}
-                                            onClick={() => setProgresoActivo(progreso)}
-                                            className="bg-gradient-to-br from-[#e8f0f4] to-[#e0e8f0] border-2 border-[#6a8a9a] rounded-xl p-4 hover:shadow-[0_6px_16px_rgba(60,100,120,0.2)] transition-all text-left"
-                                        >
-                                            <h3 className="font-semibold text-[#4a3f35] mb-2">{progreso.receta_nombre}</h3>
-                                            <div className="flex items-center gap-2 text-sm text-[#6a5a4a] mb-2">
-                                                <span className="text-[#6a8a9a]">&#8594;</span>
-                                                <span>{progreso.objeto_final}</span>
-                                            </div>
-                                            <div className="w-full bg-[#d8e0e8] rounded-full h-2 mb-2">
-                                                <div
-                                                    className="bg-gradient-to-r from-[#5a7a5a] to-[#4a6a4a] h-2 rounded-full transition-all"
-                                                    style={{ width: `${progreso.porcentaje_completado}%` }}
-                                                />
-                                            </div>
-                                            <p className="text-xs text-[#6a5a4a]">
-                                                {progreso.es_magico 
-                                                    ? `${progreso.exitos_conseguidos}/${progreso.exitos_requeridos} exitos`
-                                                    : `${progreso.oro_acumulado}/${progreso.oro_necesario} gp`
-                                                }
-                                            </p>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Loading */}
-                        {loading && (
-                            <div className="flex justify-center items-center py-12">
-                                <FaSpinner className="animate-spin text-4xl text-[#5a7a5a]" />
-                            </div>
-                        )}
-
-                        {/* Recetas Investigables */}
-                        {!loading && recetasInvestigables.length > 0 && (
-                            <div className="mb-8">
-                                <h2 className="font-serif text-2xl text-[#6a4a7a] mb-4 flex items-center gap-2">
-                                    <FaSearch className="text-[#8a6a9a]" />
-                                    Recetas por Descubrir ({recetasInvestigables.length})
-                                </h2>
-                                <div className="bg-[#f0e8f8] border border-[#c4b0d4] rounded-lg p-3 mb-4">
-                                    <p className="text-sm text-[#6a4a7a]">
-                                        Estas recetas requieren investigacion. Investiga los objetos marcados para desbloquearlas.
-                                    </p>
-                                </div>
-                                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {recetasInvestigables.map(receta => (
-                                        <RecetaCard
-                                            key={receta.id}
-                                            receta={receta}
-                                            onClick={handleRecetaClick}
-                                            disponible={true}
-                                            tipo="investigable"
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Recetas Disponibles */}
-                        {!loading && recetasDisponibles.length > 0 && (
-                            <div className="mb-8">
-                                <h2 className="font-serif text-2xl text-[#3a5a3a] mb-4 flex items-center gap-2">
-                                    <FaCheckCircle className="text-[#5a7a5a]" />
-                                    Recetas Disponibles ({recetasDisponibles.length})
-                                </h2>
-                                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {recetasDisponibles.map(receta => (
-                                        <RecetaCard
-                                            key={receta.id}
-                                            receta={receta}
-                                            onClick={handleRecetaClick}
-                                            disponible={true}
-                                            tipo="disponible"
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Recetas Bloqueadas */}
-                        {!loading && recetasBloqueadas.length > 0 && (
-                            <div>
-                                <h2 className="font-serif text-2xl text-[#6a5a4a] mb-4 flex items-center gap-2">
-                                    <FaLock className="text-[#8a8078]" />
-                                    Recetas No Disponibles ({recetasBloqueadas.length})
-                                </h2>
-                                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {recetasBloqueadas.map(receta => (
-                                        <RecetaCard
-                                            key={receta.id}
-                                            receta={receta}
-                                            onClick={() => {}}
-                                            disponible={false}
-                                            tipo="bloqueada"
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Sin recetas */}
-                        {!loading && recetas.length === 0 && (
+                        {/* Sin personaje seleccionado */}
+                        {!personajeSeleccionado && (
                             <div className="bg-[#f5ede1] rounded-xl border-2 border-[#3a2a1a] shadow-[0_4px_12px_rgba(0,0,0,0.15)] p-12 text-center">
-                                <p className="text-xl text-[#4a3f35] font-serif">No hay recetas disponibles</p>
+                                <div className="w-20 h-20 bg-[#e8e0d0] rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <FaHammer className="text-4xl text-[#a0988a]" />
+                                </div>
+                                <p className="text-xl text-[#4a3f35] font-serif">Selecciona un personaje para comenzar</p>
+                                <p className="text-[#6a5a4a] mt-2">Elige uno de tus personajes del menu superior</p>
                             </div>
+                        )}
+
+                        {/* Con personaje seleccionado */}
+                        {personajeSeleccionado && (
+                            <>
+                                {/* Investigaciones Activas */}
+                                {investigacionesActivas.length > 0 && (
+                                    <div className="mb-6">
+                                        <h2 className="font-serif text-2xl text-[#6a4a7a] mb-4 flex items-center gap-2">
+                                            <FaSearch className="text-[#8a6a9a]" />
+                                            Investigaciones en Curso ({investigacionesActivas.length})
+                                        </h2>
+                                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            {investigacionesActivas.map(investigacion => (
+                                                <button
+                                                    key={investigacion.id}
+                                                    onClick={() => setInvestigacionActiva(investigacion)}
+                                                    className="bg-gradient-to-br from-[#f0e8f8] to-[#e8e0f0] border-2 border-[#8a6a9a] rounded-xl p-4 hover:shadow-[0_6px_16px_rgba(100,60,120,0.2)] transition-all text-left"
+                                                >
+                                                    <h3 className="font-semibold text-[#4a3f35] mb-2">{investigacion.receta_nombre}</h3>
+                                                    <div className="flex items-center gap-2 text-sm text-[#6a5a4a] mb-2">
+                                                        <FaSearch className="text-[#8a6a9a] w-3 h-3" />
+                                                        <span>{investigacion.objeto_investigado_nombre}</span>
+                                                    </div>
+                                                    <div className="w-full bg-[#e0d8e8] rounded-full h-2 mb-2">
+                                                        <div
+                                                            className="bg-gradient-to-r from-[#8a6a9a] to-[#6a4a7a] h-2 rounded-full transition-all"
+                                                            style={{ width: `${investigacion.porcentaje_completado}%` }}
+                                                        />
+                                                    </div>
+                                                    <p className="text-xs text-[#6a5a4a]">
+                                                        {investigacion.exitos_conseguidos}/{investigacion.exitos_requeridos} exitos
+                                                    </p>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Progresos Activos de Crafting */}
+                                {progresosActivos.length > 0 && (
+                                    <div className="mb-6">
+                                        <h2 className="font-serif text-2xl text-[#4a6a7a] mb-4 flex items-center gap-2">
+                                            <FaClock className="text-[#6a8a9a]" />
+                                            Proyectos en Curso ({progresosActivos.length})
+                                        </h2>
+                                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            {progresosActivos.map(progreso => (
+                                                <button
+                                                    key={progreso.id}
+                                                    onClick={() => setProgresoActivo(progreso)}
+                                                    className="bg-gradient-to-br from-[#e8f0f4] to-[#e0e8f0] border-2 border-[#6a8a9a] rounded-xl p-4 hover:shadow-[0_6px_16px_rgba(60,100,120,0.2)] transition-all text-left"
+                                                >
+                                                    <h3 className="font-semibold text-[#4a3f35] mb-2">{progreso.receta_nombre}</h3>
+                                                    <div className="flex items-center gap-2 text-sm text-[#6a5a4a] mb-2">
+                                                        <span className="text-[#6a8a9a]">&#8594;</span>
+                                                        <span>{progreso.objeto_final}</span>
+                                                    </div>
+                                                    <div className="w-full bg-[#d8e0e8] rounded-full h-2 mb-2">
+                                                        <div
+                                                            className="bg-gradient-to-r from-[#5a7a5a] to-[#4a6a4a] h-2 rounded-full transition-all"
+                                                            style={{ width: `${progreso.porcentaje_completado}%` }}
+                                                        />
+                                                    </div>
+                                                    <p className="text-xs text-[#6a5a4a]">
+                                                        {progreso.es_magico 
+                                                            ? `${progreso.exitos_conseguidos}/${progreso.exitos_requeridos} exitos`
+                                                            : `${progreso.oro_acumulado}/${progreso.oro_necesario} gp`
+                                                        }
+                                                    </p>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Loading */}
+                                {loading && (
+                                    <div className="flex justify-center items-center py-12">
+                                        <FaSpinner className="animate-spin text-4xl text-[#5a7a5a]" />
+                                    </div>
+                                )}
+
+                                {/* Recetas Investigables */}
+                                {!loading && recetasInvestigables.length > 0 && (
+                                    <div className="mb-8">
+                                        <h2 className="font-serif text-2xl text-[#6a4a7a] mb-4 flex items-center gap-2">
+                                            <FaSearch className="text-[#8a6a9a]" />
+                                            Recetas por Descubrir ({recetasInvestigables.length})
+                                        </h2>
+                                        <div className="bg-[#f0e8f8] border border-[#c4b0d4] rounded-lg p-3 mb-4">
+                                            <p className="text-sm text-[#6a4a7a]">
+                                                Estas recetas requieren investigacion. Investiga los objetos marcados para desbloquearlas.
+                                            </p>
+                                        </div>
+                                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            {recetasInvestigables.map(receta => (
+                                                <RecetaCard
+                                                    key={receta.id}
+                                                    receta={receta}
+                                                    onClick={handleRecetaClick}
+                                                    disponible={true}
+                                                    tipo="investigable"
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Recetas Disponibles */}
+                                {!loading && recetasDisponibles.length > 0 && (
+                                    <div className="mb-8">
+                                        <h2 className="font-serif text-2xl text-[#3a5a3a] mb-4 flex items-center gap-2">
+                                            <FaCheckCircle className="text-[#5a7a5a]" />
+                                            Recetas Disponibles ({recetasDisponibles.length})
+                                        </h2>
+                                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            {recetasDisponibles.map(receta => (
+                                                <RecetaCard
+                                                    key={receta.id}
+                                                    receta={receta}
+                                                    onClick={handleRecetaClick}
+                                                    disponible={true}
+                                                    tipo="disponible"
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Recetas Bloqueadas */}
+                                {!loading && recetasBloqueadas.length > 0 && (
+                                    <div>
+                                        <h2 className="font-serif text-2xl text-[#6a5a4a] mb-4 flex items-center gap-2">
+                                            <FaLock className="text-[#8a8078]" />
+                                            Recetas No Disponibles ({recetasBloqueadas.length})
+                                        </h2>
+                                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            {recetasBloqueadas.map(receta => (
+                                                <RecetaCard
+                                                    key={receta.id}
+                                                    receta={receta}
+                                                    onClick={() => {}}
+                                                    disponible={false}
+                                                    tipo="bloqueada"
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Sin recetas */}
+                                {!loading && recetas.length === 0 && (
+                                    <div className="bg-[#f5ede1] rounded-xl border-2 border-[#3a2a1a] shadow-[0_4px_12px_rgba(0,0,0,0.15)] p-12 text-center">
+                                        <p className="text-xl text-[#4a3f35] font-serif">No hay recetas disponibles</p>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </>
                 )}
+                {/* ---------------------------------------------------------------------------------- */}
+
+                {/* Los modales se quedan fuera del bloque principal para que su lógica de renderizado se mantenga simple, 
+                    ya que las variables de estado que los abren solo se modifican dentro del bloque KAMILA_ENABLED */}
 
                 {/* Modal Iniciar Crafting */}
                 {recetaParaCraftear && personajeSeleccionado && (

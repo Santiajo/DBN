@@ -1,11 +1,13 @@
-// types/receta.ts - ARCHIVO COMPLETO ACTUALIZADO
+// types/receta.ts
 
 export interface Objeto {
   id: number;
   Name: string;
 }
 
-// Tipo para ingredientes que vienen del endpoint /api/ingredientes/
+// ============ INGREDIENTES ============
+
+// Ingrediente del endpoint /api/ingredientes/ (admin)
 export interface IngredienteAPI {
   id: number;
   receta: number;
@@ -13,7 +15,7 @@ export interface IngredienteAPI {
   cantidad: number;
 }
 
-// 1. IngredienteForm: Usado para la gestión del estado local en el formulario. 
+// Ingrediente para formularios
 export interface IngredienteForm {
   id?: number; 
   objeto: number | string;
@@ -21,7 +23,74 @@ export interface IngredienteForm {
   nombre_objeto?: string;
 }
 
-// 2. RecetaFormData: Usado para la estructura final que se envía a la API
+// Ingrediente que viene de /api/recetas/ (admin)
+export interface IngredienteAdmin {
+  id: number;
+  receta: number;
+  objeto: number;
+  nombre_ingrediente: string;
+  cantidad: number;
+}
+
+// Ingrediente que viene de /api/crafting/recetas_disponibles/ (jugador)
+export interface IngredienteCrafting {
+  objeto_id: number;
+  nombre: string;
+  cantidad_necesaria: number;
+  es_material_raro?: boolean;
+}
+
+// ============ RECETAS ============
+
+// Campos comunes entre RecetaAdmin y RecetaCrafting
+interface RecetaBase {
+  id: number;
+  nombre: string;
+  objeto_final: string | number;
+  nombre_objeto_final: string;
+  cantidad_final: number;
+  es_magico: boolean;
+  oro_necesario: number;
+  herramienta: string;
+  rareza: string | null;
+  material_raro: number | null;
+  nombre_material_raro: string | null;
+  tipo_artesano?: string | null;
+  grado_minimo_requerido: string;
+  es_consumible: boolean;
+  dc: number;
+  exitos_requeridos: number;
+  requiere_investigacion: boolean;
+}
+
+// Receta del endpoint /api/recetas/ (para gestion/admin)
+export interface RecetaAdmin extends RecetaBase {
+  ingredientes: IngredienteAdmin[];
+}
+
+// Receta del endpoint /api/crafting/recetas_disponibles/ (para jugadores)
+export interface RecetaCrafting extends RecetaBase {
+  ingredientes: IngredienteCrafting[];
+  puede_craftear?: boolean;
+  ingredientes_faltantes?: Array<{
+    objeto: string;
+    necesaria: number;
+    actual: number;
+    faltante: number;
+  }>;
+  competencia_personaje?: CompetenciaPersonaje | null;
+  coste_magico?: CosteMagico | null;
+  puede_craftear_rareza?: boolean;
+  esta_desbloqueada: boolean;
+  objetos_investigables: ObjetoInvestigable[];
+  puede_investigar: boolean;
+}
+
+// Tipo legacy para compatibilidad (usa RecetaCrafting o RecetaAdmin segun el contexto)
+export type Receta = RecetaCrafting;
+
+// ============ FORMULARIO DE RECETA ============
+
 export interface RecetaFormData {
   nombre: string;
   objeto_final: number | string;
@@ -34,10 +103,10 @@ export interface RecetaFormData {
   grado_minimo_requerido: string;
   es_consumible: boolean;
   herramienta: string;
-  requiere_investigacion: boolean; //  NUEVO
+  requiere_investigacion: boolean;
 }
 
-// ============ INVESTIGACIÓN ============
+// ============ INVESTIGACION ============
 
 export interface ObjetoInvestigable {
   id: number;
@@ -94,49 +163,6 @@ export interface HabilidadesPorFuente {
   entrevistas: HabilidadInvestigacion[];
   experimentos: HabilidadInvestigacion[];
   campo: never[];
-}
-
-// ============ RECETA ============
-
-export interface Receta {
-  id: number;
-  nombre: string;
-  objeto_final: string | number;
-  nombre_objeto_final: string;
-  cantidad_final: number;
-  es_magico: boolean;
-  oro_necesario: number;
-  herramienta: string;
-  ingredientes: Array<{
-  objeto_id: number;
-  nombre: string;
-  cantidad_necesaria: number;
-  es_material_raro?: boolean;
-  }>;
-  puede_craftear?: boolean;
-  ingredientes_faltantes?: Array<{
-    objeto: string;
-    necesaria: number;
-    actual: number;
-    faltante: number;
-  }>;
-  rareza: string | null;
-  material_raro: number | null;
-  nombre_material_raro: string | null;
-  tipo_artesano: string | null;
-  grado_minimo_requerido: string;
-  es_consumible: boolean;
-  dc: number;
-  exitos_requeridos: number;
-  competencia_personaje?: CompetenciaPersonaje | null;
-  coste_magico?: CosteMagico | null;
-  puede_craftear_rareza?: boolean;
-  
-  //  NUEVOS CAMPOS PARA INVESTIGACIÓN
-  requiere_investigacion: boolean;
-  esta_desbloqueada: boolean;
-  objetos_investigables: ObjetoInvestigable[];
-  puede_investigar: boolean;
 }
 
 // ============ PERSONAJE ============
@@ -271,7 +297,7 @@ export interface RespuestaMisProgresos {
   completados: Progreso[];
 }
 
-// ============ RESPUESTAS DE LA API - INVESTIGACIÓN ============
+// ============ RESPUESTAS DE LA API - INVESTIGACION ============
 
 export interface IniciarInvestigacionPayload {
   receta_id: number;

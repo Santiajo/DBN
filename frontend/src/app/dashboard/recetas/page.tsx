@@ -8,19 +8,18 @@ import Modal from '@/components/modal';
 import ConfirmAlert from '@/components/confirm-alert';
 import RecetaForm from '@/components/receta-form';
 import { FaPlus, FaPencilAlt, FaTrash, FaCoins, FaMagic, FaStar, FaTools, FaFlask } from 'react-icons/fa';
-import { RecetaFormData, Receta } from '@/types/receta';
+import { RecetaFormData, RecetaAdmin,  } from '@/types/receta';
 
 export default function RecetasPage() {
     const { accessToken, logout } = useAuth();
 
-    const [recetas, setRecetas] = useState<Receta[]>([]);
+    const [recetas, setRecetas] = useState<RecetaAdmin[]>([]);
     const [loading, setLoading] = useState(true);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingReceta, setEditingReceta] = useState<Receta | null>(null);
-
+    const [editingReceta, setEditingReceta] = useState<RecetaAdmin | null>(null);
     const [isAlertOpen, setIsAlertOpen] = useState(false);
-    const [recetaToDelete, setRecetaToDelete] = useState<Receta | null>(null);
+    const [recetaToDelete, setRecetaToDelete] = useState<RecetaAdmin | null>(null);
     const [errorMessage, setErrorMessage] = useState('');
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -41,7 +40,7 @@ export default function RecetasPage() {
             
             console.log('Recetas cargadas:', recetasData);
             
-            recetasData.forEach((receta: Receta) => {
+            recetasData.forEach((receta: RecetaAdmin) => {
                 if (!receta.ingredientes) {
                     console.warn(`Receta "${receta.nombre}" (ID: ${receta.id}) no tiene ingredientes`);
                 } else {
@@ -63,7 +62,7 @@ export default function RecetasPage() {
         fetchRecetas();
     }, [fetchRecetas]);
 
-    const fetchRecetaDetalle = async (recetaId: number): Promise<Receta | null> => {
+    const fetchRecetaDetalle = async (recetaId: number): Promise<RecetaAdmin | null> => {
         if (!accessToken) return null;
         
         try {
@@ -134,7 +133,7 @@ export default function RecetasPage() {
                 throw new Error('Error al guardar la Receta principal');
             }
             
-            const savedReceta: Receta = await res.json();
+            const savedReceta: RecetaAdmin = await res.json();
             const recetaId = savedReceta.id;
 
             console.log('Receta guardada:', savedReceta);
@@ -239,7 +238,7 @@ export default function RecetasPage() {
         setIsModalOpen(true); 
     };
     
-    const handleOpenEditModal = async (receta: Receta) => { 
+    const handleOpenEditModal = async (receta: RecetaAdmin) => { 
         console.log('Editando receta:', receta);
         
         const recetaDetalle = await fetchRecetaDetalle(receta.id);
@@ -252,7 +251,7 @@ export default function RecetasPage() {
         }
     };
     
-    const handleOpenDeleteAlert = (receta: Receta) => { 
+    const handleOpenDeleteAlert = (receta: RecetaAdmin) => { 
         setRecetaToDelete(receta); 
         setIsAlertOpen(true); 
     };
@@ -420,13 +419,13 @@ export default function RecetasPage() {
                                         {receta.ingredientes && receta.ingredientes.length > 0 ? (
                                             receta.ingredientes.map((ing, idx) => (
                                                 <div 
-                                                    key={ing.objeto_id || idx} 
+                                                    key={ing.id || idx} 
                                                     className="flex items-center gap-2 bg-[#ebe3d5] rounded px-3 py-2"
                                                 >
                                                     <span className="bg-[#c9a65a] text-white px-2 py-0.5 rounded text-xs font-bold min-w-[28px] text-center">
-                                                        {ing.cantidad_necesaria}x
+                                                        {ing.cantidad}x
                                                     </span>
-                                                    <span className="text-sm text-[#4a3f35]">{ing.nombre}</span>
+                                                    <span className="text-sm text-[#4a3f35]">{ing.nombre_ingrediente}</span>
                                                 </div>
                                             ))
                                         ) : (
