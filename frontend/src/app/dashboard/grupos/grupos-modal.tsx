@@ -54,6 +54,11 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
   const [donateAmount, setDonateAmount] = useState<number>(1);
   const [isLoadingInventory, setIsLoadingInventory] = useState(false);
 
+// --- ESTADOS PARA RETIRAR ---
+  const [isTaking, setIsTaking] = useState(false);
+  const [takeCharId, setTakeCharId] = useState<string>('');
+  const [takeItemId, setTakeItemId] = useState<string>('');
+  const [takeAmount, setTakeAmount] = useState<number>(1);
 
   const myMemberCharacter = useMemo(() => {
     return userPersonajes.find(pj => party.miembros.includes(pj.id));
@@ -194,6 +199,55 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
     } catch (e) { console.error(e); }
   };
 
+  // ---RETIRAR OBJETO ---
+  const handleTake = async () => {
+    if (!takeCharId || !takeItemId) return;
+
+    try {
+      const res = await fetch(buildApiUrl(`inventario-party/tomar_objeto/`), {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}` 
+        },
+        body: JSON.stringify({
+            party_id: party.id,
+            personaje_id: Number(takeCharId),
+            objeto_id: Number(takeItemId),
+            cantidad: takeAmount
+        })
+      });
+
+      if (res.ok) {
+        setAlertConfig({
+            isOpen: true,
+            title: 'OBJETO RETIRADO',
+            message: 'El objeto ahora está en tu inventario personal.',
+            confirmText: 'Entendido',
+            confirmVariant: 'primary',
+            showCancel: false,
+            onConfirm: () => {
+                closeAlert();
+                setIsTaking(false);
+                fetchInventory(); // Actualizar lista de la party
+            }
+        });
+      } else {
+        const err = await res.json();
+        setAlertConfig({
+            isOpen: true,
+            title: 'NO SE PUDO RETIRAR',
+            message: err.error || "Error desconocido.",
+            confirmText: 'Cerrar',
+            confirmVariant: 'dangerous',
+            showCancel: false,
+            onConfirm: closeAlert
+        });
+      }
+    } catch (e) { console.error(e); }
+  };
+
+
 
   // --- RENDERIZADO ---
 
@@ -209,6 +263,11 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
   const inventoryOptions = charInventory.map((item: InventarioItem)=> ({
       value: String(item.objeto), // ID del objeto
       label: `${item.objeto_nombre} (Tienes: ${item.cantidad})`
+  }));
+
+const partyInventoryOptions = inventarioParty.map((item) => ({
+      value: String(item.objeto), 
+      label: `${item.objeto_nombre} (Disponibles: ${item.cantidad})`
   }));
 
 
@@ -286,10 +345,13 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
       {activeTab === 'inventario' && (
         <div className="space-y-4">
             
-            {/* BOTÓN DE DONAR (SOLO SI ERES MIEMBRO) */}
-            {isMember && !isDonating && (
-                <div className="flex justify-end">
-                    <Button variant="secondary" onClick={() => setIsDonating(true)}>
+            {/* BOTONES DE ACCIÓN (DONAR / RETIRAR) */}
+            {isMember && !isDonating && !isTaking && (
+                <div className="flex justify-end gap-2">
+                    <Button variant="secondary" onClick={() => setIsTaking(true)}>
+                        Retirar Objeto
+                    </Button>
+                    <Button variant="primary" onClick={() => setIsDonating(true)}>
                         Donar Objeto
                     </Button>
                 </div>
@@ -355,6 +417,54 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
                                         </div>
                                     </div>
                                 )}
+                            </>
+                        )}
+                    </div>
+                </Card>
+            )}
+            {/* FORMULARIO DE RETIRAR (NUEVO) */}
+            {isTaking && (
+                <Card variant="secondary" className="mb-4 border-l-4 border-l-bosque">
+                    <h4 className="font-bold mb-2 text-bosque">Retirar del alijo</h4>
+                    <div className="space-y-3">
+                        {/* 1. QUIÉN RETIRA */}
+                        <div>
+                            <label className="text-xs font-bold">1. ¿Quién retira?</label>
+                            {/* Reutilizamos donateCharOptions porque son tus personajes en la party */}
+                            <Dropdown 
+                                options={donateCharOptions} 
+                                value={takeCharId}
+                                onChange={(e) => setTakeCharId(e.target.value)}
+                                placeholder="Selecciona tu personaje..."
+                            />
+                        </div>
+
+                        {takeCharId && (
+                            <>
+                                {/* 2. QUÉ OBJETO (Del inventario de la party) */}
+                                <div>
+                                    <label className="text-xs font-bold">2. ¿Qué objeto?</label>
+                                    <Dropdown 
+                                        options={partyInventoryOptions}
+                                        value={takeItemId}
+                                        onChange={(e) => setTakeItemId(e.target.value)}
+                                        placeholder="Selecciona del alijo..."
+                                    />
+                                </div>
+                                {/* 3. CANTIDAD */}
+                                <div>
+                                    <label className="text-xs font-bold">3. Cantidad</label>
+                                    <Input 
+                                        type="number" min="1" 
+                                        value={String(takeAmount)}
+                                        onChange={(e) => setTakeAmount(Number(e.target.value))}
+                                    />
+                                </div>
+                                {/* BOTONES */}
+                                <div className="flex justify-end gap-2 mt-2">
+                                    <Button variant="secondary" onClick={() => setIsTaking(false)}>Cancelar</Button>
+                                    <Button variant="primary" onClick={handleTake}>Confirmar Retiro</Button>
+                                </div>
                             </>
                         )}
                     </div>
