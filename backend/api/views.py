@@ -1320,6 +1320,58 @@ class InventarioPartyViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({"error": str(e)}, status=500)
 
+@action(detail=False, methods=['post'])
+def tomar_objeto(self, request):
+        """
+        Mueve un objeto de la party al inventario del personaje.
+        POST /api/inventario-party/tomar_objeto/
+        Body: { "party_id": 1, "personaje_id": 5, "objeto_id": 10, "cantidad": 1 }
+        """
+        party_id = request.data.get('party_id')
+        personaje_id = request.data.get('personaje_id')
+        objeto_id = request.data.get('objeto_id')
+        cantidad = int(request.data.get('cantidad', 1))
+
+        if cantidad <= 0:
+            return Response({"error": "La cantidad debe ser mayor a 0."}, status=400)
+
+        try:
+            with transaction.atomic():
+                personaje = Personaje.objects.get(id=personaje_id, user=request.user)
+                party = Party.objects.get(id=party_id)
+
+                if not party.miembros.filter(id=personaje.id).exists():
+                     return Response({"error": "No eres miembro de esta party."}, status=403)
+
+                try:
+                    item_party = InventarioParty.objects.select_for_update().get(party=party, objeto_id=objeto_id)
+                except InventarioParty.DoesNotExist:
+                    return Response({"error": "El objeto ya no está en la party."}, status=404)
+
+                if item_party.cantidad < cantidad:
+                    return Response({"error": f"Solo hay {item_party.cantidad} disponibles."}, status=400)
+
+                item_party.cantidad -= cantidad
+                if item_party.cantidad == 0:
+                    item_party.delete()
+                else:
+                    item_party.save()
+
+                item_personaje, created = Inventario.objects.get_or_create(
+                    personaje=personaje,
+                    objeto_id=objeto_id,
+                    defaults={'cantidad': 0}
+                )
+                item_personaje.cantidad = F('cantidad') + cantidad
+                item_personaje.save()
+
+                return Response({"success": "Objeto retirado correctamente."})
+
+        except Personaje.DoesNotExist:
+            return Response({"error": "Personaje no encontrado."}, status=404)
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
+
 # Views para NPCs
 class NPCViewSet(HybridLookupMixin, viewsets.ModelViewSet):
     queryset = NPC.objects.all().select_related('species')
