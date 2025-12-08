@@ -265,11 +265,16 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
       label: `${item.objeto_nombre} (Tienes: ${item.cantidad})`
   }));
 
-const partyInventoryOptions = inventarioParty.map((item) => ({
+  const partyInventoryOptions = inventarioParty.map((item) => ({
       value: String(item.objeto), 
       label: `${item.objeto_nombre} (Disponibles: ${item.cantidad})`
   }));
 
+  const selectedPartyItem = useMemo(() => {
+      return inventarioParty.find(item => String(item.objeto) === takeItemId);
+  }, [inventarioParty, takeItemId]);
+
+  const maxQuantityToTake = selectedPartyItem ? selectedPartyItem.cantidad : 1;
 
   return (
     <div className="font-body text-stone-800 space-y-6">
@@ -429,7 +434,7 @@ const partyInventoryOptions = inventarioParty.map((item) => ({
                     <div className="space-y-3">
                         {/* 1. QUIÉN RETIRA */}
                         <div>
-                            <label className="text-xs font-bold">1. ¿Quién retira?</label>
+                            <label className="text-xs font-bold">¿Quién retira?</label>
                             {/* Reutilizamos donateCharOptions porque son tus personajes en la party */}
                             <Dropdown 
                                 options={donateCharOptions} 
@@ -443,7 +448,7 @@ const partyInventoryOptions = inventarioParty.map((item) => ({
                             <>
                                 {/* 2. QUÉ OBJETO (Del inventario de la party) */}
                                 <div>
-                                    <label className="text-xs font-bold">2. ¿Qué objeto?</label>
+                                    <label className="text-xs font-bold">¿Qué objeto?</label>
                                     <Dropdown 
                                         options={partyInventoryOptions}
                                         value={takeItemId}
@@ -453,11 +458,21 @@ const partyInventoryOptions = inventarioParty.map((item) => ({
                                 </div>
                                 {/* 3. CANTIDAD */}
                                 <div>
-                                    <label className="text-xs font-bold">3. Cantidad</label>
+                                    <label className="text-xs font-bold">
+                                        Cantidad (Máx: {maxQuantityToTake})
+                                    </label>
                                     <Input 
-                                        type="number" min="1" 
+                                        type="number" 
+                                        min="1" 
+                                        max={maxQuantityToTake}
                                         value={String(takeAmount)}
-                                        onChange={(e) => setTakeAmount(Number(e.target.value))}
+                                        onChange={(e) => {
+                                            const val = Number(e.target.value);
+                                            // Validación extra por si escriben manualmente
+                                            if (val > maxQuantityToTake) setTakeAmount(maxQuantityToTake);
+                                            else if (val < 1) setTakeAmount(1);
+                                            else setTakeAmount(val);
+                                        }}
                                     />
                                 </div>
                                 {/* BOTONES */}
