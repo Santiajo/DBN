@@ -232,7 +232,7 @@ const fetchTrabajos = useCallback(async (page = 1, searchQuery = '') => {
     
 
 const handleSaveTrabajo = async (trabajoData: Trabajo) => {
-  console.log('💾 Datos completos del trabajo:', trabajoData);
+  console.log('Datos completos del trabajo:', trabajoData);
   
   if (!accessToken) return;
   
@@ -263,10 +263,10 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
     }
     
     const trabajoGuardado = await trabajoRes.json();
-    console.log('✅ Trabajo guardado:', trabajoGuardado);
+    console.log('Trabajo guardado:', trabajoGuardado);
 
     if (pagos && pagos.length > 0) {
-      console.log('💾 Procesando pagos para trabajo ID:', trabajoGuardado.id);
+      console.log('Procesando pagos para trabajo ID:', trabajoGuardado.id);
 
       let pagosExistentes: PagoRango[] = [];
       if (isEditing) {
@@ -276,13 +276,13 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
           });
           if (pagosRes.ok) {
             const pagosData = await pagosRes.json();
-            console.log('📋 Respuesta completa de pagos:', pagosData);
+            console.log('Respuesta completa de pagos:', pagosData);
             
             pagosExistentes = pagosData.results || pagosData.data || pagosData || [];
-            console.log('📋 Pagos existentes extraídos:', pagosExistentes);
+            console.log('Pagos existentes extraídos:', pagosExistentes);
 
             if (!Array.isArray(pagosExistentes)) {
-              console.error('❌ Los pagos existentes no son un array:', typeof pagosExistentes);
+              console.error('Los pagos existentes no son un array:', typeof pagosExistentes);
               pagosExistentes = [];
             }
           }
@@ -310,19 +310,19 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
           // ACTUALIZAR pago existente
           urlPago = buildApiUrl(`pagos-rango/${pagoExistente.id}/`);
           methodPago = 'PUT';
-          console.log(`🔄 Actualizando pago rango ${pago.rango} (ID: ${pagoExistente.id})`);
+          console.log(`Actualizando pago rango ${pago.rango} (ID: ${pagoExistente.id})`);
         } else {
           // CREAR nuevo pago
           urlPago = buildApiUrl(`trabajos/${trabajoGuardado.id}/pagos/`);
           methodPago = 'POST';
-          console.log(`🆕 Creando pago rango ${pago.rango}`);
+          console.log(`Creando pago rango ${pago.rango}`);
         }
         
-        console.log(`📤 Enviando pago rango ${pago.rango}:`, pagoData);
+        console.log(`Enviando pago rango ${pago.rango}:`, pagoData);
         // Después de obtener los pagos existentes
-        console.log('🔍 DEBUG - Tipo de pagosExistentes:', typeof pagosExistentes);
-        console.log('🔍 DEBUG - Es array?:', Array.isArray(pagosExistentes));
-        console.log('🔍 DEBUG - Contenido:', pagosExistentes);
+        console.log('DEBUG - Tipo de pagosExistentes:', typeof pagosExistentes);
+        console.log('DEBUG - Es array?:', Array.isArray(pagosExistentes));
+        console.log('DEBUG - Contenido:', pagosExistentes);
         
         const response = await fetch(urlPago, {
           method: methodPago,
@@ -335,7 +335,7 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
         
         if (!response.ok) {
           const errorText = await response.text();
-          console.error(`❌ Error en pago rango ${pago.rango}:`, {
+          console.error(`Error en pago rango ${pago.rango}:`, {
             status: response.status,
             statusText: response.statusText,
             error: errorText
@@ -351,11 +351,11 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
       const exitosos = resultados.filter(r => r.status === 'fulfilled').length;
       const fallidos = resultados.filter(r => r.status === 'rejected').length;
       
-      console.log(`📊 Resultados pagos: ${exitosos} exitosos, ${fallidos} fallidos`);
+      console.log(`Resultados pagos: ${exitosos} exitosos, ${fallidos} fallidos`);
       
       resultados.forEach((result, index) => {
         if (result.status === 'rejected') {
-          console.error(`❌ Falló pago rango ${pagos[index].rango}:`, result.reason);
+          console.error(`Falló pago rango ${pagos[index].rango}:`, result.reason);
         }
       });
       
@@ -369,7 +369,7 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
     fetchTrabajos(currentPage, '');
     
   } catch (error) {
-    console.error('❌ Error completo:', error);
+    console.error('Error completo:', error);
     alert('Error al guardar: ' + error);
   }
 };
@@ -416,9 +416,8 @@ const handleSaveTrabajo = async (trabajoData: Trabajo) => {
         { key: 'rango_maximo', label: 'Rango Máx' },
     ];
 
-    if (!user) {
-    return <div className="p-8 font-title">Verificando acceso...</div>;
-}
+    if (!user?.is_staff) return <div className="p-8">Acceso denegado</div>;
+    
     return (
         <div className="p-8 space-y-6">
             <Modal
