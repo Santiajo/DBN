@@ -1277,9 +1277,18 @@ class InventarioPartyViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        # Capturamos el parámetro
         party_id = self.request.query_params.get('party')
-        if party_id:
+        
+        # --- DEBUG PRINT (Míralo en los logs de Render/Consola) ---
+        print(f"🔍 DEBUG INVENTARIO: party_id recibido = '{party_id}'")
+        # ----------------------------------------------------------
+
+        if party_id is not None and party_id != '':
+            # Filtramos
             return InventarioParty.objects.filter(party_id=party_id)
+        
+        # Si no hay ID, lista vacía
         return InventarioParty.objects.none()
 
     @action(detail=False, methods=['post'])

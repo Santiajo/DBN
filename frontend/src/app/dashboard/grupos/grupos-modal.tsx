@@ -103,7 +103,7 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
       if (res.ok) {
         setAlertConfig({
             isOpen: true,
-            title: '¡BIENVENIDO AL GREMIO!',
+            title: '¡BIENVENIDO AL GRUPO!',
             message: 'Te has unido al grupo exitosamente.',
             confirmText: '¡Entendido!',
             confirmVariant: 'primary',
