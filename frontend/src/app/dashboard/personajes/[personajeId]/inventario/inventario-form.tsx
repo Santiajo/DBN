@@ -4,11 +4,10 @@ import { useState, useEffect } from 'react';
 import { Objeto, InventarioItem } from '@/types';
 import Input from '@/components/input';
 import Button from '@/components/button';
-// Reutilizamos el buscador de objetos que ya creamos. ¡Modularidad al poder!
-import ObjectSearch from '@/app/dashboard/tiendas/[tiendaId]/inventario/buscador-objeto';
+import ObjectSearch from '@/components/object-search';
 
 export interface InventarioPersonajeFormData {
-  objeto: string; // Guardamos el ID del objeto
+  objeto: string;
   cantidad: number;
 }
 
@@ -16,7 +15,7 @@ interface InventarioPersonajeFormProps {
   onSave: (data: InventarioPersonajeFormData) => void;
   onCancel: () => void;
   initialData?: InventarioItem | null;
-  objetosList: Objeto[]; // La lista completa de objetos para el buscador
+  objetosList: Objeto[];
 }
 
 export default function InventarioPersonajeForm({
@@ -53,6 +52,7 @@ export default function InventarioPersonajeForm({
     onSave(formData);
   };
   
+  // Buscar el nombre inicial si estamos editando
   const initialObjectName = initialData
     ? objetosList.find(o => o.id === initialData.objeto)?.Name
     : '';
@@ -62,11 +62,13 @@ export default function InventarioPersonajeForm({
       <div>
         <label className="block mb-1 font-semibold">Objeto</label>
         <ObjectSearch
-          objetosList={objetosList}
+          objetosList={objetosList} // Aquí es vital que la lista no esté vacía
           onObjectSelect={handleObjectSelect}
           initialObjectName={initialObjectName}
-          disabled={!!initialData} // Deshabilitamos si estamos editando
+          disabled={!!initialData} // No permitir cambiar el objeto al editar la cantidad
         />
+        {/* Validación visual simple */}
+        {!formData.objeto && <p className="text-xs text-carmesi mt-1">* Selecciona un objeto de la lista</p>}
       </div>
 
       <div>
@@ -76,7 +78,7 @@ export default function InventarioPersonajeForm({
             name="cantidad"
             type="number"
             min="1"
-            value={formData.cantidad}
+            value={String(formData.cantidad)}
             onChange={handleChange}
             required
         />
@@ -86,7 +88,7 @@ export default function InventarioPersonajeForm({
         <Button type="button" variant="secondary" onClick={onCancel}>
           Cancelar
         </Button>
-        <Button type="submit" variant="primary">
+        <Button type="submit" variant="primary" disabled={!formData.objeto}>
           {initialData ? 'Guardar Cambios' : 'Añadir al Inventario'}
         </Button>
       </div>

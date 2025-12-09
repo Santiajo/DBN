@@ -1,24 +1,22 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { Personaje, InventarioItem, Objeto } from '@/types';
-import Table from '@/components/table';
-import Button from '@/components/button';
+import { InventarioItem, Objeto } from '@/types';
+import Button from "@/components/button";
 import Modal from '@/components/modal';
 import ConfirmAlert from '@/components/confirm-alert';
-import InventarioPersonajeForm, { InventarioPersonajeFormData } from './inventario-personaje-form';
-import { FaPlus, FaPencilAlt, FaTrash, FaArrowLeft } from 'react-icons/fa';
+import InventarioPersonajeForm, { InventarioPersonajeFormData } from './inventario-form';
+import { FaPlus, FaTrash, FaPencilAlt, FaBoxOpen } from 'react-icons/fa';
 
-export default function InventarioPersonajePage({ params }: { params: { personajeId: string } }) {
-    const { accessToken, logout } = useAuth();
-    const router = useRouter();
-    const { personajeId } = params;
+export default function CharacterInventoryPage() {
+    const { accessToken } = useAuth();
+    const params = useParams();
+    const personajeId = params.personajeId as string;
 
-    const [personaje, setPersonaje] = useState<Personaje | null>(null);
-    const [inventario, setInventario] = useState<InventarioItem[]>([]);
-    const [allObjetos, setAllObjetos] = useState<Objeto[]>([]);
+    const [inventory, setInventory] = useState<InventarioItem[]>([]);
+    const [allObjects, setAllObjects] = useState<Objeto[]>([]);
     const [loading, setLoading] = useState(true);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -26,115 +24,159 @@ export default function InventarioPersonajePage({ params }: { params: { personaj
     const [isAlertOpen, setIsAlertOpen] = useState(false);
     const [itemToDelete, setItemToDelete] = useState<InventarioItem | null>(null);
 
-    const fetchPageData = useCallback(async () => {
+    const fetchData = useCallback(async () => {
         if (!accessToken) return;
-        setLoading(true);
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
         try {
-            const responses = await Promise.all([
-                fetch(`${apiUrl}/api/personajes/${personajeId}/`, { headers: { 'Authorization': `Bearer ${accessToken}` } }),
-                fetch(`${apiUrl}/api/personajes/${personajeId}/inventario/`, { headers: { 'Authorization': `Bearer ${accessToken}` } }),
-                fetch(`${apiUrl}/api/objetos/?page_size=1000`, { headers: { 'Authorization': `Bearer ${accessToken}` } })
+            const headers = { 'Authorization': `Bearer ${accessToken}` };
+            
+            const [resInv, resObj] = await Promise.all([
+                fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/inventario/?personaje=${personajeId}`, { headers }),
+                fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/objetos/?page_size=1000`, { headers })
             ]);
 
-            for (const res of responses) {
-                if (res.status === 401) {
-                    logout();
-                    throw new Error('Unauthorized');
-                }
-                if (!res.ok) {
-                    throw new Error(`Failed to fetch data: ${res.statusText}`);
-                }
+            if (resInv.ok && resObj.ok) {
+                const invData = await resInv.json();
+                const objData = await resObj.json();
+                
+                setInventory(invData.results || invData);
+                // Aseguramos que sea un array
+                setAllObjects(Array.isArray(objData) ? objData : objData.results || []);
             }
-            const [personajeData, inventarioData, objetosData] = await Promise.all(
-                responses.map(res => res.json())
-            );
-
-            setPersonaje(personajeData);
-            setInventario(inventarioData.results || inventarioData);
-            setAllObjetos(objetosData.results || objetosData);
         } catch (error) {
-            console.error(error);
+            console.error("Error cargando inventario:", error);
         } finally {
             setLoading(false);
         }
-    }, [accessToken, personajeId, logout]);
+    }, [accessToken, personajeId]);
 
     useEffect(() => {
-        fetchPageData();
-    }, [fetchPageData]);
+        fetchData();
+    }, [fetchData]);
 
-    const handleSaveItem = async (formData: InventarioPersonajeFormData) => {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    const handleSave = async (data: InventarioPersonajeFormData) => {
+        if (!accessToken) return;
+        
         const isEditing = !!editingItem;
-        const url = isEditing
-            ? `${apiUrl}/api/personajes/${personajeId}/inventario/${editingItem.id}/`
-            : `${apiUrl}/api/personajes/${personajeId}/inventario/`;
+        const url = isEditing 
+            ? `${process.env.NEXT_PUBLIC_API_URL}/api/inventario/${editingItem.id}/`
+            : `${process.env.NEXT_PUBLIC_API_URL}/api/inventario/`;
+        
         const method = isEditing ? 'PUT' : 'POST';
+        
+        const body = isEditing 
+            ? { cantidad: data.cantidad } 
+            : { personaje: parseInt(personajeId), objeto: parseInt(data.objeto), cantidad: data.cantidad };
 
         try {
             const res = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
-                body: JSON.stringify(formData),
+                body: JSON.stringify(body)
             });
-            if (!res.ok) throw new Error('Error al guardar el item');
-            setIsModalOpen(false);
-            await fetchPageData();
-        } catch (error) {
-            console.error(error);
-        }
+
+            if (res.ok) {
+                setIsModalOpen(false);
+                setEditingItem(null);
+                fetchData();
+            } else {
+                const err = await res.json();
+                alert(`Error: ${JSON.stringify(err)}`);
+            }
+        } catch (error) { console.error(error); }
     };
 
-    const handleConfirmDelete = async () => {
-        if (!itemToDelete) return;
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    const handleDelete = async () => {
+        if (!itemToDelete || !accessToken) return;
         try {
-            await fetch(`${apiUrl}/api/personajes/${personajeId}/inventario/${itemToDelete.id}/`, {
+            await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/inventario/${itemToDelete.id}/`, {
                 method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${accessToken}` },
+                headers: { 'Authorization': `Bearer ${accessToken}` }
             });
-            await fetchPageData();
-        } catch (error) {
-            console.error('Error al eliminar el item:', error);
-        } finally {
-            setIsAlertOpen(false);
-        }
+            fetchData();
+        } catch (error) { console.error(error); } 
+        finally { setIsAlertOpen(false); setItemToDelete(null); }
     };
 
-    const handleOpenAddModal = () => { setEditingItem(null); setIsModalOpen(true); };
-    const handleOpenEditModal = (item: InventarioItem) => { setEditingItem(item); setIsModalOpen(true); };
-    const handleOpenDeleteAlert = (item: InventarioItem) => { setItemToDelete(item); setIsAlertOpen(true); };
-
-    const tableHeaders = [{ key: 'objeto_nombre', label: 'Objeto' }, { key: 'cantidad', label: 'Cantidad' }, { key: 'actions', label: 'Acciones' }];
-    const tableData = inventario.map(item => ({
-        ...item,
-        actions: (
-            <div className="flex gap-2">
-                <Button variant="secondary" onClick={() => handleOpenEditModal(item)}><FaPencilAlt /></Button>
-                <Button variant="dangerous" onClick={() => handleOpenDeleteAlert(item)}><FaTrash /></Button>
-            </div>
-        )
-    }));
-
-    if (loading) return <div className="p-8 font-title">Cargando la ficha del personaje...</div>;
+    if (loading) return <div className="text-center py-10 font-title text-stone-500">Revisando mochila...</div>;
 
     return (
-        <div className="p-8 space-y-6">
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingItem ? 'Editar Cantidad' : 'Añadir Objeto al Inventario'}>
-                <InventarioPersonajeForm onSave={handleSaveItem} onCancel={() => setIsModalOpen(false)} initialData={editingItem} objetosList={allObjetos} />
-            </Modal>
-            <ConfirmAlert isOpen={isAlertOpen} onClose={() => setIsAlertOpen(false)} onConfirm={handleConfirmDelete} title="¿QUITAR OBJETO?" message={`El objeto "${itemToDelete?.objeto_nombre}" se eliminará del inventario.`} />
-
-            <div className="flex justify-between items-start">
-                <div>
-                    <h1 className="text-3xl font-title text-stone-800">Inventario de: <span className="text-bosque">{personaje?.nombre_personaje}</span></h1>
-                    <p className="text-stone-600">Revisa y gestiona los objetos de tu personaje.</p>
-                </div>
-                <Button variant="primary" onClick={handleOpenAddModal} className="whitespace-nowrap"><FaPlus className="mr-2" />Añadir Objeto</Button>
+        <div className="space-y-6 font-body text-stone-800">
+            <div className="flex justify-between items-center border-b border-madera-oscura/10 pb-4">
+                <h2 className="text-2xl font-title text-madera-oscura flex items-center gap-2">
+                    <FaBoxOpen /> Inventario
+                </h2>
+                <Button variant="primary" onClick={() => { setEditingItem(null); setIsModalOpen(true); }}>
+                    <div className="flex items-center gap-2"><FaPlus /> Añadir Objeto</div>
+                </Button>
             </div>
 
-            <Table headers={tableHeaders} data={tableData} />
+            <div className="overflow-x-auto rounded-xl border border-madera-oscura bg-white shadow-sm">
+                <table className="min-w-full text-left text-sm">
+                    <thead className="bg-cuero text-white font-title uppercase">
+                        <tr>
+                            <th className="px-4 py-3">Objeto</th>
+                            <th className="px-4 py-3 text-center w-32">Cantidad</th>
+                            <th className="px-4 py-3 text-right w-32">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-madera-oscura/10">
+                        {inventory.map((item) => (
+                            <tr key={item.id} className="hover:bg-bosque hover:text-white transition-colors group">
+                                <td className="px-4 py-3 font-semibold">
+                                    {item.objeto_nombre}
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                    <span className="bg-stone-100 text-stone-800 px-3 py-1 rounded-full font-bold text-xs border border-stone-200 group-hover:bg-white/20 group-hover:text-white group-hover:border-white/30">
+                                        x{item.cantidad}
+                                    </span>
+                                </td>
+                                <td className="px-4 py-3 text-right">
+                                    <div className="flex justify-end gap-2">
+                                        <button 
+                                            onClick={() => { setEditingItem(item); setIsModalOpen(true); }}
+                                            className="p-2 text-stone-400 hover:text-white hover:bg-white/20 rounded transition-colors"
+                                            title="Editar Cantidad"
+                                        >
+                                            <FaPencilAlt />
+                                        </button>
+                                        <button 
+                                            onClick={() => { setItemToDelete(item); setIsAlertOpen(true); }}
+                                            className="p-2 text-stone-400 hover:text-carmesi hover:bg-white rounded transition-colors"
+                                            title="Eliminar"
+                                        >
+                                            <FaTrash />
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                        {inventory.length === 0 && (
+                            <tr>
+                                <td colSpan={3} className="px-4 py-12 text-center text-stone-500 italic">
+                                    El inventario está vacío.
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingItem ? "Editar Cantidad" : "Añadir Objeto"}>
+                <InventarioPersonajeForm 
+                    onSave={handleSave} 
+                    onCancel={() => setIsModalOpen(false)} 
+                    initialData={editingItem}
+                    objetosList={allObjects}
+                />
+            </Modal>
+
+            <ConfirmAlert 
+                isOpen={isAlertOpen} 
+                onClose={() => setIsAlertOpen(false)} 
+                onConfirm={handleDelete} 
+                title="Eliminar Objeto" 
+                message={`¿Estás seguro de que quieres eliminar "${itemToDelete?.objeto_nombre}" del inventario?`} 
+            />
         </div>
     );
 }
