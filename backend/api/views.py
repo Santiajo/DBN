@@ -1266,7 +1266,7 @@ class InventarioPartyViewSet(viewsets.ModelViewSet):
         party_id = self.request.query_params.get('party')
         if party_id:
             return InventarioParty.objects.filter(party_id=party_id)
-        return InventarioParty.objects.all()
+        return InventarioParty.objects.none()
 
     @action(detail=False, methods=['post'])
     def donar_objeto(self, request):
