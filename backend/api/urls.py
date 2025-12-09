@@ -26,6 +26,9 @@ router.register(r'progreso-trabajos', ProgresoTrabajoViewSet, basename='progreso
 router.register(r'grupos', PartyViewSet)
 router.register(r'inventario-party', InventarioPartyViewSet, basename='inventarioparty')
 
+# Router para inventario general
+router.register(r'inventario', views.InventarioViewSet, basename='inventario') 
+
 # Routers para especies y rasgos de especies
 router.register(r'species', views.SpeciesViewSet, basename='species')
 router.register(r'traits', views.TraitViewSet, basename='trait')
