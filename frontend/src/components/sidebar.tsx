@@ -11,7 +11,6 @@ import {
   FaScroll,       // Habilidades/Hechizos
   FaCampground,   // Tiempo Libre (Descanso)
   FaStore,        // Tiendas (Comprar)
-  FaCoins,        // Treasure Points Store
   FaBook,         // Gestión (Compendio)
   FaGem,          // Objetos
   FaHammer,       // Trabajos
@@ -21,11 +20,18 @@ import {
   FaMedal,        // Subclases
   FaStar,         // Dotes
   FaUserTie,      // NPCs
+  FaUsers,        // Grupos 
+  FaCoins,        // Monedas 
+  FaGlassCheers,        // Monedas 
   FaAngleLeft, 
   FaAngleRight, 
   FaChevronDown, 
   FaChevronRight
 } from 'react-icons/fa';
+
+import { GiStoneCrafting,
+  GiStakeHammer
+ } from "react-icons/gi";
 
 type SidebarProps = {
   isCollapsed: boolean;
@@ -54,28 +60,31 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
     }
   };
 
-  // --- CONFIGURACIÓN DE ENLACES ---
+  // Enlaces
   const mainLinks = [
     { href: '/dashboard', icon: <FaDungeon />, label: 'Inicio' },
     { href: '/dashboard/personajes', icon: <FaUserShield />, label: 'Personajes' },
-    { href: '/dashboard/habilidades', icon: <FaScroll />, label: 'Habilidades' },
-    { href: '/dashboard/tiendatp', icon: <FaCoins />, label: 'Treasure Points' },
     { href: '/dashboard/compras', icon: <FaStore />, label: 'Tiendas' },
-    { href: '/dashboard/tiempo-libre', icon: <FaCampground />, label: 'Tiempo libre' },
+    { href: '/dashboard/tiendatp', icon: <FaCoins />, label: 'Treasure Points' },
+    { href: '/dashboard/juerga', icon: <FaGlassCheers />, label: 'Juerga' },
+    { href: '/dashboard/trabajar', icon: <FaHammer />, label: 'Tablón de Trabajo' },
+    { href: '/dashboard/grupos', icon: <FaUsers />, label: 'Grupos' },
+    { href: '/dashboard/crafteouser', icon: <GiStoneCrafting />, label: 'Crafteo' },
   ];
 
   const managementLinks = [
-    { href: '/dashboard/npcs', icon: <FaUserTie />, label: 'NPCs' },
     { href: '/dashboard/objetos', icon: <FaGem />, label: 'Objetos' },
     { href: '/dashboard/especies', icon: <FaDragon />, label: 'Especies' },
     { href: '/dashboard/clases', icon: <FaHatWizard />, label: 'Clases' },
     { href: '/dashboard/subclases', icon: <FaMedal />, label: 'Subclases' },
     { href: '/dashboard/dotes', icon: <FaStar />, label: 'Dotes' },
     { href: '/dashboard/trabajos', icon: <FaHammer />, label: 'Trabajos' },
-    { href: '/dashboard/tiendas', icon: <FaBalanceScale />, label: 'Gestión tiendas' },
+    { href: '/dashboard/tiendas', icon: <FaBalanceScale />, label: 'Tiendas' },
+    { href: '/dashboard/npcs', icon: <FaUserTie />, label: 'NPCs' },
+    { href: '/dashboard/recetas', icon: <GiStakeHammer />, label: 'Recetas' },
   ];
 
-  // Helper para renderizar links con TU ESTILO ORIGINAL
+  // Helper para renderizar links
   const renderLink = (link: { href: string; icon: React.ReactNode; label: string }, isSubItem = false) => {
     const isActive = pathname === link.href;
     
@@ -122,12 +131,6 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
         </div>
       )}
 
-      {/* NAVEGACIÓN SCROLLABLE
-          Aquí aplicamos las clases para ocultar el scrollbar:
-          [&::-webkit-scrollbar]:hidden -> Oculta en Chrome/Safari
-          [-ms-overflow-style:none]    -> Oculta en IE/Edge
-          [scrollbar-width:none]       -> Oculta en Firefox
-      */}
       <nav className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         <ul className="space-y-1">
           
