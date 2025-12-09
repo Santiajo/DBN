@@ -108,13 +108,11 @@ class RecetaSerializer(serializers.ModelSerializer):
         return obj.obtener_exitos_requeridos()
 
 class InventarioSerializer(serializers.ModelSerializer):
-    objeto_nombre = serializers.CharField(source='objeto.Name', read_only=True)
-
+    objeto_nombre = serializers.ReadOnlyField(source='objeto.Name')
+    
     class Meta:
         model = Inventario
-        fields = ['id', 'objeto', 'objeto_nombre', 'cantidad']
-
-
+        fields = ['id', 'personaje', 'objeto', 'objeto_nombre', 'cantidad']
 
 class ProficienciaSerializer(serializers.ModelSerializer):
     personaje_nombre = serializers.CharField(source='personaje.nombre_personaje', read_only=True)
