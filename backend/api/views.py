@@ -123,6 +123,20 @@ class HybridLookupMixin:
         self.check_object_permissions(self.request, obj)
         return obj
 
+class InventarioViewSet(viewsets.ModelViewSet):
+    queryset = Inventario.objects.all().select_related('objeto', 'personaje')
+    serializer_class = InventarioSerializer
+    permission_classes = [IsAuthenticated] 
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        personaje_id = self.request.query_params.get('personaje')
+        
+        if personaje_id:
+            queryset = queryset.filter(personaje_id=personaje_id)
+            
+        return queryset
+
 class InventarioPersonajeViewSet(viewsets.ModelViewSet):
     serializer_class = InventarioSerializer
     permission_classes = [IsAuthenticated]
