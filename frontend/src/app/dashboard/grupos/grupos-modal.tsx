@@ -75,7 +75,7 @@ export default function PartyModal({ party, userPersonajes, accessToken, onClose
   const fetchInventory = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(buildApiUrl(`inventario-party/?grupos=${party.id}`), {
+      const res = await fetch(buildApiUrl(`inventario-party/?party=${party.id}`), {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
       if (res.ok) {
