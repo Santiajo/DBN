@@ -15,10 +15,11 @@ export default function InventarioPage() {
     const { accessToken, logout } = useAuth();
     const router = useRouter();
     
-    // Obtenemos los parámetros de la URL
+    // --- OBTENCIÓN ROBUSTA DEL ID ---
     const params = useParams(); 
-    // Aseguramos que sea string y prevenimos posibles valores nulos
-    const tiendaId = params?.tiendaId as string;
+    
+    // Intentamos obtener el ID de varias formas posibles para evitar errores por nombre de carpeta
+    const tiendaId = (params?.tiendaId || params?.id || params?.slug) as string;
 
     const [tienda, setTienda] = useState<Tienda | null>(null);
     const [inventario, setInventario] = useState<ObjetoTienda[]>([]);
@@ -30,10 +31,15 @@ export default function InventarioPage() {
     const [isAlertOpen, setIsAlertOpen] = useState(false);
     const [itemToDelete, setItemToDelete] = useState<ObjetoTienda | null>(null);
 
+    // Debugging en consola para ver qué está pasando
+    useEffect(() => {
+        console.log("Params recibidos:", params);
+        console.log("ID Tienda detectado:", tiendaId);
+    }, [params, tiendaId]);
+
     const fetchPageData = useCallback(async () => {
-        // CORRECCIÓN: Validamos que tiendaId exista Y que no sea la cadena literal "undefined"
+        // VALIDACIÓN CRÍTICA: Si no hay ID o es "undefined", NO hacemos fetch
         if (!accessToken || !tiendaId || tiendaId === 'undefined') {
-            if (tiendaId === 'undefined') console.warn("ID de tienda inválido en la URL.");
             return;
         }
 
@@ -188,3 +194,5 @@ export default function InventarioPage() {
         </div>
     );
 }
+
+
