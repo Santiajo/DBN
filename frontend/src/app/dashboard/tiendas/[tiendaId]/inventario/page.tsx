@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Tienda, ObjetoTienda, Objeto } from '@/types';
 import Table from '@/components/table';
@@ -11,31 +11,46 @@ import ConfirmAlert from '@/components/confirm-alert';
 import InventarioItemForm, { InventarioFormData } from './inventario-form';
 import { FaPlus, FaPencilAlt, FaTrash, FaArrowLeft } from 'react-icons/fa';
 
-export default function InventarioPage({ params }: { params: { tiendaId: string } }) {
+export default function InventarioPage() {
     const { accessToken, logout } = useAuth();
     const router = useRouter();
-    const { tiendaId } = params;
+    
+    // --- OBTENCIÓN ROBUSTA DEL ID ---
+    const params = useParams(); 
+    
+    // Intentamos obtener el ID de varias formas posibles para evitar errores por nombre de carpeta
+    const tiendaId = (params?.tiendaId || params?.id || params?.slug) as string;
 
     const [tienda, setTienda] = useState<Tienda | null>(null);
     const [inventario, setInventario] = useState<ObjetoTienda[]>([]);
     const [allObjetos, setAllObjetos] = useState<Objeto[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // --- Estados para Modales y Alertas ---
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<ObjetoTienda | null>(null);
     const [isAlertOpen, setIsAlertOpen] = useState(false);
     const [itemToDelete, setItemToDelete] = useState<ObjetoTienda | null>(null);
 
+    // Debugging en consola para ver qué está pasando
+    useEffect(() => {
+        console.log("Params recibidos:", params);
+        console.log("ID Tienda detectado:", tiendaId);
+    }, [params, tiendaId]);
+
     const fetchPageData = useCallback(async () => {
-        if (!accessToken) return;
+        // VALIDACIÓN CRÍTICA: Si no hay ID o es "undefined", NO hacemos fetch
+        if (!accessToken || !tiendaId || tiendaId === 'undefined') {
+            return;
+        }
+
         setLoading(true);
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        
         try {
             const [tiendaRes, inventarioRes, objetosRes] = await Promise.all([
                 fetch(`${apiUrl}/api/tiendas/${tiendaId}/`, { headers: { 'Authorization': `Bearer ${accessToken}` } }),
                 fetch(`${apiUrl}/api/tiendas/${tiendaId}/inventario/`, { headers: { 'Authorization': `Bearer ${accessToken}` } }),
-                fetch(`${apiUrl}/api/objetos/?page_size=1000`, { headers: { 'Authorization': `Bearer ${accessToken}` } }) // Fetch all objects for the form dropdown
+                fetch(`${apiUrl}/api/objetos/?page_size=1000`, { headers: { 'Authorization': `Bearer ${accessToken}` } }) 
             ]);
 
             if (!tiendaRes.ok || !inventarioRes.ok || !objetosRes.ok) {
@@ -90,7 +105,7 @@ export default function InventarioPage({ params }: { params: { tiendaId: string 
             }
             setIsModalOpen(false);
             setEditingItem(null);
-            await fetchPageData(); // Recargar datos
+            await fetchPageData(); 
         } catch (error) {
             console.error(error);
         }
@@ -106,7 +121,7 @@ export default function InventarioPage({ params }: { params: { tiendaId: string 
             });
             if (!res.ok) throw new Error('Error al eliminar el item');
 
-            await fetchPageData(); // Recargar datos
+            await fetchPageData(); 
         } catch (error) {
             console.error('Error al eliminar el item:', error);
         } finally {
@@ -115,7 +130,7 @@ export default function InventarioPage({ params }: { params: { tiendaId: string 
         }
     };
 
-    // --- Handlers para abrir modales y alertas ---
+    // --- Handlers ---
     const handleOpenAddModal = () => { setEditingItem(null); setIsModalOpen(true); };
     const handleOpenEditModal = (item: ObjetoTienda) => { setEditingItem(item); setIsModalOpen(true); };
     const handleOpenDeleteAlert = (item: ObjetoTienda) => { setItemToDelete(item); setIsAlertOpen(true); };
@@ -159,7 +174,6 @@ export default function InventarioPage({ params }: { params: { tiendaId: string 
             />
 
             <div className="flex items-center justify-between gap-4">
-                {/* Contenedor para la parte izquierda */}
                 <div>
                     <Button variant="secondary" onClick={() => router.back()} className="mb-4 whitespace-nowrap">
                         <FaArrowLeft className="mr-2" />
@@ -170,7 +184,6 @@ export default function InventarioPage({ params }: { params: { tiendaId: string 
                     </h1>
                     <p className="text-stone-600">Regentada por {tienda?.npc_asociado}</p>
                 </div>
-                {/* Contenedor para la parte derecha */}
                 <Button variant="primary" onClick={handleOpenAddModal} className="whitespace-nowrap">
                     <FaPlus className="mr-2" />
                     Añadir Objeto
@@ -181,3 +194,5 @@ export default function InventarioPage({ params }: { params: { tiendaId: string 
         </div>
     );
 }
+
+
