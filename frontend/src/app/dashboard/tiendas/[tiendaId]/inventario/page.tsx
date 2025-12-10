@@ -15,24 +15,31 @@ export default function InventarioPage() {
     const { accessToken, logout } = useAuth();
     const router = useRouter();
     
+    // Obtenemos los parámetros de la URL
     const params = useParams(); 
-    const tiendaId = params.tiendaId as string;
+    // Aseguramos que sea string y prevenimos posibles valores nulos
+    const tiendaId = params?.tiendaId as string;
 
     const [tienda, setTienda] = useState<Tienda | null>(null);
     const [inventario, setInventario] = useState<ObjetoTienda[]>([]);
     const [allObjetos, setAllObjetos] = useState<Objeto[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // --- Estados para Modales y Alertas ---
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<ObjetoTienda | null>(null);
     const [isAlertOpen, setIsAlertOpen] = useState(false);
     const [itemToDelete, setItemToDelete] = useState<ObjetoTienda | null>(null);
 
     const fetchPageData = useCallback(async () => {
-        if (!accessToken || !tiendaId) return; // Validamos tiendaId
+        // CORRECCIÓN: Validamos que tiendaId exista Y que no sea la cadena literal "undefined"
+        if (!accessToken || !tiendaId || tiendaId === 'undefined') {
+            if (tiendaId === 'undefined') console.warn("ID de tienda inválido en la URL.");
+            return;
+        }
+
         setLoading(true);
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        
         try {
             const [tiendaRes, inventarioRes, objetosRes] = await Promise.all([
                 fetch(`${apiUrl}/api/tiendas/${tiendaId}/`, { headers: { 'Authorization': `Bearer ${accessToken}` } }),
