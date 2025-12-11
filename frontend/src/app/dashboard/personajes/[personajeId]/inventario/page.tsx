@@ -39,7 +39,6 @@ export default function CharacterInventoryPage() {
                 const objData = await resObj.json();
                 
                 setInventory(invData.results || invData);
-                // Aseguramos que sea un array
                 setAllObjects(Array.isArray(objData) ? objData : objData.results || []);
             }
         } catch (error) {
@@ -63,9 +62,11 @@ export default function CharacterInventoryPage() {
         
         const method = isEditing ? 'PUT' : 'POST';
         
-        const body = isEditing 
-            ? { cantidad: data.cantidad } 
-            : { personaje: parseInt(personajeId), objeto: parseInt(data.objeto), cantidad: data.cantidad };
+        const body = {
+            personaje: parseInt(personajeId),
+            objeto: isEditing ? editingItem.objeto : parseInt(data.objeto),
+            cantidad: data.cantidad
+        };
 
         try {
             const res = await fetch(url, {
@@ -80,7 +81,12 @@ export default function CharacterInventoryPage() {
                 fetchData();
             } else {
                 const err = await res.json();
-                alert(`Error: ${JSON.stringify(err)}`);
+                if (err.non_field_errors) {
+                    alert(`Error: ${err.non_field_errors.join(', ')}`);
+                } else {
+                    console.error("Error backend:", err);
+                    alert("Ocurrió un error al guardar. Revisa que todos los campos estén correctos.");
+                }
             }
         } catch (error) { console.error(error); }
     };
